@@ -1,0 +1,20 @@
+// use prisma-8
+
+model User {
+  id             Int      @id @default(autoincrement())
+  name           String?
+  email          String   @unique
+  password       String?
+  googleId       String?  @unique
+  emailVerified  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+}
+
+model EmailOtp {
+  id        Int      @id @default(autoincrement())
+  email     String
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
