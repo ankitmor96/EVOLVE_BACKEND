@@ -9,6 +9,11 @@ model User {
   emailVerified  Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now())
+
+  profile        UserProfile?
+  identities     UserIdentity[]
+  curiosities    UserCuriosity[]
+  skills         UserSkill[]
 }
 
 model EmailOtp {
@@ -17,4 +22,140 @@ model EmailOtp {
   otp       String
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+
+// ========================================
+// IDENTITY
+// ========================================
+
+model IdentityType {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  userIdentities UserIdentity[]
+}
+
+model UserIdentity {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  identityTypeId Int
+  isPrimary      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  identityType IdentityType @relation(fields: [identityTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, identityTypeId])
+  @@index([userId])
+  @@index([identityTypeId])
+}
+
+
+// ========================================
+// USER PROFILE
+// ========================================
+
+model UserProfile {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  username    String   @unique
+  avatarUrl   String?
+  countryCode String
+  ageRange    String
+  bio         String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+// ========================================
+// SKILL CATEGORIES
+// ========================================
+
+model SkillCategory {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  skills Skill[]
+}
+
+
+// ========================================
+// SKILLS
+// ========================================
+
+model Skill {
+  id          Int      @id @default(autoincrement())
+  categoryId  Int
+  name        String
+  slug        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  category    SkillCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  curiosities UserCuriosity[]
+  userSkills  UserSkill[]
+
+  @@index([categoryId])
+}
+
+
+// ========================================
+// USER CURIOSITIES
+// ========================================
+
+model UserCuriosity {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  skillId   Int
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([skillId])
+}
+
+
+// ========================================
+// USER SKILLS
+// ========================================
+
+enum SkillRelationshipType {
+  CAN_DO
+  LEARNING
+  WANT_TO_IMPROVE
+}
+
+model UserSkill {
+  id               Int                   @id @default(autoincrement())
+  userId           Int
+  skillId          Int
+  relationshipType SkillRelationshipType
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId, relationshipType])
+  @@index([userId])
+  @@index([skillId])
 }

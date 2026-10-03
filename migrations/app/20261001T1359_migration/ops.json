@@ -1,0 +1,167 @@
+[
+  {
+    "id": "table.EvolvProfile",
+    "label": "Create table \"EvolvProfile\"",
+    "summary": "Creates table \"EvolvProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "EvolvProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"EvolvProfile\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EvolvProfile\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"EvolvProfile\"",
+        "sql": "CREATE TABLE \"public\".\"EvolvProfile\" (\n  \"ageRange\" text NOT NULL,\n  \"completedAt\" timestamptz,\n  \"country\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"curiositySkills\" text[] NOT NULL,\n  \"focusAreas\" text[] NOT NULL,\n  \"focusSubAreas\" text[] NOT NULL,\n  \"fullName\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"profileCompleted\" bool DEFAULT false NOT NULL,\n  \"profilePhoto\" text,\n  \"roles\" text[] NOT NULL,\n  \"skillsCanDo\" text[] NOT NULL,\n  \"skillsLearning\" text[] NOT NULL,\n  \"skillsToImprove\" text[] NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"userId\" int4 NOT NULL,\n  \"username\" text NOT NULL,\n  \"workingToward\" text,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"EvolvProfile_ageRange_check_e9d011da\" CHECK (\"ageRange\" IN ('UNDER_18', 'AGE_18_24', 'AGE_25_34', 'AGE_35_44', 'AGE_45_PLUS')),\n  CONSTRAINT \"EvolvProfile_curiositySkills_elem_not_null_64d06193\" CHECK (array_position(\"curiositySkills\", NULL) IS NULL),\n  CONSTRAINT \"EvolvProfile_focusAreas_elem_not_null_222c8e05\" CHECK (array_position(\"focusAreas\", NULL) IS NULL),\n  CONSTRAINT \"EvolvProfile_focusSubAreas_elem_not_null_c824ac98\" CHECK (array_position(\"focusSubAreas\", NULL) IS NULL),\n  CONSTRAINT \"EvolvProfile_roles_elem_not_null_37524d49\" CHECK (array_position(\"roles\", NULL) IS NULL),\n  CONSTRAINT \"EvolvProfile_skillsCanDo_elem_not_null_950c80fb\" CHECK (array_position(\"skillsCanDo\", NULL) IS NULL),\n  CONSTRAINT \"EvolvProfile_skillsLearning_elem_not_null_cf15a663\" CHECK (array_position(\"skillsLearning\", NULL) IS NULL),\n  CONSTRAINT \"EvolvProfile_skillsToImprove_elem_not_null_96353631\" CHECK (array_position(\"skillsToImprove\", NULL) IS NULL)\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"EvolvProfile\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EvolvProfile\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.EvolvProfile.EvolvProfile_userId_key",
+    "label": "Add unique constraint on \"EvolvProfile\" (userId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "EvolvProfile_userId_key",
+        "table": "EvolvProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"EvolvProfile_userId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EvolvProfile_userId_key",
+          "public",
+          "\"public\".\"EvolvProfile\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"EvolvProfile_userId_key\"",
+        "sql": "ALTER TABLE \"public\".\"EvolvProfile\" ADD CONSTRAINT \"EvolvProfile_userId_key\" UNIQUE (\"userId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"EvolvProfile_userId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EvolvProfile_userId_key",
+          "public",
+          "\"public\".\"EvolvProfile\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.EvolvProfile.EvolvProfile_username_key",
+    "label": "Add unique constraint on \"EvolvProfile\" (username)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "EvolvProfile_username_key",
+        "table": "EvolvProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"EvolvProfile_username_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EvolvProfile_username_key",
+          "public",
+          "\"public\".\"EvolvProfile\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"EvolvProfile_username_key\"",
+        "sql": "ALTER TABLE \"public\".\"EvolvProfile\" ADD CONSTRAINT \"EvolvProfile_username_key\" UNIQUE (\"username\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"EvolvProfile_username_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EvolvProfile_username_key",
+          "public",
+          "\"public\".\"EvolvProfile\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.EvolvProfile.EvolvProfile_userId_fkey",
+    "label": "Add foreign key \"EvolvProfile_userId_fkey\" on \"EvolvProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "EvolvProfile_userId_fkey",
+        "table": "EvolvProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"EvolvProfile_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EvolvProfile_userId_fkey",
+          "public",
+          "\"public\".\"EvolvProfile\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"EvolvProfile_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"EvolvProfile\"\nADD CONSTRAINT \"EvolvProfile_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"EvolvProfile_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EvolvProfile_userId_fkey",
+          "public",
+          "\"public\".\"EvolvProfile\""
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,39 @@
+[
+  {
+    "id": "dropTable.EvolvProfile",
+    "label": "Drop table \"EvolvProfile\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "EvolvProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"EvolvProfile\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EvolvProfile\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop table \"EvolvProfile\"",
+        "sql": "DROP TABLE \"public\".\"EvolvProfile\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"EvolvProfile\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EvolvProfile\""
+        ]
+      }
+    ]
+  }
+]

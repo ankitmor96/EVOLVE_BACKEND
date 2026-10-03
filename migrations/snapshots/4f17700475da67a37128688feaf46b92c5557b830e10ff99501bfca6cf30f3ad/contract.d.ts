@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'757f866c81994f7be445a65ba3c2b5543720a98e7ab645e871b230a876c46318'>;
+  StorageHashBase<'4f17700475da67a37128688feaf46b92c5557b830e10ff99501bfca6cf30f3ad'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -310,7 +310,6 @@ export type FieldOutputTypes = {
     readonly UserProfile: {
       readonly ageRange: CodecTypes['pg/text@1']['output'];
       readonly avatarUrl: CodecTypes['pg/text@1']['output'] | null;
-      readonly bio: CodecTypes['pg/text@1']['output'] | null;
       readonly countryCode: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/int4@1']['output'];
@@ -391,7 +390,6 @@ export type FieldInputTypes = {
     readonly UserProfile: {
       readonly ageRange: CodecTypes['pg/text@1']['input'];
       readonly avatarUrl: CodecTypes['pg/text@1']['input'] | null;
-      readonly bio: CodecTypes['pg/text@1']['input'] | null;
       readonly countryCode: CodecTypes['pg/text@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/int4@1']['input'];
@@ -472,7 +470,6 @@ export type StorageColumnTypes = {
     readonly UserProfile: {
       readonly ageRange: CodecTypes['pg/text@1']['output'];
       readonly avatarUrl: CodecTypes['pg/text@1']['output'] | null;
-      readonly bio: CodecTypes['pg/text@1']['output'] | null;
       readonly countryCode: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/int4@1']['output'];
@@ -553,7 +550,6 @@ export type StorageColumnInputTypes = {
     readonly UserProfile: {
       readonly ageRange: CodecTypes['pg/text@1']['input'];
       readonly avatarUrl: CodecTypes['pg/text@1']['input'] | null;
-      readonly bio: CodecTypes['pg/text@1']['input'] | null;
       readonly countryCode: CodecTypes['pg/text@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/int4@1']['input'];
@@ -654,7 +650,6 @@ export namespace Models {
   export type public_UserProfile = {
     ageRange: CodecTypes['pg/text@1']['output'];
     avatarUrl: CodecTypes['pg/text@1']['output'] | null;
-    bio: CodecTypes['pg/text@1']['output'] | null;
     countryCode: CodecTypes['pg/text@1']['output'];
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     id: CodecTypes['pg/int4@1']['output'];
@@ -1155,11 +1150,6 @@ type ContractBase = Omit<
                   readonly nullable: false;
                 };
                 readonly avatarUrl: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly bio: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
@@ -1844,10 +1834,6 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly bio: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
               readonly countryCode: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -1896,7 +1882,6 @@ type ContractBase = Omit<
               readonly fields: {
                 readonly ageRange: { readonly column: 'ageRange' };
                 readonly avatarUrl: { readonly column: 'avatarUrl' };
-                readonly bio: { readonly column: 'bio' };
                 readonly countryCode: { readonly column: 'countryCode' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly id: { readonly column: 'id' };

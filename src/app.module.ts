@@ -9,6 +9,9 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { EmailModule } from './email/email.module';
+import { ProfileModule } from './profile/profile.module';
+import { IdentityModule } from './identity/identity.module';
+import { SkillModule } from './skill/skill.module';
 
 
 export const {
@@ -57,6 +60,15 @@ export const {
 
 
     EmailModule,
+
+
+    ProfileModule,
+
+
+    IdentityModule,
+
+
+    SkillModule,
   ],
 
 

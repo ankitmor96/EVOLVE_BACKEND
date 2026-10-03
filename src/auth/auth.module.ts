@@ -12,6 +12,8 @@ import { GoogleAuthGuard } from './guards/google-auth.guard';
 
 import { EmailModule } from '../email/email.module';
 
+import { JwtStrategy } from './strategies/jwt.strategy';
+
 @Module({
   imports: [
     JwtModule.register({
@@ -29,6 +31,7 @@ import { EmailModule } from '../email/email.module';
     AuthService,
     GoogleStrategy,
     GoogleAuthGuard,
+    JwtStrategy,
   ],
 
   controllers: [
