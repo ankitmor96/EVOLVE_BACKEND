@@ -386,6 +386,21 @@ export class ProfileService {
     };
   }
 
+  async getBio(userId: number) {
+    const profile =
+      await this.prisma.client.orm.public.UserProfile
+        .where({ userId })
+        .first();
+
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+
+    return {
+      bio: profile.bio,
+    };
+  }
+
   // =====================================
   // GET COMPLETE PROFILE
   // =====================================

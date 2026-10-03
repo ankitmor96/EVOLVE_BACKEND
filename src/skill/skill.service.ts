@@ -218,10 +218,6 @@ async createUserSkills(
     // UPDATE USER SKILL
     // =====================================
 
-    // =====================================
-    // UPDATE USER SKILL
-    // =====================================
-
     async updateUserSkill(
         userId: number,
         userSkillId: number,
