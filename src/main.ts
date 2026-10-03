@@ -1,9 +1,7 @@
-
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-
-import { AppModule, ObserveInstrument } from './app.module';
+import { AppModule } from './app.module';
 
 import { Temporal } from '@js-temporal/polyfill';
 
@@ -11,25 +9,20 @@ import { Temporal } from '@js-temporal/polyfill';
 (globalThis as any).Temporal = Temporal;
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    instrument: ObserveInstrument,
-  });
+  const app = await NestFactory.create(AppModule);
 
   // Add /api prefix to all routes
   app.setGlobalPrefix('api');
 
-  // Allow the Vite frontend to call the API directly. In development the
-  // frontend uses the Vite proxy instead, so this is a safety net.
+  // Allow the Vite frontend to call the API directly
   app.enableCors({
     origin:
-      app
-        .get(ConfigService)
-        .get<string>(
-          'FRONTEND_URL',
-        ) ?? 'http://localhost:5173',
+      app.get(ConfigService).get<string>('FRONTEND_URL') ??
+      'http://localhost:5173',
     credentials: true,
   });
 
+  // Global validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -41,4 +34,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-
