@@ -93,12 +93,15 @@ export class ProfileService {
   // =====================================
 
   async getProfile(userId: number) {
+      console.log('🔍 Getting profile for userId:', userId);
     const profile =
       await this.prisma.client.orm.public.UserProfile
         .where({
           userId,
         })
         .first();
+
+         console.log('📦 Profile found:', profile);
 
     if (!profile) {
       throw new Error('User profile not found');

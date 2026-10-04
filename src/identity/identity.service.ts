@@ -139,6 +139,9 @@ export class IdentityService {
         userIdentityId: number,
         dto: UpdateUserIdentityDto,
     ) {
+        console.log('🔍 JWT userId:', userId);
+        console.log('🔍 URL userIdentityId:', userIdentityId);
+        console.log('🔍 DTO:', dto);
 
         const identity =
             await this.prisma.client.orm.public.UserIdentity
@@ -148,12 +151,12 @@ export class IdentityService {
                 })
                 .first();
 
+        console.log('📦 Found identity:', identity);
+
         if (!identity) {
             throw new Error('User identity not found');
         }
 
-
-        // Update primary status
         const updatedIdentity =
             await this.prisma.client.orm.public.UserIdentity
                 .where({
@@ -164,15 +167,12 @@ export class IdentityService {
                     isPrimary: dto.isPrimary,
                 });
 
-
-        // Get identity type details
         const identityType =
             await this.prisma.client.orm.public.IdentityType
                 .where({
                     id: identity.identityTypeId,
                 })
                 .first();
-
 
         return {
             ...updatedIdentity,
