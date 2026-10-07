@@ -1,4 +1,3 @@
-
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 
@@ -19,7 +18,6 @@ export class EmailService {
         email: string,
         otp: string,
     ) {
-
         console.log('📧 Sending OTP to:', email);
 
         const info = await this.transporter.sendMail({
@@ -28,29 +26,27 @@ export class EmailService {
             subject: 'EVOLV Login OTP',
 
             html: `
-        <div style="font-family: Arial, sans-serif;">
-          <h2>EVOLV Login Verification</h2>
+                <div style="font-family: Arial, sans-serif;">
+                    <h2>EVOLV Login Verification</h2>
 
-          <p>Your login OTP is:</p>
+                    <p>Your login OTP is:</p>
 
-          <h1 style="letter-spacing: 6px;">
-            ${otp}
-          </h1>
+                    <h1 style="letter-spacing: 6px;">
+                        ${otp}
+                    </h1>
 
-          <p>
-            This OTP will expire in 5 minutes.
-          </p>
+                    <p>
+                        This OTP will expire in 5 minutes.
+                    </p>
 
-          <p>
-            If you did not request this OTP,
-            you can safely ignore this email.
-          </p>
-        </div>
-      `,
+                    <p>
+                        If you did not request this OTP,
+                        you can safely ignore this email.
+                    </p>
+                </div>
+            `,
         });
 
-         console.log('✅ Email sent:', info.messageId);
-         
+        console.log('✅ Email sent:', info.messageId);
     }
 }
-

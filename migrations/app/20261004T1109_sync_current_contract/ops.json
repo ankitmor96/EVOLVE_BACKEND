@@ -1,0 +1,1257 @@
+[
+  {
+    "id": "dropTable.EvolvProfile",
+    "label": "Drop table \"EvolvProfile\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "EvolvProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"EvolvProfile\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EvolvProfile\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop table \"EvolvProfile\"",
+        "sql": "DROP TABLE \"public\".\"EvolvProfile\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"EvolvProfile\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EvolvProfile\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.IdentityType",
+    "label": "Create table \"IdentityType\"",
+    "summary": "Creates table \"IdentityType\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "IdentityType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"IdentityType\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"IdentityType\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"IdentityType\"",
+        "sql": "CREATE TABLE \"public\".\"IdentityType\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"name\" text NOT NULL,\n  \"slug\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"IdentityType\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"IdentityType\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Skill",
+    "label": "Create table \"Skill\"",
+    "summary": "Creates table \"Skill\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Skill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Skill\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Skill\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Skill\"",
+        "sql": "CREATE TABLE \"public\".\"Skill\" (\n  \"categoryId\" int4 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text,\n  \"id\" SERIAL NOT NULL,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"name\" text NOT NULL,\n  \"slug\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Skill\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Skill\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.SkillCategory",
+    "label": "Create table \"SkillCategory\"",
+    "summary": "Creates table \"SkillCategory\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "SkillCategory"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"SkillCategory\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SkillCategory\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"SkillCategory\"",
+        "sql": "CREATE TABLE \"public\".\"SkillCategory\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text,\n  \"id\" SERIAL NOT NULL,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"name\" text NOT NULL,\n  \"slug\" text NOT NULL,\n  \"sortOrder\" int4 DEFAULT 0 NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"SkillCategory\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SkillCategory\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.UserCuriosity",
+    "label": "Create table \"UserCuriosity\"",
+    "summary": "Creates table \"UserCuriosity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "UserCuriosity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"UserCuriosity\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserCuriosity\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"UserCuriosity\"",
+        "sql": "CREATE TABLE \"public\".\"UserCuriosity\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"skillId\" int4 NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"UserCuriosity\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserCuriosity\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.UserIdentity",
+    "label": "Create table \"UserIdentity\"",
+    "summary": "Creates table \"UserIdentity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "UserIdentity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"UserIdentity\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserIdentity\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"UserIdentity\"",
+        "sql": "CREATE TABLE \"public\".\"UserIdentity\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"identityTypeId\" int4 NOT NULL,\n  \"isPrimary\" bool DEFAULT false NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"UserIdentity\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserIdentity\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.UserProfile",
+    "label": "Create table \"UserProfile\"",
+    "summary": "Creates table \"UserProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "UserProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"UserProfile\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserProfile\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"UserProfile\"",
+        "sql": "CREATE TABLE \"public\".\"UserProfile\" (\n  \"ageRange\" text NOT NULL,\n  \"avatarUrl\" text,\n  \"bio\" text,\n  \"countryCode\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"userId\" int4 NOT NULL,\n  \"username\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"UserProfile\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserProfile\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.UserSkill",
+    "label": "Create table \"UserSkill\"",
+    "summary": "Creates table \"UserSkill\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "UserSkill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"UserSkill\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserSkill\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"UserSkill\"",
+        "sql": "CREATE TABLE \"public\".\"UserSkill\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"relationshipType\" text NOT NULL,\n  \"skillId\" int4 NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"UserSkill_relationshipType_check_d13d0d3b\" CHECK (\"relationshipType\" IN ('CAN_DO', 'LEARNING', 'WANT_TO_IMPROVE'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"UserSkill\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserSkill\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.IdentityType.IdentityType_slug_key",
+    "label": "Add unique constraint on \"IdentityType\" (slug)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "IdentityType_slug_key",
+        "table": "IdentityType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"IdentityType_slug_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "IdentityType_slug_key",
+          "public",
+          "\"public\".\"IdentityType\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"IdentityType_slug_key\"",
+        "sql": "ALTER TABLE \"public\".\"IdentityType\" ADD CONSTRAINT \"IdentityType_slug_key\" UNIQUE (\"slug\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"IdentityType_slug_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "IdentityType_slug_key",
+          "public",
+          "\"public\".\"IdentityType\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Skill.Skill_slug_key",
+    "label": "Add unique constraint on \"Skill\" (slug)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Skill_slug_key",
+        "table": "Skill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Skill_slug_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Skill_slug_key",
+          "public",
+          "\"public\".\"Skill\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Skill_slug_key\"",
+        "sql": "ALTER TABLE \"public\".\"Skill\" ADD CONSTRAINT \"Skill_slug_key\" UNIQUE (\"slug\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Skill_slug_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Skill_slug_key",
+          "public",
+          "\"public\".\"Skill\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.SkillCategory.SkillCategory_slug_key",
+    "label": "Add unique constraint on \"SkillCategory\" (slug)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "SkillCategory_slug_key",
+        "table": "SkillCategory"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"SkillCategory_slug_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "SkillCategory_slug_key",
+          "public",
+          "\"public\".\"SkillCategory\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"SkillCategory_slug_key\"",
+        "sql": "ALTER TABLE \"public\".\"SkillCategory\" ADD CONSTRAINT \"SkillCategory_slug_key\" UNIQUE (\"slug\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"SkillCategory_slug_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "SkillCategory_slug_key",
+          "public",
+          "\"public\".\"SkillCategory\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.UserCuriosity.UserCuriosity_userId_skillId_key",
+    "label": "Add unique constraint on \"UserCuriosity\" (userId, skillId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "UserCuriosity_userId_skillId_key",
+        "table": "UserCuriosity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"UserCuriosity_userId_skillId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserCuriosity_userId_skillId_key",
+          "public",
+          "\"public\".\"UserCuriosity\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"UserCuriosity_userId_skillId_key\"",
+        "sql": "ALTER TABLE \"public\".\"UserCuriosity\" ADD CONSTRAINT \"UserCuriosity_userId_skillId_key\" UNIQUE (\"userId\", \"skillId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"UserCuriosity_userId_skillId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserCuriosity_userId_skillId_key",
+          "public",
+          "\"public\".\"UserCuriosity\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.UserIdentity.UserIdentity_userId_identityTypeId_key",
+    "label": "Add unique constraint on \"UserIdentity\" (userId, identityTypeId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "UserIdentity_userId_identityTypeId_key",
+        "table": "UserIdentity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"UserIdentity_userId_identityTypeId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserIdentity_userId_identityTypeId_key",
+          "public",
+          "\"public\".\"UserIdentity\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"UserIdentity_userId_identityTypeId_key\"",
+        "sql": "ALTER TABLE \"public\".\"UserIdentity\" ADD CONSTRAINT \"UserIdentity_userId_identityTypeId_key\" UNIQUE (\"userId\", \"identityTypeId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"UserIdentity_userId_identityTypeId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserIdentity_userId_identityTypeId_key",
+          "public",
+          "\"public\".\"UserIdentity\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.UserProfile.UserProfile_userId_key",
+    "label": "Add unique constraint on \"UserProfile\" (userId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "UserProfile_userId_key",
+        "table": "UserProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"UserProfile_userId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserProfile_userId_key",
+          "public",
+          "\"public\".\"UserProfile\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"UserProfile_userId_key\"",
+        "sql": "ALTER TABLE \"public\".\"UserProfile\" ADD CONSTRAINT \"UserProfile_userId_key\" UNIQUE (\"userId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"UserProfile_userId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserProfile_userId_key",
+          "public",
+          "\"public\".\"UserProfile\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.UserProfile.UserProfile_username_key",
+    "label": "Add unique constraint on \"UserProfile\" (username)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "UserProfile_username_key",
+        "table": "UserProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"UserProfile_username_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserProfile_username_key",
+          "public",
+          "\"public\".\"UserProfile\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"UserProfile_username_key\"",
+        "sql": "ALTER TABLE \"public\".\"UserProfile\" ADD CONSTRAINT \"UserProfile_username_key\" UNIQUE (\"username\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"UserProfile_username_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserProfile_username_key",
+          "public",
+          "\"public\".\"UserProfile\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.UserSkill.UserSkill_userId_skillId_relationshipType_key",
+    "label": "Add unique constraint on \"UserSkill\" (userId, skillId, relationshipType)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "UserSkill_userId_skillId_relationshipType_key",
+        "table": "UserSkill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"UserSkill_userId_skillId_relationshipType_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserSkill_userId_skillId_relationshipType_key",
+          "public",
+          "\"public\".\"UserSkill\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"UserSkill_userId_skillId_relationshipType_key\"",
+        "sql": "ALTER TABLE \"public\".\"UserSkill\" ADD CONSTRAINT \"UserSkill_userId_skillId_relationshipType_key\" UNIQUE (\"userId\", \"skillId\", \"relationshipType\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"UserSkill_userId_skillId_relationshipType_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserSkill_userId_skillId_relationshipType_key",
+          "public",
+          "\"public\".\"UserSkill\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Skill.Skill_categoryId_idx_15c304f2",
+    "label": "Create index \"Skill_categoryId_idx_15c304f2\" on \"Skill\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Skill_categoryId_idx_15c304f2",
+        "table": "Skill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Skill_categoryId_idx_15c304f2\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Skill_categoryId_idx_15c304f2\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Skill_categoryId_idx_15c304f2\"",
+        "sql": "CREATE INDEX \"Skill_categoryId_idx_15c304f2\" ON \"public\".\"Skill\" (\"categoryId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Skill_categoryId_idx_15c304f2\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Skill_categoryId_idx_15c304f2\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.UserCuriosity.UserCuriosity_skillId_idx_6e19993d",
+    "label": "Create index \"UserCuriosity_skillId_idx_6e19993d\" on \"UserCuriosity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "UserCuriosity_skillId_idx_6e19993d",
+        "table": "UserCuriosity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"UserCuriosity_skillId_idx_6e19993d\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserCuriosity_skillId_idx_6e19993d\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"UserCuriosity_skillId_idx_6e19993d\"",
+        "sql": "CREATE INDEX \"UserCuriosity_skillId_idx_6e19993d\" ON \"public\".\"UserCuriosity\" (\"skillId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"UserCuriosity_skillId_idx_6e19993d\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserCuriosity_skillId_idx_6e19993d\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.UserCuriosity.UserCuriosity_userId_idx_a489d58a",
+    "label": "Create index \"UserCuriosity_userId_idx_a489d58a\" on \"UserCuriosity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "UserCuriosity_userId_idx_a489d58a",
+        "table": "UserCuriosity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"UserCuriosity_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserCuriosity_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"UserCuriosity_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"UserCuriosity_userId_idx_a489d58a\" ON \"public\".\"UserCuriosity\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"UserCuriosity_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserCuriosity_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.UserIdentity.UserIdentity_identityTypeId_idx_9456f122",
+    "label": "Create index \"UserIdentity_identityTypeId_idx_9456f122\" on \"UserIdentity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "UserIdentity_identityTypeId_idx_9456f122",
+        "table": "UserIdentity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"UserIdentity_identityTypeId_idx_9456f122\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserIdentity_identityTypeId_idx_9456f122\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"UserIdentity_identityTypeId_idx_9456f122\"",
+        "sql": "CREATE INDEX \"UserIdentity_identityTypeId_idx_9456f122\" ON \"public\".\"UserIdentity\" (\"identityTypeId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"UserIdentity_identityTypeId_idx_9456f122\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserIdentity_identityTypeId_idx_9456f122\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.UserIdentity.UserIdentity_userId_idx_a489d58a",
+    "label": "Create index \"UserIdentity_userId_idx_a489d58a\" on \"UserIdentity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "UserIdentity_userId_idx_a489d58a",
+        "table": "UserIdentity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"UserIdentity_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserIdentity_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"UserIdentity_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"UserIdentity_userId_idx_a489d58a\" ON \"public\".\"UserIdentity\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"UserIdentity_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserIdentity_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.UserSkill.UserSkill_skillId_idx_6e19993d",
+    "label": "Create index \"UserSkill_skillId_idx_6e19993d\" on \"UserSkill\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "UserSkill_skillId_idx_6e19993d",
+        "table": "UserSkill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"UserSkill_skillId_idx_6e19993d\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserSkill_skillId_idx_6e19993d\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"UserSkill_skillId_idx_6e19993d\"",
+        "sql": "CREATE INDEX \"UserSkill_skillId_idx_6e19993d\" ON \"public\".\"UserSkill\" (\"skillId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"UserSkill_skillId_idx_6e19993d\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserSkill_skillId_idx_6e19993d\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.UserSkill.UserSkill_userId_idx_a489d58a",
+    "label": "Create index \"UserSkill_userId_idx_a489d58a\" on \"UserSkill\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "UserSkill_userId_idx_a489d58a",
+        "table": "UserSkill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"UserSkill_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserSkill_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"UserSkill_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"UserSkill_userId_idx_a489d58a\" ON \"public\".\"UserSkill\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"UserSkill_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserSkill_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Skill.Skill_categoryId_fkey",
+    "label": "Add foreign key \"Skill_categoryId_fkey\" on \"Skill\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Skill_categoryId_fkey",
+        "table": "Skill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Skill_categoryId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Skill_categoryId_fkey",
+          "public",
+          "\"public\".\"Skill\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Skill_categoryId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Skill\"\nADD CONSTRAINT \"Skill_categoryId_fkey\"\nFOREIGN KEY (\"categoryId\")\nREFERENCES \"public\".\"SkillCategory\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Skill_categoryId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Skill_categoryId_fkey",
+          "public",
+          "\"public\".\"Skill\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.UserCuriosity.UserCuriosity_userId_fkey",
+    "label": "Add foreign key \"UserCuriosity_userId_fkey\" on \"UserCuriosity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "UserCuriosity_userId_fkey",
+        "table": "UserCuriosity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"UserCuriosity_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserCuriosity_userId_fkey",
+          "public",
+          "\"public\".\"UserCuriosity\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"UserCuriosity_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"UserCuriosity\"\nADD CONSTRAINT \"UserCuriosity_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"UserCuriosity_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserCuriosity_userId_fkey",
+          "public",
+          "\"public\".\"UserCuriosity\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.UserCuriosity.UserCuriosity_skillId_fkey",
+    "label": "Add foreign key \"UserCuriosity_skillId_fkey\" on \"UserCuriosity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "UserCuriosity_skillId_fkey",
+        "table": "UserCuriosity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"UserCuriosity_skillId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserCuriosity_skillId_fkey",
+          "public",
+          "\"public\".\"UserCuriosity\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"UserCuriosity_skillId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"UserCuriosity\"\nADD CONSTRAINT \"UserCuriosity_skillId_fkey\"\nFOREIGN KEY (\"skillId\")\nREFERENCES \"public\".\"Skill\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"UserCuriosity_skillId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserCuriosity_skillId_fkey",
+          "public",
+          "\"public\".\"UserCuriosity\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.UserIdentity.UserIdentity_userId_fkey",
+    "label": "Add foreign key \"UserIdentity_userId_fkey\" on \"UserIdentity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "UserIdentity_userId_fkey",
+        "table": "UserIdentity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"UserIdentity_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserIdentity_userId_fkey",
+          "public",
+          "\"public\".\"UserIdentity\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"UserIdentity_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"UserIdentity\"\nADD CONSTRAINT \"UserIdentity_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"UserIdentity_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserIdentity_userId_fkey",
+          "public",
+          "\"public\".\"UserIdentity\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.UserIdentity.UserIdentity_identityTypeId_fkey",
+    "label": "Add foreign key \"UserIdentity_identityTypeId_fkey\" on \"UserIdentity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "UserIdentity_identityTypeId_fkey",
+        "table": "UserIdentity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"UserIdentity_identityTypeId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserIdentity_identityTypeId_fkey",
+          "public",
+          "\"public\".\"UserIdentity\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"UserIdentity_identityTypeId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"UserIdentity\"\nADD CONSTRAINT \"UserIdentity_identityTypeId_fkey\"\nFOREIGN KEY (\"identityTypeId\")\nREFERENCES \"public\".\"IdentityType\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"UserIdentity_identityTypeId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserIdentity_identityTypeId_fkey",
+          "public",
+          "\"public\".\"UserIdentity\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.UserProfile.UserProfile_userId_fkey",
+    "label": "Add foreign key \"UserProfile_userId_fkey\" on \"UserProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "UserProfile_userId_fkey",
+        "table": "UserProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"UserProfile_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserProfile_userId_fkey",
+          "public",
+          "\"public\".\"UserProfile\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"UserProfile_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"UserProfile\"\nADD CONSTRAINT \"UserProfile_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"UserProfile_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserProfile_userId_fkey",
+          "public",
+          "\"public\".\"UserProfile\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.UserSkill.UserSkill_userId_fkey",
+    "label": "Add foreign key \"UserSkill_userId_fkey\" on \"UserSkill\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "UserSkill_userId_fkey",
+        "table": "UserSkill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"UserSkill_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserSkill_userId_fkey",
+          "public",
+          "\"public\".\"UserSkill\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"UserSkill_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"UserSkill\"\nADD CONSTRAINT \"UserSkill_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"UserSkill_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserSkill_userId_fkey",
+          "public",
+          "\"public\".\"UserSkill\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.UserSkill.UserSkill_skillId_fkey",
+    "label": "Add foreign key \"UserSkill_skillId_fkey\" on \"UserSkill\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "UserSkill_skillId_fkey",
+        "table": "UserSkill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"UserSkill_skillId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserSkill_skillId_fkey",
+          "public",
+          "\"public\".\"UserSkill\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"UserSkill_skillId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"UserSkill\"\nADD CONSTRAINT \"UserSkill_skillId_fkey\"\nFOREIGN KEY (\"skillId\")\nREFERENCES \"public\".\"Skill\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"UserSkill_skillId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserSkill_skillId_fkey",
+          "public",
+          "\"public\".\"UserSkill\""
+        ]
+      }
+    ]
+  }
+]

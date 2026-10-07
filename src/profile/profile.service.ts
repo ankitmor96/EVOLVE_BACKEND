@@ -93,7 +93,7 @@ export class ProfileService {
   // =====================================
 
   async getProfile(userId: number) {
-      console.log('🔍 Getting profile for userId:', userId);
+    console.log('🔍 Getting profile for userId:', userId);
     const profile =
       await this.prisma.client.orm.public.UserProfile
         .where({
@@ -101,7 +101,7 @@ export class ProfileService {
         })
         .first();
 
-         console.log('📦 Profile found:', profile);
+    console.log('📦 Profile found:', profile);
 
     if (!profile) {
       throw new Error('User profile not found');
@@ -365,12 +365,17 @@ export class ProfileService {
     userId: number,
     bio?: string,
   ) {
+    console.log('🔍 UPDATE BIO userId:', userId);
+    console.log('📝 UPDATE BIO:', bio);
+
     const profile =
       await this.prisma.client.orm.public.UserProfile
         .where({
           userId,
         })
         .first();
+
+    console.log('📦 PROFILE:', profile);
 
     if (!profile) {
       throw new Error('User profile not found');
