@@ -21,7 +21,7 @@ const db = postgres({
 async function main() {
   await db.connect();
 
-  const email = "YOUR_ADMIN_EMAIL@gmail.com";
+  const email = "ankitmor9600@gmail.com";
 
   const user = await db.orm.public.User
     .where({ email })
