@@ -1,5 +1,10 @@
 // use prisma-8
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id             Int      @id @default(autoincrement())
   name           String?
@@ -7,6 +12,7 @@ model User {
   password       String?
   googleId       String?  @unique
   emailVerified  Boolean  @default(false)
+  role           UserRole @default(USER)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now())
 

@@ -12,6 +12,7 @@ import { EmailModule } from './email/email.module';
 import { ProfileModule } from './profile/profile.module';
 import { IdentityModule } from './identity/identity.module';
 import { SkillModule } from './skill/skill.module';
+import { AdminModule } from './admin/admin.module';
 
 
 
@@ -53,6 +54,12 @@ import { SkillModule } from './skill/skill.module';
 
 
     SkillModule,
+
+    // =========================
+    // ADMIN
+    // =========================
+
+    AdminModule,
   ],
 
 
@@ -65,5 +72,5 @@ import { SkillModule } from './skill/skill.module';
     AppService,
   ],
 })
-export class AppModule {}
+export class AppModule { }
 
