@@ -13,6 +13,7 @@ import { ProfileModule } from './profile/profile.module';
 import { IdentityModule } from './identity/identity.module';
 import { SkillModule } from './skill/skill.module';
 import { AdminModule } from './admin/admin.module';
+import { HomeModule } from './home/home.module';
 
 
 
@@ -60,6 +61,8 @@ import { AdminModule } from './admin/admin.module';
     // =========================
 
     AdminModule,
+
+    HomeModule,
   ],
 
 
