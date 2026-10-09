@@ -1,4 +1,15 @@
-import { Injectable } from '@nestjs/common';
+
+import {
+  Injectable,
+  Inject,
+  ConflictException,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
+
+import { v2 as cloudinary } from 'cloudinary';
+
 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
@@ -8,6 +19,9 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 export class ProfileService {
   constructor(
     private readonly prisma: PrismaService,
+
+    @Inject('CLOUDINARY')
+    private readonly cloudinaryClient: typeof cloudinary,
   ) { }
 
   // =====================================
@@ -20,24 +34,27 @@ export class ProfileService {
   ) {
     const username = dto.username.trim().toLowerCase();
 
-    // =====================================
-    // CHECK PROFILE ALREADY EXISTS
-    // =====================================
-
     const existingProfile =
       await this.prisma.client.orm.public.UserProfile
-        .where({
-          userId,
-        })
+        .where({ userId })
         .first();
 
     if (existingProfile) {
-      throw new Error('User profile already exists');
+      throw new ConflictException(
+        'User profile already exists',
+      );
     }
 
-    // =====================================
-    // CREATE PROFILE
-    // =====================================
+    const existingUsername =
+      await this.prisma.client.orm.public.UserProfile
+        .where({ username })
+        .first();
+
+    if (existingUsername) {
+      throw new ConflictException(
+        'Username already exists',
+      );
+    }
 
     const profile =
       await this.prisma.client.orm.public.UserProfile.create({
@@ -49,13 +66,23 @@ export class ProfileService {
         bio: dto.bio,
       });
 
-    // =====================================
-    // CREATE USER IDENTITIES
-    // =====================================
-
     const identities = [];
 
     for (const identityTypeId of dto.identityTypeIds) {
+      const identityType =
+        await this.prisma.client.orm.public.IdentityType
+          .where({
+            id: identityTypeId,
+            isActive: true,
+          })
+          .first();
+
+      if (!identityType) {
+        throw new NotFoundException(
+          `Identity type ${identityTypeId} not found`,
+        );
+      }
+
       const identity =
         await this.prisma.client.orm.public.UserIdentity.create({
           userId,
@@ -64,12 +91,46 @@ export class ProfileService {
             identityTypeId === dto.primaryIdentityTypeId,
         });
 
-      // Get IdentityType details
+      identities.push({
+        ...identity,
+        identityType,
+      });
+    }
+
+    return {
+      success: true,
+      profile,
+      identities,
+    };
+  }
+
+  // =====================================
+  // GET PROFILE + IDENTITIES
+  // =====================================
+
+  async getProfile(userId: number) {
+    const profile =
+      await this.prisma.client.orm.public.UserProfile
+        .where({ userId })
+        .first();
+
+    if (!profile) {
+      throw new NotFoundException(
+        'User profile not found',
+      );
+    }
+
+    const userIdentities =
+      await this.prisma.client.orm.public.UserIdentity
+        .where({ userId })
+        .all();
+
+    const identities = [];
+
+    for (const identity of userIdentities) {
       const identityType =
         await this.prisma.client.orm.public.IdentityType
-          .where({
-            id: identityTypeId,
-          })
+          .where({ id: identity.identityTypeId })
           .first();
 
       identities.push({
@@ -77,10 +138,6 @@ export class ProfileService {
         identityType,
       });
     }
-
-    // =====================================
-    // RESPONSE
-    // =====================================
 
     return {
       profile,
@@ -89,59 +146,132 @@ export class ProfileService {
   }
 
   // =====================================
-  // GET PROFILE
+  // UPLOAD AVATAR
   // =====================================
 
-  async getProfile(userId: number) {
-    console.log('🔍 Getting profile for userId:', userId);
+  async uploadAvatar(
+    userId: number,
+    file: {
+      buffer: Buffer;
+      mimetype: string;
+      size: number;
+    },
+  ) {
+    if (!file) {
+      throw new BadRequestException(
+        'Please select an image to upload',
+      );
+    }
+
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+    ];
+
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Only JPG, PNG and WEBP images are allowed',
+      );
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      throw new BadRequestException(
+        'Image size must not exceed 5 MB',
+      );
+    }
+
     const profile =
       await this.prisma.client.orm.public.UserProfile
-        .where({
-          userId,
-        })
+        .where({ userId })
         .first();
 
-    console.log('📦 Profile found:', profile);
-
     if (!profile) {
-      throw new Error('User profile not found');
+      throw new NotFoundException(
+        'Create your profile before uploading an avatar',
+      );
     }
 
-    // =====================================
-    // GET USER IDENTITIES
-    // =====================================
-
-    const userIdentities =
-      await this.prisma.client.orm.public.UserIdentity
-        .where({
-          userId,
-        })
-        .all();
-
-    // =====================================
-    // GET IDENTITY TYPE DETAILS
-    // =====================================
-
-    const identities = [];
-
-    for (const identity of userIdentities) {
-      const identityType =
-        await this.prisma.client.orm.public.IdentityType
-          .where({
-            id: identity.identityTypeId,
-          })
-          .first();
-
-      identities.push({
-        ...identity,
-        identityType,
-      });
+    if (!file.buffer) {
+      throw new BadRequestException(
+        'Image buffer is missing. Configure Multer memoryStorage.',
+      );
     }
 
-    return {
-      profile,
-      identities,
-    };
+    let result: any;
+
+    try {
+      result = await new Promise<any>(
+        (resolve, reject) => {
+          const stream =
+            this.cloudinaryClient.uploader.upload_stream(
+              {
+                folder: 'evolv/avatars',
+                public_id: `user_${userId}_${Date.now()}`,
+                resource_type: 'image',
+              },
+              (error, uploadResult) => {
+                if (error) {
+                  reject(error);
+                  return;
+                }
+
+                if (!uploadResult) {
+                  reject(
+                    new Error(
+                      'Cloudinary returned no upload result',
+                    ),
+                  );
+                  return;
+                }
+
+                resolve(uploadResult);
+              },
+            );
+
+          stream.end(file.buffer);
+        },
+      );
+    } catch (error) {
+      console.error('Cloudinary upload failed:', error);
+
+      throw new InternalServerErrorException(
+        'Failed to upload avatar',
+      );
+    }
+
+    try {
+      const updatedProfile =
+        await this.prisma.client.orm.public.UserProfile
+          .where({ userId })
+          .update({
+            avatarUrl: result.secure_url,
+          });
+
+      if (!updatedProfile) {
+        throw new Error(
+          'Profile avatar could not be updated',
+        );
+      }
+
+      return {
+        success: true,
+        message: 'Avatar uploaded successfully',
+        avatarUrl: updatedProfile.avatarUrl,
+        profile: updatedProfile,
+      };
+    } catch (error) {
+      console.error(
+        'Failed to save avatar URL:',
+        error,
+      );
+
+      throw new InternalServerErrorException(
+        'Image uploaded, but failed to save avatar URL',
+      );
+    }
   }
 
   // =====================================
@@ -152,28 +282,22 @@ export class ProfileService {
     userId: number,
     dto: UpdateProfileDto,
   ) {
-    // =====================================
-    // CHECK PROFILE
-    // =====================================
-
     const profile =
       await this.prisma.client.orm.public.UserProfile
         .where({ userId })
         .first();
 
     if (!profile) {
-      throw new Error('User profile not found');
+      throw new NotFoundException(
+        'User profile not found',
+      );
     }
-
-    // =====================================
-    // PROFILE UPDATE DATA
-    // =====================================
 
     const updateData: any = {};
 
-    // Username
     if (dto.username !== undefined) {
-      const username = dto.username.trim().toLowerCase();
+      const username =
+        dto.username.trim().toLowerCase();
 
       const existingUsername =
         await this.prisma.client.orm.public.UserProfile
@@ -184,30 +308,25 @@ export class ProfileService {
         existingUsername &&
         existingUsername.userId !== userId
       ) {
-        throw new Error('Username already exists');
+        throw new ConflictException(
+          'Username already exists',
+        );
       }
 
       updateData.username = username;
     }
 
-    // Avatar
     if (dto.avatarUrl !== undefined) {
       updateData.avatarUrl = dto.avatarUrl;
     }
 
-    // Country
     if (dto.countryCode !== undefined) {
       updateData.countryCode = dto.countryCode;
     }
 
-    // Age
     if (dto.ageRange !== undefined) {
       updateData.ageRange = dto.ageRange;
     }
-
-    // =====================================
-    // UPDATE PROFILE
-    // =====================================
 
     let updatedProfile = profile;
 
@@ -222,30 +341,17 @@ export class ProfileService {
       }
     }
 
-    // =====================================
-    // UPDATE IDENTITIES
-    // =====================================
-
     if (dto.identityTypeIds !== undefined) {
-
-      // -------------------------------------
-      // Validate primary identity
-      // -------------------------------------
-
       if (
         dto.primaryIdentityTypeId !== undefined &&
         !dto.identityTypeIds.includes(
           dto.primaryIdentityTypeId,
         )
       ) {
-        throw new Error(
+        throw new BadRequestException(
           'Primary identity must be included in identityTypeIds',
         );
       }
-
-      // -------------------------------------
-      // Check IdentityTypes exist
-      // -------------------------------------
 
       for (const identityTypeId of dto.identityTypeIds) {
         const identityType =
@@ -257,24 +363,16 @@ export class ProfileService {
             .first();
 
         if (!identityType) {
-          throw new Error(
+          throw new NotFoundException(
             `Identity type ${identityTypeId} not found`,
           );
         }
       }
 
-      // -------------------------------------
-      // Get old identities
-      // -------------------------------------
-
       const oldIdentities =
         await this.prisma.client.orm.public.UserIdentity
           .where({ userId })
           .all();
-
-      // -------------------------------------
-      // Delete old identities
-      // -------------------------------------
 
       for (const identity of oldIdentities) {
         await this.prisma.client.orm.public.UserIdentity
@@ -284,10 +382,6 @@ export class ProfileService {
           })
           .delete();
       }
-
-      // -------------------------------------
-      // Create new identities
-      // -------------------------------------
 
       for (const identityTypeId of dto.identityTypeIds) {
         await this.prisma.client.orm.public.UserIdentity.create({
@@ -299,10 +393,6 @@ export class ProfileService {
       }
     }
 
-    // =====================================
-    // GET UPDATED IDENTITIES
-    // =====================================
-
     const userIdentities =
       await this.prisma.client.orm.public.UserIdentity
         .where({ userId })
@@ -311,12 +401,9 @@ export class ProfileService {
     const identities = [];
 
     for (const identity of userIdentities) {
-
       const identityType =
         await this.prisma.client.orm.public.IdentityType
-          .where({
-            id: identity.identityTypeId,
-          })
+          .where({ id: identity.identityTypeId })
           .first();
 
       identities.push({
@@ -325,15 +412,12 @@ export class ProfileService {
       });
     }
 
-    // =====================================
-    // FINAL RESPONSE
-    // =====================================
-
     return {
       profile: updatedProfile,
       identities,
     };
   }
+
   // =====================================
   // DELETE PROFILE
   // =====================================
@@ -341,19 +425,17 @@ export class ProfileService {
   async deleteProfile(userId: number) {
     const profile =
       await this.prisma.client.orm.public.UserProfile
-        .where({
-          userId,
-        })
+        .where({ userId })
         .first();
 
     if (!profile) {
-      throw new Error('User profile not found');
+      throw new NotFoundException(
+        'User profile not found',
+      );
     }
 
     return this.prisma.client.orm.public.UserProfile
-      .where({
-        userId,
-      })
+      .where({ userId })
       .delete();
   }
 
@@ -365,26 +447,19 @@ export class ProfileService {
     userId: number,
     bio?: string,
   ) {
-    console.log('🔍 UPDATE BIO userId:', userId);
-    console.log('📝 UPDATE BIO:', bio);
-
     const profile =
       await this.prisma.client.orm.public.UserProfile
-        .where({
-          userId,
-        })
+        .where({ userId })
         .first();
 
-    console.log('📦 PROFILE:', profile);
-
     if (!profile) {
-      throw new Error('User profile not found');
+      throw new NotFoundException(
+        'User profile not found',
+      );
     }
 
     await this.prisma.client.orm.public.UserProfile
-      .where({
-        userId,
-      })
+      .where({ userId })
       .update({
         bio: bio ?? null,
       });
@@ -394,6 +469,10 @@ export class ProfileService {
     };
   }
 
+  // =====================================
+  // GET BIO
+  // =====================================
+
   async getBio(userId: number) {
     const profile =
       await this.prisma.client.orm.public.UserProfile
@@ -401,7 +480,9 @@ export class ProfileService {
         .first();
 
     if (!profile) {
-      throw new Error('User profile not found');
+      throw new NotFoundException(
+        'User profile not found',
+      );
     }
 
     return {
@@ -416,24 +497,18 @@ export class ProfileService {
   async getCompleteProfile(userId: number) {
     const profile =
       await this.prisma.client.orm.public.UserProfile
-        .where({
-          userId,
-        })
+        .where({ userId })
         .first();
 
     if (!profile) {
-      throw new Error('User profile not found');
+      throw new NotFoundException(
+        'User profile not found',
+      );
     }
-
-    // =====================================
-    // GET USER IDENTITIES
-    // =====================================
 
     const userIdentities =
       await this.prisma.client.orm.public.UserIdentity
-        .where({
-          userId,
-        })
+        .where({ userId })
         .all();
 
     const identities = [];
@@ -441,9 +516,7 @@ export class ProfileService {
     for (const identity of userIdentities) {
       const identityType =
         await this.prisma.client.orm.public.IdentityType
-          .where({
-            id: identity.identityTypeId,
-          })
+          .where({ id: identity.identityTypeId })
           .first();
 
       identities.push({
@@ -452,31 +525,15 @@ export class ProfileService {
       });
     }
 
-    // =====================================
-    // GET USER CURIOSITIES
-    // =====================================
-
     const curiosities =
       await this.prisma.client.orm.public.UserCuriosity
-        .where({
-          userId,
-        })
+        .where({ userId })
         .all();
-
-    // =====================================
-    // GET USER SKILLS
-    // =====================================
 
     const skills =
       await this.prisma.client.orm.public.UserSkill
-        .where({
-          userId,
-        })
+        .where({ userId })
         .all();
-
-    // =====================================
-    // COMPLETE PROFILE RESPONSE
-    // =====================================
 
     return {
       profile,

@@ -15,6 +15,17 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateProfileBioDto } from './dto/update-profile-bio.dto';
 
+import {
+    UseInterceptors,
+    UploadedFile,
+    ParseFilePipe,
+    MaxFileSizeValidator,
+    FileTypeValidator,
+    BadRequestException,
+} from '@nestjs/common';
+
+import { FileInterceptor } from '@nestjs/platform-express';
+
 @Controller('profile')
 export class ProfileController {
     constructor(
@@ -36,6 +47,59 @@ export class ProfileController {
         return this.profileService.createProfile(
             userId,
             dto,
+        );
+    }
+
+    // =====================================
+    // UPLOAD AVATAR
+    // =====================================
+
+    @UseGuards(JwtAuthGuard)
+    @Post('avatar')
+    @UseInterceptors(
+        FileInterceptor('file', {
+            limits: {
+                fileSize: 5 * 1024 * 1024,
+            },
+        }),
+    )
+    async uploadAvatar(
+        @Req() req: any,
+        @UploadedFile() file: {
+            buffer: Buffer;
+            mimetype: string;
+            size: number;
+        },
+    ) {
+        if (!file) {
+            throw new BadRequestException(
+                'Please select an image to upload',
+            );
+        }
+
+        const allowedMimeTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+        ];
+
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+            throw new BadRequestException(
+                'Only JPG, PNG and WEBP images are allowed',
+            );
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            throw new BadRequestException(
+                'Image size must not exceed 5 MB',
+            );
+        }
+
+        const userId = req.user.userId;
+
+        return this.profileService.uploadAvatar(
+            userId,
+            file,
         );
     }
 
