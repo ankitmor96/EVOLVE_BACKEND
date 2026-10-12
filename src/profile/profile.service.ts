@@ -28,9 +28,15 @@ export class ProfileService {
   // CREATE PROFILE
   // =====================================
 
+
   async createProfile(
     userId: number,
     dto: CreateProfileDto,
+    file?: {
+      buffer: Buffer;
+      mimetype: string;
+      size: number;
+    },
   ) {
     const username = dto.username.trim().toLowerCase();
 
@@ -56,18 +62,7 @@ export class ProfileService {
       );
     }
 
-    const profile =
-      await this.prisma.client.orm.public.UserProfile.create({
-        userId,
-        username,
-        avatarUrl: dto.avatarUrl,
-        countryCode: dto.countryCode,
-        ageRange: dto.ageRange,
-        bio: dto.bio,
-      });
-
-    const identities = [];
-
+    // Validate identity types before creating profile.
     for (const identityTypeId of dto.identityTypeIds) {
       const identityType =
         await this.prisma.client.orm.public.IdentityType
@@ -82,7 +77,73 @@ export class ProfileService {
           `Identity type ${identityTypeId} not found`,
         );
       }
+    }
 
+    // Upload image when file is provided.
+    let avatarUrl = dto.avatarUrl;
+
+    if (file) {
+      if (!file.buffer) {
+        throw new BadRequestException(
+          'Image buffer is missing',
+        );
+      }
+
+      try {
+        avatarUrl = await new Promise<string>(
+          (resolve, reject) => {
+            const stream =
+              this.cloudinaryClient.uploader.upload_stream(
+                {
+                  folder: 'evolv/avatars',
+                  public_id: `user_${userId}_${Date.now()}`,
+                  resource_type: 'image',
+                },
+                (error, result) => {
+                  if (error) {
+                    reject(error);
+                    return;
+                  }
+
+                  if (!result?.secure_url) {
+                    reject(
+                      new Error(
+                        'Cloudinary returned no secure URL',
+                      ),
+                    );
+                    return;
+                  }
+
+                  resolve(result.secure_url);
+                },
+              );
+
+            stream.end(file.buffer);
+          },
+        );
+      } catch (error) {
+        console.error('Cloudinary upload failed:', error);
+
+        throw new InternalServerErrorException(
+          'Failed to upload avatar to Cloudinary',
+        );
+      }
+    }
+
+    // Save Cloudinary URL in the profile.
+    const profile =
+      await this.prisma.client.orm.public.UserProfile.create({
+        userId,
+        username,
+        avatarUrl,
+        countryCode: dto.countryCode,
+        ageRange: dto.ageRange,
+        bio: dto.bio,
+      });
+
+    const identities = [];
+
+    for (const identityTypeId of dto.identityTypeIds) {
       const identity =
         await this.prisma.client.orm.public.UserIdentity.create({
           userId,
@@ -90,6 +151,11 @@ export class ProfileService {
           isPrimary:
             identityTypeId === dto.primaryIdentityTypeId,
         });
+
+      const identityType =
+        await this.prisma.client.orm.public.IdentityType
+          .where({ id: identityTypeId })
+          .first();
 
       identities.push({
         ...identity,
@@ -99,10 +165,12 @@ export class ProfileService {
 
     return {
       success: true,
+      message: 'Profile created successfully',
       profile,
       identities,
     };
   }
+
 
   // =====================================
   // GET PROFILE + IDENTITIES

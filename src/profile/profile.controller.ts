@@ -7,24 +7,17 @@ import {
     Post,
     Req,
     UseGuards,
+    UseInterceptors,
+    UploadedFile,
+    BadRequestException,
 } from '@nestjs/common';
 
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ProfileService } from './profile.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateProfileBioDto } from './dto/update-profile-bio.dto';
-
-import {
-    UseInterceptors,
-    UploadedFile,
-    ParseFilePipe,
-    MaxFileSizeValidator,
-    FileTypeValidator,
-    BadRequestException,
-} from '@nestjs/common';
-
-import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('profile')
 export class ProfileController {
@@ -38,15 +31,49 @@ export class ProfileController {
 
     @UseGuards(JwtAuthGuard)
     @Post()
+    @UseInterceptors(
+        FileInterceptor('file', {
+            limits: {
+                fileSize: 5 * 1024 * 1024,
+            },
+        }),
+    )
     async createProfile(
         @Req() req: any,
         @Body() dto: CreateProfileDto,
+        @UploadedFile()
+        file?: {
+            buffer: Buffer;
+            mimetype: string;
+            size: number;
+        },
     ) {
+        if (file) {
+            const allowedMimeTypes = [
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+            ];
+
+            if (!allowedMimeTypes.includes(file.mimetype)) {
+                throw new BadRequestException(
+                    'Only JPG, PNG and WEBP images are allowed',
+                );
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                throw new BadRequestException(
+                    'Image size must not exceed 5 MB',
+                );
+            }
+        }
+
         const userId = req.user.userId;
 
         return this.profileService.createProfile(
             userId,
             dto,
+            file,
         );
     }
 
