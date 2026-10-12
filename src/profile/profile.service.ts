@@ -107,7 +107,7 @@ export class ProfileService {
         const stream = this.cloudinaryClient.uploader.upload_stream(
           {
             folder: 'evolv/avatars',
-            public_id: `user_${userId}_${Date.now()} `,
+            public_id: `user_${userId}_${Date.now()}`,
             resource_type: 'image',
           },
           (error, result) => {
