@@ -25,6 +25,7 @@ export class ProfileController {
         private readonly profileService: ProfileService,
     ) { }
 
+
     // =====================================
     // CREATE PROFILE
     // =====================================
@@ -48,24 +49,36 @@ export class ProfileController {
             size: number;
         },
     ) {
-        if (file) {
-            const allowedMimeTypes = [
-                'image/jpeg',
-                'image/png',
-                'image/webp',
-            ];
 
-            if (!allowedMimeTypes.includes(file.mimetype)) {
-                throw new BadRequestException(
-                    'Only JPG, PNG and WEBP images are allowed',
-                );
-            }
+        console.log('Avatar file received:', !!file);
+        console.log('Avatar MIME type:', file?.mimetype);
+        console.log('Avatar size:', file?.size);
+        
+        // Avatar is required
+        if (!file) {
+            throw new BadRequestException(
+                'Avatar image is required',
+            );
+        }
 
-            if (file.size > 5 * 1024 * 1024) {
-                throw new BadRequestException(
-                    'Image size must not exceed 5 MB',
-                );
-            }
+        // Validate image type
+        const allowedMimeTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+        ];
+
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+            throw new BadRequestException(
+                'Only JPG, PNG and WEBP images are allowed',
+            );
+        }
+
+        // Validate image size
+        if (file.size > 5 * 1024 * 1024) {
+            throw new BadRequestException(
+                'Image size must not exceed 5 MB',
+            );
         }
 
         const userId = req.user.userId;
