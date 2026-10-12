@@ -1,3 +1,4 @@
+
 import {
     Body,
     Controller,
@@ -13,6 +14,8 @@ import {
 } from '@nestjs/common';
 
 import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+
 import { ProfileService } from './profile.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -25,7 +28,6 @@ export class ProfileController {
         private readonly profileService: ProfileService,
     ) { }
 
-
     // =====================================
     // CREATE PROFILE
     // =====================================
@@ -34,6 +36,7 @@ export class ProfileController {
     @Post()
     @UseInterceptors(
         FileInterceptor('file', {
+            storage: memoryStorage(),
             limits: {
                 fileSize: 5 * 1024 * 1024,
             },
@@ -43,25 +46,19 @@ export class ProfileController {
         @Req() req: any,
         @Body() dto: CreateProfileDto,
         @UploadedFile()
-        file?: {
-            buffer: Buffer;
-            mimetype: string;
-            size: number;
-        },
+        file?: Express.Multer.File,
     ) {
-
         console.log('Avatar file received:', !!file);
         console.log('Avatar MIME type:', file?.mimetype);
         console.log('Avatar size:', file?.size);
-        
-        // Avatar is required
-        if (!file) {
+        console.log('Avatar buffer received:', !!file?.buffer);
+
+        if (!file?.buffer) {
             throw new BadRequestException(
-                'Avatar image is required',
+                'Avatar image is required. Send it using FormData field "file".',
             );
         }
 
-        // Validate image type
         const allowedMimeTypes = [
             'image/jpeg',
             'image/png',
@@ -74,7 +71,6 @@ export class ProfileController {
             );
         }
 
-        // Validate image size
         if (file.size > 5 * 1024 * 1024) {
             throw new BadRequestException(
                 'Image size must not exceed 5 MB',
@@ -91,13 +87,14 @@ export class ProfileController {
     }
 
     // =====================================
-    // UPLOAD AVATAR
+    // UPLOAD AVATAR FOR EXISTING PROFILE
     // =====================================
 
     @UseGuards(JwtAuthGuard)
     @Post('avatar')
     @UseInterceptors(
         FileInterceptor('file', {
+            storage: memoryStorage(),
             limits: {
                 fileSize: 5 * 1024 * 1024,
             },
@@ -105,13 +102,10 @@ export class ProfileController {
     )
     async uploadAvatar(
         @Req() req: any,
-        @UploadedFile() file: {
-            buffer: Buffer;
-            mimetype: string;
-            size: number;
-        },
+        @UploadedFile()
+        file?: Express.Multer.File,
     ) {
-        if (!file) {
+        if (!file?.buffer) {
             throw new BadRequestException(
                 'Please select an image to upload',
             );
@@ -149,12 +143,10 @@ export class ProfileController {
 
     @UseGuards(JwtAuthGuard)
     @Get()
-    async getProfile(
-        @Req() req: any,
-    ) {
-        const userId = req.user.userId;
-
-        return this.profileService.getProfile(userId);
+    async getProfile(@Req() req: any) {
+        return this.profileService.getProfile(
+            req.user.userId,
+        );
     }
 
     // =====================================
@@ -163,13 +155,9 @@ export class ProfileController {
 
     @UseGuards(JwtAuthGuard)
     @Get('complete')
-    async getCompleteProfile(
-        @Req() req: any,
-    ) {
-        const userId = req.user.userId;
-
+    async getCompleteProfile(@Req() req: any) {
         return this.profileService.getCompleteProfile(
-            userId,
+            req.user.userId,
         );
     }
 
@@ -183,10 +171,8 @@ export class ProfileController {
         @Req() req: any,
         @Body() dto: UpdateProfileDto,
     ) {
-        const userId = req.user.userId;
-
         return this.profileService.updateProfile(
-            userId,
+            req.user.userId,
             dto,
         );
     }
@@ -197,13 +183,9 @@ export class ProfileController {
 
     @UseGuards(JwtAuthGuard)
     @Delete()
-    async deleteProfile(
-        @Req() req: any,
-    ) {
-        const userId = req.user.userId;
-
+    async deleteProfile(@Req() req: any) {
         return this.profileService.deleteProfile(
-            userId,
+            req.user.userId,
         );
     }
 
@@ -217,20 +199,22 @@ export class ProfileController {
         @Req() req: any,
         @Body() dto: UpdateProfileBioDto,
     ) {
-        const userId = req.user.userId;
-
         return this.profileService.updateBio(
-            userId,
+            req.user.userId,
             dto.bio,
         );
     }
 
+    // =====================================
+    // GET BIO
+    // =====================================
+
     @UseGuards(JwtAuthGuard)
     @Get('bio')
     async getBio(@Req() req: any) {
-        const userId = req.user.userId;
-
-        return this.profileService.getBio(userId);
+        return this.profileService.getBio(
+            req.user.userId,
+        );
     }
 
     // =====================================
@@ -243,10 +227,8 @@ export class ProfileController {
         @Req() req: any,
         @Body() dto: UpdateProfileBioDto,
     ) {
-        const userId = req.user.userId;
-
         return this.profileService.updateBio(
-            userId,
+            req.user.userId,
             dto.bio,
         );
     }

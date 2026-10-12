@@ -21,9 +21,6 @@ export class CreateProfileDto {
   })
   username: string;
 
-  // AVATAR URL (optional when uploading a file)
-  @IsString()
-  avatarUrl?: string;
 
   // COUNTRY
   @IsString()
