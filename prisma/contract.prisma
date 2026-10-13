@@ -1,8 +1,45 @@
-// use prisma-8
 
-enum UserRole {
-  USER
-  ADMIN
+ // use prisma-8
+
+
+enum SkillRelationshipType {
+  CAN_DO
+  LEARNING
+  WANT_TO_IMPROVE
+}
+
+enum PostType {
+  TEXT
+  IMAGE
+  VIDEO
+  MIXED
+  POLL
+}
+
+enum PostKind {
+  GENERAL
+  QUESTION
+  PROJECT
+  TUTORIAL
+}
+
+enum PostVisibility {
+  PUBLIC
+  CONNECTIONS
+  PRIVATE
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
 }
 
 model User {
@@ -12,7 +49,7 @@ model User {
   password       String?
   googleId       String?  @unique
   emailVerified  Boolean  @default(false)
-  role           UserRole @default(USER)
+  role           String?  @default("USER")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now())
 
@@ -20,6 +57,7 @@ model User {
   identities     UserIdentity[]
   curiosities    UserCuriosity[]
   skills         UserSkill[]
+  posts          Post[]
 }
 
 model EmailOtp {
@@ -29,7 +67,6 @@ model EmailOtp {
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
-
 
 // ========================================
 // IDENTITY
@@ -61,7 +98,6 @@ model UserIdentity {
   @@index([identityTypeId])
 }
 
-
 // ========================================
 // USER PROFILE
 // ========================================
@@ -80,7 +116,6 @@ model UserProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-
 // ========================================
 // SKILL CATEGORIES
 // ========================================
@@ -97,7 +132,6 @@ model SkillCategory {
 
   skills Skill[]
 }
-
 
 // ========================================
 // SKILLS
@@ -120,7 +154,6 @@ model Skill {
   @@index([categoryId])
 }
 
-
 // ========================================
 // USER CURIOSITIES
 // ========================================
@@ -139,16 +172,9 @@ model UserCuriosity {
   @@index([skillId])
 }
 
-
 // ========================================
 // USER SKILLS
 // ========================================
-
-enum SkillRelationshipType {
-  CAN_DO
-  LEARNING
-  WANT_TO_IMPROVE
-}
 
 model UserSkill {
   id               Int                   @id @default(autoincrement())
@@ -164,4 +190,48 @@ model UserSkill {
   @@unique([userId, skillId, relationshipType])
   @@index([userId])
   @@index([skillId])
+}
+
+// ========================================
+// POSTS
+// ========================================
+
+model Post {
+  id          Int            @id @default(autoincrement())
+  userId      Int
+  postType    PostType       @default(TEXT)
+  postKind    PostKind       @default(GENERAL)
+  caption     String?
+  visibility  PostVisibility @default(PUBLIC)
+  status      PostStatus     @default(DRAFT)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @default(now())
+  publishedAt DateTime?
+  deletedAt   DateTime?
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media PostMedia[]
+
+  @@index([userId, createdAt])
+  @@index([status, publishedAt])
+}
+
+// ========================================
+// POST MEDIA
+// ========================================
+
+model PostMedia {
+  id           Int       @id @default(autoincrement())
+  postId       Int
+  mediaType    MediaType
+  mediaUrl     String
+  thumbnailUrl String?
+  altText      String?
+  position     Int       @default(0)
+  metadata     Json?
+  createdAt    DateTime  @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, position])
 }

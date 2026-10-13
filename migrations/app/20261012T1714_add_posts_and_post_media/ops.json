@@ -1,0 +1,401 @@
+[
+  {
+    "id": "table.Post",
+    "label": "Create table \"Post\"",
+    "summary": "Creates table \"Post\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Post"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Post\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Post\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Post\"",
+        "sql": "CREATE TABLE \"public\".\"Post\" (\n  \"caption\" text,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"deletedAt\" timestamptz,\n  \"id\" SERIAL NOT NULL,\n  \"postKind\" text DEFAULT 'GENERAL' NOT NULL,\n  \"postType\" text DEFAULT 'TEXT' NOT NULL,\n  \"publishedAt\" timestamptz,\n  \"status\" text DEFAULT 'DRAFT' NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"userId\" int4 NOT NULL,\n  \"visibility\" text DEFAULT 'PUBLIC' NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"Post_postKind_check_53244310\" CHECK (\"postKind\" IN ('GENERAL', 'QUESTION', 'PROJECT', 'TUTORIAL')),\n  CONSTRAINT \"Post_postType_check_07bbca23\" CHECK (\"postType\" IN ('TEXT', 'IMAGE', 'VIDEO', 'MIXED', 'POLL')),\n  CONSTRAINT \"Post_status_check_bc64f66b\" CHECK (\"status\" IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')),\n  CONSTRAINT \"Post_visibility_check_7e49735a\" CHECK (\"visibility\" IN ('PUBLIC', 'CONNECTIONS', 'PRIVATE'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Post\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Post\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.PostMedia",
+    "label": "Create table \"PostMedia\"",
+    "summary": "Creates table \"PostMedia\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PostMedia"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PostMedia\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostMedia\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PostMedia\"",
+        "sql": "CREATE TABLE \"public\".\"PostMedia\" (\n  \"altText\" text,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"mediaType\" text NOT NULL,\n  \"mediaUrl\" text NOT NULL,\n  \"metadata\" json,\n  \"position\" int4 DEFAULT 0 NOT NULL,\n  \"postId\" int4 NOT NULL,\n  \"thumbnailUrl\" text,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"PostMedia_mediaType_check_cdf8f30c\" CHECK (\"mediaType\" IN ('IMAGE', 'VIDEO', 'AUDIO', 'DOCUMENT'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PostMedia\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostMedia\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.User.role",
+    "label": "Add column \"role\" to \"User\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "role",
+        "table": "User"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"role\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "User",
+          "role"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"role\"",
+        "sql": "ALTER TABLE \"public\".\"User\" ADD COLUMN \"role\" text DEFAULT 'USER'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"role\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "User",
+          "role"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Post.Post_status_publishedAt_idx_4d4b1960",
+    "label": "Create index \"Post_status_publishedAt_idx_4d4b1960\" on \"Post\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Post_status_publishedAt_idx_4d4b1960",
+        "table": "Post"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Post_status_publishedAt_idx_4d4b1960\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Post_status_publishedAt_idx_4d4b1960\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Post_status_publishedAt_idx_4d4b1960\"",
+        "sql": "CREATE INDEX \"Post_status_publishedAt_idx_4d4b1960\" ON \"public\".\"Post\" (\"status\", \"publishedAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Post_status_publishedAt_idx_4d4b1960\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Post_status_publishedAt_idx_4d4b1960\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Post.Post_userId_createdAt_idx_f726f04a",
+    "label": "Create index \"Post_userId_createdAt_idx_f726f04a\" on \"Post\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Post_userId_createdAt_idx_f726f04a",
+        "table": "Post"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Post_userId_createdAt_idx_f726f04a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Post_userId_createdAt_idx_f726f04a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Post_userId_createdAt_idx_f726f04a\"",
+        "sql": "CREATE INDEX \"Post_userId_createdAt_idx_f726f04a\" ON \"public\".\"Post\" (\"userId\", \"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Post_userId_createdAt_idx_f726f04a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Post_userId_createdAt_idx_f726f04a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Post.Post_userId_idx_a489d58a",
+    "label": "Create index \"Post_userId_idx_a489d58a\" on \"Post\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Post_userId_idx_a489d58a",
+        "table": "Post"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Post_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Post_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Post_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"Post_userId_idx_a489d58a\" ON \"public\".\"Post\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Post_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Post_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PostMedia.PostMedia_postId_idx_a7a72715",
+    "label": "Create index \"PostMedia_postId_idx_a7a72715\" on \"PostMedia\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PostMedia_postId_idx_a7a72715",
+        "table": "PostMedia"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PostMedia_postId_idx_a7a72715\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostMedia_postId_idx_a7a72715\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PostMedia_postId_idx_a7a72715\"",
+        "sql": "CREATE INDEX \"PostMedia_postId_idx_a7a72715\" ON \"public\".\"PostMedia\" (\"postId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PostMedia_postId_idx_a7a72715\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostMedia_postId_idx_a7a72715\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PostMedia.PostMedia_postId_position_idx_89272d53",
+    "label": "Create index \"PostMedia_postId_position_idx_89272d53\" on \"PostMedia\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PostMedia_postId_position_idx_89272d53",
+        "table": "PostMedia"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PostMedia_postId_position_idx_89272d53\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostMedia_postId_position_idx_89272d53\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PostMedia_postId_position_idx_89272d53\"",
+        "sql": "CREATE INDEX \"PostMedia_postId_position_idx_89272d53\" ON \"public\".\"PostMedia\" (\"postId\", \"position\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PostMedia_postId_position_idx_89272d53\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostMedia_postId_position_idx_89272d53\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Post.Post_userId_fkey",
+    "label": "Add foreign key \"Post_userId_fkey\" on \"Post\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Post_userId_fkey",
+        "table": "Post"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Post_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Post_userId_fkey",
+          "public",
+          "\"public\".\"Post\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Post_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Post\"\nADD CONSTRAINT \"Post_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Post_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Post_userId_fkey",
+          "public",
+          "\"public\".\"Post\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PostMedia.PostMedia_postId_fkey",
+    "label": "Add foreign key \"PostMedia_postId_fkey\" on \"PostMedia\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PostMedia_postId_fkey",
+        "table": "PostMedia"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PostMedia_postId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostMedia_postId_fkey",
+          "public",
+          "\"public\".\"PostMedia\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PostMedia_postId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PostMedia\"\nADD CONSTRAINT \"PostMedia_postId_fkey\"\nFOREIGN KEY (\"postId\")\nREFERENCES \"public\".\"Post\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PostMedia_postId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostMedia_postId_fkey",
+          "public",
+          "\"public\".\"PostMedia\""
+        ]
+      }
+    ]
+  }
+]

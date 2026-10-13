@@ -14,6 +14,8 @@ import { IdentityModule } from './identity/identity.module';
 import { SkillModule } from './skill/skill.module';
 import { AdminModule } from './admin/admin.module';
 import { HomeModule } from './home/home.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { PostsModule } from './posts/posts.module';
 
 
 
@@ -63,6 +65,10 @@ import { HomeModule } from './home/home.module';
     AdminModule,
 
     HomeModule,
+
+    CloudinaryModule,
+
+    PostsModule,
   ],
 
 
