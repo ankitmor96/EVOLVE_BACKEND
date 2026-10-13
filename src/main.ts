@@ -19,12 +19,22 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // Allow the Vite frontend to call the API directly
+  // app.enableCors({
+  //   origin:
+  //     app.get(ConfigService).get<string>('FRONTEND_URL') ??
+  //     'http://localhost:5173',
+  //   credentials: true,
+  // });
+
+
   app.enableCors({
-    origin:
-      app.get(ConfigService).get<string>('FRONTEND_URL') ??
+    origin: [
+      'https://evolve-inky-five.vercel.app',
       'http://localhost:5173',
+    ],
     credentials: true,
   });
+
 
   // Global validation with temporary debugging logs
   app.useGlobalPipes(
