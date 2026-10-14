@@ -81,30 +81,85 @@ export class AuthController {
   }
 
   // =====================================================
-// FORGOT PASSWORD
-// =====================================================
+  // FORGOT PASSWORD
+  // =====================================================
 
-@Post('forgot-password')
-forgotPassword(
-  @Body() forgotPasswordDto: ForgotPasswordDto,
-) {
-  return this.authService.forgotPassword(
-    forgotPasswordDto,
-  );
-}
+  @Post('forgot-password')
+  forgotPassword(
+    @Body() forgotPasswordDto: ForgotPasswordDto,
+  ) {
+    return this.authService.forgotPassword(
+      forgotPasswordDto,
+    );
+  }
 
-// =====================================================
-// RESET PASSWORD
-// =====================================================
+  // =====================================================
+  // RESET PASSWORD
+  // =====================================================
 
-@Post('reset-password')
-resetPassword(
-  @Body() resetPasswordDto: ResetPasswordDto,
-) {
-  return this.authService.resetPassword(
-    resetPasswordDto,
-  );
-}
+  @Post('reset-password')
+  resetPassword(
+    @Body() resetPasswordDto: ResetPasswordDto,
+  ) {
+    return this.authService.resetPassword(
+      resetPasswordDto,
+    );
+  }
+
+  // =====================================================
+  // GOOGLE LOGIN
+  // =====================================================
+
+  // @Get('google')
+  // @UseGuards(GoogleAuthGuard)
+  // googleLogin() {
+  //   return;
+  // }
+
+  // @Get('google/callback')
+  // @UseGuards(GoogleAuthGuard)
+  // @UseFilters(GoogleOAuthFilter)
+  // async googleCallback(
+  //   @Req() req: any,
+  //   @Res() res: Response,
+  // ) {
+  //   const result =
+  //     await this.authService.googleLogin(
+  //       req.user,
+  //     );
+
+  //   const frontendUrl =
+  //     this.configService.get<string>(
+  //       'FRONTEND_URL',
+  //     ) ?? 'http://localhost:5173';
+
+  //   const target =
+  //     new URL(
+  //       '/login',
+  //       frontendUrl,
+  //     );
+
+  //   target.searchParams.set(
+  //     'token',
+  //     String(result.data.accessToken),
+  //   );
+
+  //   target.searchParams.set(
+  //     'email',
+  //     String(result.data.email),
+  //   );
+
+  //   if (result.data.name) {
+  //     target.searchParams.set(
+  //       'name',
+  //       String(result.data.name),
+  //     );
+  //   }
+
+  //   return res.redirect(
+  //     target.toString(),
+  //   );
+  // }
 
   // =====================================================
   // GOOGLE LOGIN
@@ -123,21 +178,29 @@ resetPassword(
     @Req() req: any,
     @Res() res: Response,
   ) {
-    const result =
-      await this.authService.googleLogin(
-        req.user,
-      );
+    const result = await this.authService.googleLogin(req.user);
 
-    const frontendUrl =
-      this.configService.get<string>(
-        'FRONTEND_URL',
-      ) ?? 'http://localhost:5173';
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'https://evolve-inky-five.vercel.app',
+    ];
 
-    const target =
-      new URL(
-        '/login',
-        frontendUrl,
-      );
+    // Origin must be saved and restored by your OAuth guard/session.
+    const requestedOrigin =
+      req.session?.oauthFrontendOrigin ??
+      req.oauthFrontendOrigin;
+
+    const configuredOrigin =
+      this.configService.get<string>('FRONTEND_URL') ??
+      'https://evolve-inky-five.vercel.app';
+
+    const frontendOrigin = allowedOrigins.includes(requestedOrigin)
+      ? requestedOrigin
+      : allowedOrigins.includes(configuredOrigin)
+        ? configuredOrigin
+        : 'https://evolve-inky-five.vercel.app';
+
+    const target = new URL('/login', frontendOrigin);
 
     target.searchParams.set(
       'token',
@@ -156,9 +219,7 @@ resetPassword(
       );
     }
 
-    return res.redirect(
-      target.toString(),
-    );
+    return res.redirect(target.toString());
   }
 }
 
