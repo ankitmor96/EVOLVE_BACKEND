@@ -157,51 +157,51 @@ export class SkillService {
     }
 
     // =====================================
-// CREATE USER SKILLS
-// =====================================
+    // CREATE USER SKILLS
+    // =====================================
 
-async createUserSkills(
-    userId: number,
-    dto: CreateUserSkillDto,
-) {
-    const skills = [];
+    async createUserSkills(
+        userId: number,
+        dto: CreateUserSkillDto,
+    ) {
+        const skills = [];
 
-    for (const skillId of dto.skill) {
+        for (const skillId of dto.skill) {
 
-        // Check whether same skill + relationship already exists
-        const existing =
-            await this.prisma.client.orm.public.UserSkill
-                .where({
-                    userId,
-                    skillId,
-                    relationshipType: dto.relationshipType,
-                })
-                .first();
+            // Check whether same skill + relationship already exists
+            const existing =
+                await this.prisma.client.orm.public.UserSkill
+                    .where({
+                        userId,
+                        skillId,
+                        relationshipType: dto.relationshipType,
+                    })
+                    .first();
 
-        let skill;
+            let skill;
 
-        if (existing) {
-            // Already exists → return existing record
-            skill = existing;
-        } else {
-            // Doesn't exist → create new record
-            skill =
-                await this.prisma.client.orm.public.UserSkill.create({
-                    userId,
-                    skillId,
-                    relationshipType: dto.relationshipType,
-                });
+            if (existing) {
+                // Already exists → return existing record
+                skill = existing;
+            } else {
+                // Doesn't exist → create new record
+                skill =
+                    await this.prisma.client.orm.public.UserSkill.create({
+                        userId,
+                        skillId,
+                        relationshipType: dto.relationshipType,
+                    });
+            }
+
+            skills.push(skill);
         }
 
-        skills.push(skill);
+        return {
+            relationshipType: dto.relationshipType,
+            skill: skills.map((item) => item.skillId),
+            data: skills,
+        };
     }
-
-    return {
-        relationshipType: dto.relationshipType,
-        skill: skills.map((item) => item.skillId),
-        data: skills,
-    };
-}
     // =====================================
     // GET USER SKILLS
     // =====================================
@@ -279,4 +279,84 @@ async createUserSkills(
             })
             .delete();
     }
+
+
+    // =====================================
+    // GET SKILLS BY SPECIFIC USER ID
+    // =====================================
+
+    async getSkillsByUserId(userId: number) {
+        const user = await this.prisma.client.orm.public.User
+            .where({
+                id: userId,
+            })
+            .first();
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        const profile = await this.prisma.client.orm.public.UserProfile
+            .where({
+                userId,
+            })
+            .first();
+
+        const userSkills = await this.prisma.client.orm.public.UserSkill
+            .where({
+                userId,
+            })
+            .all();
+
+        const skills = [];
+
+        for (const userSkill of userSkills) {
+            const skill = await this.prisma.client.orm.public.Skill
+                .where({
+                    id: userSkill.skillId,
+                })
+                .first();
+
+            skills.push({
+                ...userSkill,
+                skill,
+            });
+        }
+
+        const posts = await this.prisma.client.orm.public.Post
+            .where({
+                userId,
+                status: 'PUBLISHED',
+                deletedAt: null,
+            })
+            .all();
+
+        const postsWithMedia = [];
+
+        for (const post of posts) {
+            const media = await this.prisma.client.orm.public.PostMedia
+                .where({
+                    postId: post.id,
+                })
+                .all();
+
+            postsWithMedia.push({
+                ...post,
+                media,
+            });
+        }
+
+        return {
+            success: true,
+            userId: user.id,
+            user: {
+                id: user.id,
+                name: user.name,
+                profile,
+            },
+            skills,
+            posts: postsWithMedia,
+        };
+    }
+
 }

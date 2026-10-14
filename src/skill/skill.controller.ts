@@ -167,4 +167,19 @@ export class SkillController {
             Number(id),
         );
     }
+
+    // =====================================
+    // GET USER DETAILS, SKILLS AND POSTS BY USER ID
+    // =====================================
+
+    @UseGuards(JwtAuthGuard)
+    @Get('user/:userId/skills-posts')
+    async getSkillsAndPostsByUserId(
+        @Param('userId') userId: string,
+    ) {
+        return this.skillService.getSkillsByUserId(
+            Number(userId),
+        );
+    }
+
 }
