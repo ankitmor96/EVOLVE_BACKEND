@@ -46,10 +46,10 @@ model User {
   id             Int      @id @default(autoincrement())
   name           String?
   email          String   @unique
-  password       String?
+  password       String?  
   googleId       String?  @unique
   emailVerified  Boolean  @default(false)
-  role           String?  @default("USER")
+ 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now())
 
@@ -234,4 +234,22 @@ model PostMedia {
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId, position])
+}
+
+
+enum NotificationType {
+  POST_CREATED
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
 }

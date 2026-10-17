@@ -2,6 +2,8 @@
 import {
     Controller,
     Post,
+    Get,
+    Query,
     Param,
     ParseIntPipe,
     UploadedFile,
@@ -10,6 +12,7 @@ import {
     Req,
     Body,
     UnauthorizedException,
+    BadRequestException,
 } from '@nestjs/common';
 
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -159,6 +162,29 @@ export class PostsController {
             caption,
             file,
         );
+    }
+
+    // =====================================
+    // GET FEED WITH CURSOR PAGINATION
+    // =====================================
+
+    @Get('feed')
+    async getFeed(
+        @Query('cursor') cursor?: string,
+    ) {
+        let cursorId: number | undefined;
+
+        if (cursor !== undefined) {
+            cursorId = Number(cursor);
+
+            if (!Number.isInteger(cursorId) || cursorId <= 0) {
+                throw new BadRequestException(
+                    'Cursor must be a positive integer',
+                );
+            }
+        }
+
+        return this.postsService.getFeed(cursorId);
     }
 
 }

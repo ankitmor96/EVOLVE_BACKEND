@@ -12,6 +12,10 @@
       "model": "IdentityType",
       "namespace": "public"
     },
+    "Notification": {
+      "model": "Notification",
+      "namespace": "public"
+    },
     "Post": {
       "model": "Post",
       "namespace": "public"
@@ -71,6 +75,15 @@
               {
                 "name": "DOCUMENT",
                 "value": "DOCUMENT"
+              }
+            ]
+          },
+          "NotificationType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "POST_CREATED",
+                "value": "POST_CREATED"
               }
             ]
           },
@@ -319,6 +332,93 @@
               },
               "namespaceId": "public",
               "table": "IdentityType"
+            }
+          },
+          "Notification": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "isRead": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "message": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "title": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "type": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "NotificationType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "isRead": {
+                  "column": "isRead"
+                },
+                "message": {
+                  "column": "message"
+                },
+                "title": {
+                  "column": "title"
+                },
+                "type": {
+                  "column": "type"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "Notification"
             }
           },
           "Post": {
@@ -918,13 +1018,6 @@
                   "kind": "scalar"
                 }
               },
-              "role": {
-                "nullable": true,
-                "type": {
-                  "codecId": "pg/text@1",
-                  "kind": "scalar"
-                }
-              },
               "updatedAt": {
                 "nullable": false,
                 "type": {
@@ -1033,9 +1126,6 @@
                 },
                 "password": {
                   "column": "password"
-                },
-                "role": {
-                  "column": "role"
                 },
                 "updatedAt": {
                   "column": "updatedAt"
@@ -1569,6 +1659,96 @@
                 }
               ]
             },
+            "Notification": {
+              "checks": [
+                {
+                  "expression": "\"type\" IN ('POST_CREATED')",
+                  "name": "Notification_type_check_0f3d4756",
+                  "prefix": "Notification_type_check"
+                }
+              ],
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "isRead": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "message": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "title": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "type": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "NotificationType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "userId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [
+                {
+                  "columns": [
+                    "createdAt"
+                  ],
+                  "name": "Notification_createdAt_idx_9575dbd7",
+                  "prefix": "Notification_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId",
+                    "isRead"
+                  ],
+                  "name": "Notification_userId_isRead_idx_b0140cd3",
+                  "prefix": "Notification_userId_isRead_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
             "Post": {
               "checks": [
                 {
@@ -2101,15 +2281,6 @@
                   "nativeType": "text",
                   "nullable": true
                 },
-                "role": {
-                  "codecId": "pg/text@1",
-                  "default": {
-                    "kind": "literal",
-                    "value": "USER"
-                  },
-                  "nativeType": "text",
-                  "nullable": true
-                },
                 "updatedAt": {
                   "codecId": "pg/timestamptz-temporal@1",
                   "default": {
@@ -2583,6 +2754,12 @@
                 "DOCUMENT"
               ]
             },
+            "NotificationType": {
+              "kind": "valueSet",
+              "values": [
+                "POST_CREATED"
+              ]
+            },
             "PostKind": {
               "kind": "valueSet",
               "values": [
@@ -2632,7 +2809,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "60c950e73da7f8806c2b3d3082358d343440d6bb8e761488ff3a1de5b4ad0965"
+    "storageHash": "25dfd7d47aca9e5bbb77b5ee008888a3e0f52d3c4dcae30bb52f631e51b48824"
   },
   "capabilities": {
     "postgres": {

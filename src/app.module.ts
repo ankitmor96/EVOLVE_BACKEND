@@ -17,6 +17,9 @@ import { HomeModule } from './home/home.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { PostsModule } from './posts/posts.module';
 
+import { BullModule } from '@nestjs/bullmq';
+import { NotificationsModule } from './notifications/notifications.module';
+
 
 
 
@@ -30,6 +33,15 @@ import { PostsModule } from './posts/posts.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST || '127.0.0.1',
+        port: Number(process.env.REDIS_PORT) || 6379,
+      },
+    }),
+
+    NotificationsModule,
 
 
 

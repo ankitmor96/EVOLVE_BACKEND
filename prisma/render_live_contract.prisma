@@ -1,0 +1,122 @@
+// use prisma-8
+// Contract inferred from the live database schema. Edit as needed, then run `prisma contract emit`.
+
+model EmailOtp {
+  id        Int         @id(map: "EmailOtp_pkey") @default(autoincrement())
+  createdAt Timestamptz @default(now())
+  email     String
+  expiresAt Timestamptz
+  otp       String
+}
+
+model IdentityType {
+  id             Int            @id(map: "IdentityType_pkey") @default(autoincrement())
+  createdAt      Timestamptz    @default(now())
+  isActive       Boolean        @default(true)
+  name           String
+  slug           String         @unique(map: "IdentityType_slug_key")
+  updatedAt      Timestamptz    @default(now())
+  userIdentities UserIdentity[]
+}
+
+model SkillCategory {
+  id          Int         @id(map: "SkillCategory_pkey") @default(autoincrement())
+  createdAt   Timestamptz @default(now())
+  description String?
+  isActive    Boolean     @default(true)
+  name        String
+  slug        String      @unique(map: "SkillCategory_slug_key")
+  sortOrder   Int         @default(0)
+  updatedAt   Timestamptz @default(now())
+  skills      Skill[]
+}
+
+model Skill {
+  id              Int             @id(map: "Skill_pkey") @default(autoincrement())
+  categoryId      Int
+  createdAt       Timestamptz     @default(now())
+  description     String?
+  isActive        Boolean         @default(true)
+  name            String
+  slug            String          @unique(map: "Skill_slug_key")
+  updatedAt       Timestamptz     @default(now())
+  userCuriosities UserCuriosity[]
+  userSkills      UserSkill[]
+  category        SkillCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "Skill_categoryId_fkey")
+
+  @@index([categoryId], name: "Skill_categoryId_idx")
+}
+
+model User {
+  id              Int             @id(map: "User_pkey") @default(autoincrement())
+  createdAt       Timestamptz     @default(now())
+  email           String          @unique(map: "User_email_key")
+  googleId        String?         @unique(map: "User_googleId_key")
+  name            String?
+  password        String?
+  updatedAt       Timestamptz     @default(now())
+  emailVerified   Boolean         @default(false)
+  role            String          @default("USER")
+  userCuriosities UserCuriosity[]
+  userIdentities  UserIdentity[]
+  userProfile     UserProfile?
+  userSkills      UserSkill[]
+
+  @@check(expression: "(role = ANY (ARRAY['USER'::text, 'ADMIN'::text]))", map: "User_role_check_1954e8c0")
+}
+
+model UserCuriosity {
+  id        Int         @id(map: "UserCuriosity_pkey") @default(autoincrement())
+  createdAt Timestamptz @default(now())
+  skillId   Int
+  userId    Int
+  skill     Skill       @relation(fields: [skillId], references: [id], onDelete: Cascade, map: "UserCuriosity_skillId_fkey")
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade, map: "UserCuriosity_userId_fkey")
+
+  @@unique([userId, skillId], map: "UserCuriosity_userId_skillId_key")
+  @@index([skillId], name: "UserCuriosity_skillId_idx")
+  @@index([userId], name: "UserCuriosity_userId_idx")
+}
+
+model UserIdentity {
+  id             Int          @id(map: "UserIdentity_pkey") @default(autoincrement())
+  createdAt      Timestamptz  @default(now())
+  identityTypeId Int
+  isPrimary      Boolean      @default(false)
+  userId         Int
+  identityType   IdentityType @relation(fields: [identityTypeId], references: [id], onDelete: Cascade, map: "UserIdentity_identityTypeId_fkey")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade, map: "UserIdentity_userId_fkey")
+
+  @@unique([userId, identityTypeId], map: "UserIdentity_userId_identityTypeId_key")
+  @@index([identityTypeId], name: "UserIdentity_identityTypeId_idx")
+  @@index([userId], name: "UserIdentity_userId_idx")
+}
+
+model UserProfile {
+  id          Int         @id(map: "UserProfile_pkey") @default(autoincrement())
+  ageRange    String
+  avatarUrl   String?
+  bio         String?
+  countryCode String
+  createdAt   Timestamptz @default(now())
+  updatedAt   Timestamptz @default(now())
+  userId      Int         @unique(map: "UserProfile_userId_key")
+  username    String      @unique(map: "UserProfile_username_key")
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade, map: "UserProfile_userId_fkey")
+}
+
+model UserSkill {
+  id               Int         @id(map: "UserSkill_pkey") @default(autoincrement())
+  createdAt        Timestamptz @default(now())
+  relationshipType String
+  skillId          Int
+  updatedAt        Timestamptz @default(now())
+  userId           Int
+  skill            Skill       @relation(fields: [skillId], references: [id], onDelete: Cascade, map: "UserSkill_skillId_fkey")
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade, map: "UserSkill_userId_fkey")
+
+  @@unique([userId, skillId, relationshipType], map: "UserSkill_userId_skillId_relationshipType_key")
+  @@index([skillId], name: "UserSkill_skillId_idx")
+  @@index([userId], name: "UserSkill_userId_idx")
+  @@check(expression: "(\"relationshipType\" = ANY (ARRAY['CAN_DO'::text, 'LEARNING'::text, 'WANT_TO_IMPROVE'::text]))", map: "UserSkill_relationshipType_check_d13d0d3b")
+}
