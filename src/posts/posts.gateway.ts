@@ -21,6 +21,9 @@ export class PostsGateway {
   private pendingPosts: unknown[] = [];
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
 
+  private pendingPostUpdates: unknown[] = [];
+  private postUpdatesFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
   emitPostCreated(post: unknown): void {
     this.pendingPosts.push(post);
 
@@ -58,6 +61,48 @@ export class PostsGateway {
 
       // Client ne array ma maximum 10 posts moklo.
       this.server.emit('posts-batch', batch);
+    }
+  }
+
+  emitPostUpdate(update: unknown): void {
+    this.pendingPostUpdates.push(update);
+
+    console.log(
+      `📥 Post update added to buffer. Pending: ${this.pendingPostUpdates.length}`,
+    );
+
+    // 10 updates thay to immediately emit karo.
+    if (this.pendingPostUpdates.length >= this.BATCH_SIZE) {
+      this.flushPendingPostUpdates();
+      return;
+    }
+
+    // Nahi to maximum 1 second wait karo.
+    if (this.postUpdatesFlushTimer === null) {
+      this.postUpdatesFlushTimer = setTimeout(() => {
+        this.postUpdatesFlushTimer = null;
+        this.flushPendingPostUpdates();
+      }, this.BATCH_DELAY);
+    }
+  }
+
+  private flushPendingPostUpdates(): void {
+    if (this.postUpdatesFlushTimer !== null) {
+      clearTimeout(this.postUpdatesFlushTimer);
+      this.postUpdatesFlushTimer = null;
+    }
+
+    while (this.pendingPostUpdates.length > 0) {
+      const batch = this.pendingPostUpdates.splice(
+        0,
+        this.BATCH_SIZE,
+      );
+
+      console.log(
+        `📦 Emitting post-updates-batch: ${batch.length} update(s)`,
+      );
+
+      this.server.emit('post-updates-batch', batch);
     }
   }
 }

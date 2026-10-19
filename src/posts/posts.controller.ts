@@ -15,6 +15,9 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 
+import { Put } from '@nestjs/common';
+import { Delete } from '@nestjs/common';
+
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 
@@ -185,6 +188,112 @@ export class PostsController {
         }
 
         return this.postsService.getFeed(cursorId);
+    }
+
+    @Put(':postId/reactions/:reactionType')
+    @UseGuards(JwtAuthGuard)
+    async setPostReaction(
+        @Param('postId', ParseIntPipe) postId: number,
+        @Param('reactionType') reactionType: string,
+        @Req() req: any,
+    ) {
+        if (!['APPRECIATE', 'HELPFUL'].includes(reactionType)) {
+            throw new BadRequestException(
+                'Invalid reaction type. Allowed: APPRECIATE, HELPFUL',
+            );
+        }
+
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException('Invalid authenticated user');
+        }
+
+        return this.postsService.setPostReaction(
+            postId,
+            userId,
+            reactionType as 'APPRECIATE' | 'HELPFUL',
+        );
+    }
+
+    @Delete(':postId/reactions/:reactionType')
+    @UseGuards(JwtAuthGuard)
+    async removePostReaction(
+        @Param('postId', ParseIntPipe) postId: number,
+        @Param('reactionType') reactionType: string,
+        @Req() req: any,
+    ) {
+        if (!['APPRECIATE', 'HELPFUL'].includes(reactionType)) {
+            throw new BadRequestException(
+                'Invalid reaction type. Allowed: APPRECIATE, HELPFUL',
+            );
+        }
+
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException('Invalid authenticated user');
+        }
+
+        return this.postsService.removePostReaction(
+            postId,
+            userId,
+            reactionType as 'APPRECIATE' | 'HELPFUL',
+        );
+    }
+
+    @Get(':postId/reactions')
+    @UseGuards(JwtAuthGuard)
+    async getPostReactions(
+        @Param('postId', ParseIntPipe) postId: number,
+        @Req() req: any,
+    ) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException('Invalid authenticated user');
+        }
+
+        return this.postsService.getPostReactions(
+            postId,
+            userId,
+        );
+    }
+
+    @Put(':postId/learned')
+    @UseGuards(JwtAuthGuard)
+    async markPostLearned(
+        @Param('postId', ParseIntPipe) postId: number,
+        @Req() req: any,
+    ) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException('Invalid authenticated user');
+        }
+
+        return this.postsService.markPostLearned(
+            postId,
+            userId,
+        );
+    }
+
+    @Delete(':postId/learned')
+    @UseGuards(JwtAuthGuard)
+    async unmarkPostLearned(
+        @Param('postId', ParseIntPipe) postId: number,
+        @Req() req: any,
+    ) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException('Invalid authenticated user');
+        }
+
+        return this.postsService.unmarkPostLearned(
+            postId,
+            userId,
+        );
     }
 
 }

@@ -22,6 +22,17 @@ socket.on("posts-batch", (posts) => {
     });
 });
 
+// Reaction ane Learning updates receive karva mate.
+socket.on("post-updates-batch", (updates) => {
+    console.log(
+        `\n📦 Post updates received: ${updates.length} update(s)`
+    );
+
+    updates.forEach((update) => {
+        console.log("🔔 Update:", JSON.stringify(update, null, 2));
+    });
+});
+
 socket.on("connect_error", (error) => {
     console.error("❌ Connection error:", error.message);
 });

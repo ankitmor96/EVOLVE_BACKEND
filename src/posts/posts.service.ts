@@ -343,6 +343,7 @@ export class PostsService {
         media,
       });
 
+
       return {
         success: true,
         message: 'Post created successfully with video',
@@ -491,17 +492,21 @@ export class PostsService {
       .replace(/[\/\\]/g, '_')
       .replace(/[^a-zA-Z0-9._-]/g, '_');
 
-    const filenameWithoutExtension = safeFilename.replace(
-      /\.[^.]+$/,
-      '',
-    );
+    const extensionMatch = safeFilename.match(/\.[^.]+$/);
+    const extension = extensionMatch?.[0] ?? '';
+    const filenameWithoutExtension = extension
+      ? safeFilename.slice(0, -extension.length)
+      : safeFilename;
+
+    const publicId = `${Date.now()}_${filenameWithoutExtension}${extension}`;
 
     return new Promise<string>((resolve, reject) => {
       const stream = this.cloudinaryClient.uploader.upload_stream(
         {
           folder: `evolv/posts/documents/post_${postId}`,
           resource_type: 'raw',
-          public_id: `${Date.now()}_${filenameWithoutExtension}`,
+          public_id: publicId,
+          filename: safeFilename,
           use_filename: false,
           unique_filename: false,
         },
@@ -515,6 +520,13 @@ export class PostsService {
             reject(new Error('Cloudinary returned no document URL'));
             return;
           }
+
+          console.log('Uploaded document:', {
+            publicId: result.public_id,
+            format: result.format,
+            bytes: result.bytes,
+            url: result.secure_url,
+          });
 
           resolve(result.secure_url);
         },
@@ -660,10 +672,36 @@ export class PostsService {
       : [];
 
     // Attach each post's media without using include()
-    const itemsWithMedia = items.map((post) => ({
-      ...post,
-      media: media.filter((item) => item.postId === post.id),
-    }));
+    const itemsWithMedia = await Promise.all(
+      items.map(async (post) => {
+        const reactions =
+          await this.prisma.client.orm.public.PostReaction
+            .where({ postId: post.id })
+            .all();
+
+        const learningRecords =
+          await this.prisma.client.orm.public.PostLearning
+            .where({ postId: post.id })
+            .all();
+
+        return {
+          ...post,
+          media: media.filter((item) => item.postId === post.id),
+
+          reactionCounts: {
+            APPRECIATE: reactions.filter(
+              (reaction) => reaction.reactionType === 'APPRECIATE',
+            ).length,
+
+            HELPFUL: reactions.filter(
+              (reaction) => reaction.reactionType === 'HELPFUL',
+            ).length,
+          },
+
+          learningCount: learningRecords.length,
+        };
+      }),
+    );
 
     const lastPost = items[items.length - 1];
 
@@ -675,6 +713,273 @@ export class PostsService {
         hasMore,
         nextCursor: hasMore && lastPost ? lastPost.id : null,
       },
+    };
+  }
+
+  async setPostReaction(
+    postId: number,
+    userId: number,
+    reactionType: 'APPRECIATE' | 'HELPFUL',
+  ) {
+    const post = await this.prisma.client.orm.public.Post
+      .where({
+        id: postId,
+        deletedAt: null,
+      })
+      .first();
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const existingReaction =
+      await this.prisma.client.orm.public.PostReaction
+        .where({
+          postId,
+          userId,
+        })
+        .first();
+
+    let reaction;
+
+    if (existingReaction) {
+      reaction = await this.prisma.client.orm.public.PostReaction
+        .where({
+          postId,
+          userId,
+        })
+        .update({
+          reactionType,
+        });
+    } else {
+      reaction = await this.prisma.client.orm.public.PostReaction.create({
+        postId,
+        userId,
+        reactionType,
+      });
+    }
+
+    const reactions = await this.prisma.client.orm.public.PostReaction
+      .where({
+        postId,
+      })
+      .all();
+
+    const reactionCounts = {
+      APPRECIATE: reactions.filter(
+        (item) => item.reactionType === 'APPRECIATE',
+      ).length,
+      HELPFUL: reactions.filter(
+        (item) => item.reactionType === 'HELPFUL',
+      ).length,
+    };
+
+    this.postsGateway.emitPostUpdate({
+      type: 'REACTION_UPDATED',
+      postId,
+      userId,
+      reactionType,
+      reactionCounts,
+    });
+
+    return reaction;
+  }
+  async removePostReaction(
+    postId: number,
+    userId: number,
+    reactionType: 'APPRECIATE' | 'HELPFUL',
+  ) {
+    const existingReaction =
+      await this.prisma.client.orm.public.PostReaction
+        .where({
+          postId,
+          userId,
+          reactionType,
+        })
+        .first();
+
+    if (!existingReaction) {
+      throw new NotFoundException('Reaction not found');
+    }
+
+    await this.prisma.client.orm.public.PostReaction
+      .where({
+        postId,
+        userId,
+        reactionType,
+      })
+      .delete();
+
+    const reactions = await this.prisma.client.orm.public.PostReaction
+      .where({
+        postId,
+      })
+      .all();
+
+    const reactionCounts = {
+      APPRECIATE: reactions.filter(
+        (item) => item.reactionType === 'APPRECIATE',
+      ).length,
+      HELPFUL: reactions.filter(
+        (item) => item.reactionType === 'HELPFUL',
+      ).length,
+    };
+
+    this.postsGateway.emitPostUpdate({
+      type: 'REACTION_DELETED',
+      postId,
+      userId,
+      reactionType,
+      reactionCounts,
+    });
+
+    return {
+      success: true,
+      message: 'Reaction removed successfully',
+    };
+  }
+
+  async getPostReactions(
+    postId: number,
+    userId: number,
+  ) {
+    const post = await this.prisma.client.orm.public.Post
+      .where({
+        id: postId,
+        deletedAt: null,
+      })
+      .first();
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const reactions =
+      await this.prisma.client.orm.public.PostReaction
+        .where({
+          postId,
+        })
+        .all();
+
+    const myReaction =
+      reactions.find((reaction) => reaction.userId === userId);
+
+    return {
+      success: true,
+      postId,
+      counts: {
+        APPRECIATE: reactions.filter(
+          (reaction) => reaction.reactionType === 'APPRECIATE',
+        ).length,
+        HELPFUL: reactions.filter(
+          (reaction) => reaction.reactionType === 'HELPFUL',
+        ).length,
+      },
+      myReaction: myReaction?.reactionType ?? null,
+    };
+  }
+
+  async markPostLearned(
+    postId: number,
+    userId: number,
+  ) {
+    const post = await this.prisma.client.orm.public.Post
+      .where({
+        id: postId,
+        deletedAt: null,
+      })
+      .first();
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const existingLearning =
+      await this.prisma.client.orm.public.PostLearning
+        .where({
+          postId,
+          userId,
+        })
+        .first();
+
+    if (existingLearning) {
+      return {
+        success: true,
+        message: 'Post is already marked as learned',
+        data: existingLearning,
+      };
+    }
+
+    const learning =
+      await this.prisma.client.orm.public.PostLearning.create({
+        postId,
+        userId,
+      });
+
+    const learningRecords =
+      await this.prisma.client.orm.public.PostLearning
+        .where({
+          postId,
+        })
+        .all();
+
+    this.postsGateway.emitPostUpdate({
+      type: 'LEARNING_UPDATED',
+      postId,
+      userId,
+      isLearned: true,
+      learningCount: learningRecords.length,
+    });
+
+    return {
+      success: true,
+      message: 'Post marked as learned successfully',
+      data: learning,
+    };
+  }
+  async unmarkPostLearned(
+    postId: number,
+    userId: number,
+  ) {
+    const existingLearning =
+      await this.prisma.client.orm.public.PostLearning
+        .where({
+          postId,
+          userId,
+        })
+        .first();
+
+    if (!existingLearning) {
+      throw new NotFoundException(
+        'Post is not marked as learned',
+      );
+    }
+
+    await this.prisma.client.orm.public.PostLearning
+      .where({
+        postId,
+        userId,
+      })
+      .delete();
+
+    const learningRecords =
+      await this.prisma.client.orm.public.PostLearning
+        .where({
+          postId,
+        })
+        .all();
+
+    this.postsGateway.emitPostUpdate({
+      type: 'LEARNING_UPDATED',
+      postId,
+      userId,
+      isLearned: false,
+      learningCount: learningRecords.length,
+    });
+
+    return {
+      success: true,
+      message: 'Post learning removed successfully',
     };
   }
 

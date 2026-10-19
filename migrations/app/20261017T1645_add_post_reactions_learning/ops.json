@@ -1,0 +1,488 @@
+[
+  {
+    "id": "table.PostLearning",
+    "label": "Create table \"PostLearning\"",
+    "summary": "Creates table \"PostLearning\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PostLearning"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PostLearning\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostLearning\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PostLearning\"",
+        "sql": "CREATE TABLE \"public\".\"PostLearning\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"postId\" int4 NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PostLearning\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostLearning\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.PostReaction",
+    "label": "Create table \"PostReaction\"",
+    "summary": "Creates table \"PostReaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PostReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PostReaction\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostReaction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PostReaction\"",
+        "sql": "CREATE TABLE \"public\".\"PostReaction\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"postId\" int4 NOT NULL,\n  \"reactionType\" text NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"PostReaction_reactionType_check_ccd11de8\" CHECK (\"reactionType\" IN ('APPRECIATE', 'HELPFUL'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PostReaction\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostReaction\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.PostLearning.PostLearning_postId_userId_key",
+    "label": "Add unique constraint on \"PostLearning\" (postId, userId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "PostLearning_postId_userId_key",
+        "table": "PostLearning"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PostLearning_postId_userId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostLearning_postId_userId_key",
+          "public",
+          "\"public\".\"PostLearning\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"PostLearning_postId_userId_key\"",
+        "sql": "ALTER TABLE \"public\".\"PostLearning\" ADD CONSTRAINT \"PostLearning_postId_userId_key\" UNIQUE (\"postId\", \"userId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"PostLearning_postId_userId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostLearning_postId_userId_key",
+          "public",
+          "\"public\".\"PostLearning\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.PostReaction.PostReaction_postId_userId_key",
+    "label": "Add unique constraint on \"PostReaction\" (postId, userId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "PostReaction_postId_userId_key",
+        "table": "PostReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PostReaction_postId_userId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostReaction_postId_userId_key",
+          "public",
+          "\"public\".\"PostReaction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"PostReaction_postId_userId_key\"",
+        "sql": "ALTER TABLE \"public\".\"PostReaction\" ADD CONSTRAINT \"PostReaction_postId_userId_key\" UNIQUE (\"postId\", \"userId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"PostReaction_postId_userId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostReaction_postId_userId_key",
+          "public",
+          "\"public\".\"PostReaction\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PostLearning.PostLearning_postId_idx_a7a72715",
+    "label": "Create index \"PostLearning_postId_idx_a7a72715\" on \"PostLearning\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PostLearning_postId_idx_a7a72715",
+        "table": "PostLearning"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PostLearning_postId_idx_a7a72715\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostLearning_postId_idx_a7a72715\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PostLearning_postId_idx_a7a72715\"",
+        "sql": "CREATE INDEX \"PostLearning_postId_idx_a7a72715\" ON \"public\".\"PostLearning\" (\"postId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PostLearning_postId_idx_a7a72715\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostLearning_postId_idx_a7a72715\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PostLearning.PostLearning_userId_idx_a489d58a",
+    "label": "Create index \"PostLearning_userId_idx_a489d58a\" on \"PostLearning\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PostLearning_userId_idx_a489d58a",
+        "table": "PostLearning"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PostLearning_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostLearning_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PostLearning_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"PostLearning_userId_idx_a489d58a\" ON \"public\".\"PostLearning\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PostLearning_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostLearning_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PostReaction.PostReaction_postId_idx_a7a72715",
+    "label": "Create index \"PostReaction_postId_idx_a7a72715\" on \"PostReaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PostReaction_postId_idx_a7a72715",
+        "table": "PostReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PostReaction_postId_idx_a7a72715\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostReaction_postId_idx_a7a72715\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PostReaction_postId_idx_a7a72715\"",
+        "sql": "CREATE INDEX \"PostReaction_postId_idx_a7a72715\" ON \"public\".\"PostReaction\" (\"postId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PostReaction_postId_idx_a7a72715\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostReaction_postId_idx_a7a72715\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PostReaction.PostReaction_userId_idx_a489d58a",
+    "label": "Create index \"PostReaction_userId_idx_a489d58a\" on \"PostReaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PostReaction_userId_idx_a489d58a",
+        "table": "PostReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PostReaction_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostReaction_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PostReaction_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"PostReaction_userId_idx_a489d58a\" ON \"public\".\"PostReaction\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PostReaction_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PostReaction_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PostLearning.PostLearning_postId_fkey",
+    "label": "Add foreign key \"PostLearning_postId_fkey\" on \"PostLearning\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PostLearning_postId_fkey",
+        "table": "PostLearning"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PostLearning_postId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostLearning_postId_fkey",
+          "public",
+          "\"public\".\"PostLearning\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PostLearning_postId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PostLearning\"\nADD CONSTRAINT \"PostLearning_postId_fkey\"\nFOREIGN KEY (\"postId\")\nREFERENCES \"public\".\"Post\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PostLearning_postId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostLearning_postId_fkey",
+          "public",
+          "\"public\".\"PostLearning\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PostLearning.PostLearning_userId_fkey",
+    "label": "Add foreign key \"PostLearning_userId_fkey\" on \"PostLearning\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PostLearning_userId_fkey",
+        "table": "PostLearning"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PostLearning_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostLearning_userId_fkey",
+          "public",
+          "\"public\".\"PostLearning\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PostLearning_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PostLearning\"\nADD CONSTRAINT \"PostLearning_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PostLearning_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostLearning_userId_fkey",
+          "public",
+          "\"public\".\"PostLearning\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PostReaction.PostReaction_postId_fkey",
+    "label": "Add foreign key \"PostReaction_postId_fkey\" on \"PostReaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PostReaction_postId_fkey",
+        "table": "PostReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PostReaction_postId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostReaction_postId_fkey",
+          "public",
+          "\"public\".\"PostReaction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PostReaction_postId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PostReaction\"\nADD CONSTRAINT \"PostReaction_postId_fkey\"\nFOREIGN KEY (\"postId\")\nREFERENCES \"public\".\"Post\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PostReaction_postId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostReaction_postId_fkey",
+          "public",
+          "\"public\".\"PostReaction\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PostReaction.PostReaction_userId_fkey",
+    "label": "Add foreign key \"PostReaction_userId_fkey\" on \"PostReaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PostReaction_userId_fkey",
+        "table": "PostReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PostReaction_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostReaction_userId_fkey",
+          "public",
+          "\"public\".\"PostReaction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PostReaction_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PostReaction\"\nADD CONSTRAINT \"PostReaction_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PostReaction_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostReaction_userId_fkey",
+          "public",
+          "\"public\".\"PostReaction\""
+        ]
+      }
+    ]
+  }
+]
