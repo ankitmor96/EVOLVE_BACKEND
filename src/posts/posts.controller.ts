@@ -190,6 +190,45 @@ export class PostsController {
         return this.postsService.getFeed(cursorId);
     }
 
+    // GET LOGGED-IN USER'S IMAGE POSTS
+    @UseGuards(JwtAuthGuard)
+    @Get('my-posts/images')
+    async getMyImagePosts(@Req() req: any) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException('Invalid authenticated user');
+        }
+
+        return this.postsService.getMyPostsByMediaType(userId, 'IMAGE');
+    }
+
+    // GET LOGGED-IN USER'S VIDEO POSTS
+    @UseGuards(JwtAuthGuard)
+    @Get('my-posts/videos')
+    async getMyVideoPosts(@Req() req: any) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException('Invalid authenticated user');
+        }
+
+        return this.postsService.getMyPostsByMediaType(userId, 'VIDEO');
+    }
+
+    // GET LOGGED-IN USER'S DOCUMENT POSTS
+    @UseGuards(JwtAuthGuard)
+    @Get('my-posts/documents')
+    async getMyDocumentPosts(@Req() req: any) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException('Invalid authenticated user');
+        }
+
+        return this.postsService.getMyPostsByMediaType(userId, 'DOCUMENT');
+    }
+
     @Put(':postId/reactions/:reactionType')
     @UseGuards(JwtAuthGuard)
     async setPostReaction(

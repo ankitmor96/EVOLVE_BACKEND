@@ -716,6 +716,44 @@ export class PostsService {
     };
   }
 
+  async getMyPostsByMediaType(
+    userId: number,
+    mediaType: 'IMAGE' | 'VIDEO' | 'DOCUMENT',
+  ) {
+    const posts = await this.prisma.client.orm.public.Post
+      .where((post) => post.userId.eq(userId))
+      .where((post) => post.deletedAt.isNull())
+      .orderBy([
+        (post) => post.createdAt.desc(),
+        (post) => post.id.desc(),
+      ])
+      .all();
+
+    const postIds = posts.map((post) => post.id);
+
+    const media = postIds.length > 0
+      ? await this.prisma.client.orm.public.PostMedia
+        .where((item) => item.postId.in(postIds))
+        .where((item) => item.mediaType.eq(mediaType))
+        .orderBy((item) => item.position.asc())
+        .all()
+      : [];
+
+    const matchingPostIds = new Set(
+      media.map((item) => item.postId),
+    );
+
+    return {
+      success: true,
+      data: posts
+        .filter((post) => matchingPostIds.has(post.id))
+        .map((post) => ({
+          ...post,
+          media: media.filter((item) => item.postId === post.id),
+        })),
+    };
+  }
+
   async setPostReaction(
     postId: number,
     userId: number,

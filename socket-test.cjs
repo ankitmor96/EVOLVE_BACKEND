@@ -1,7 +1,7 @@
 
 const { io } = require("socket.io-client");
 
-const socket = io("http://localhost:3000", {
+const socket = io("https://evolve-backend-4lux.onrender.com", {
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
