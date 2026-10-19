@@ -229,6 +229,19 @@ export class PostsController {
         return this.postsService.getMyPostsByMediaType(userId, 'DOCUMENT');
     }
 
+    // GET LOGGED-IN USER'S POST COUNTS
+    @UseGuards(JwtAuthGuard)
+    @Get('my-posts/counts')
+    async getMyPostsCounts(@Req() req: any) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException('Invalid authenticated user');
+        }
+
+        return this.postsService.getMyPostsCounts(userId);
+    }
+
     @Put(':postId/reactions/:reactionType')
     @UseGuards(JwtAuthGuard)
     async setPostReaction(

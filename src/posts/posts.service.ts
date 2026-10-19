@@ -754,6 +754,49 @@ export class PostsService {
     };
   }
 
+  async getMyPostsCounts(userId: number) {
+    const posts = await this.prisma.client.orm.public.Post
+      .where((post) => post.userId.eq(userId))
+      .where((post) => post.deletedAt.isNull())
+      .all();
+
+    const postIds = posts.map((post) => post.id);
+
+    const media = postIds.length > 0
+      ? await this.prisma.client.orm.public.PostMedia
+        .where((item) => item.postId.in(postIds))
+        .all()
+      : [];
+
+    const imagePostIds = new Set(
+      media
+        .filter((item) => item.mediaType === 'IMAGE')
+        .map((item) => item.postId),
+    );
+
+    const videoPostIds = new Set(
+      media
+        .filter((item) => item.mediaType === 'VIDEO')
+        .map((item) => item.postId),
+    );
+
+    const documentPostIds = new Set(
+      media
+        .filter((item) => item.mediaType === 'DOCUMENT')
+        .map((item) => item.postId),
+    );
+
+    return {
+      success: true,
+      data: {
+        totalPosts: posts.length,
+        imageCount: imagePostIds.size,
+        videoCount: videoPostIds.size,
+        documentCount: documentPostIds.size,
+      },
+    };
+  }
+
   async setPostReaction(
     postId: number,
     userId: number,
