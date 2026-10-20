@@ -1,7 +1,8 @@
 
 const { io } = require("socket.io-client");
 
-const socket = io("https://evolve-backend-4lux.onrender.com", {
+// const socket = io("https://evolve-backend-4lux.onrender.com", {
+const socket = io("http://localhost:3000", {
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
@@ -32,6 +33,8 @@ socket.on("post-updates-batch", (updates) => {
         console.log("🔔 Update:", JSON.stringify(update, null, 2));
     });
 });
+
+
 
 socket.on("connect_error", (error) => {
     console.error("❌ Connection error:", error.message);

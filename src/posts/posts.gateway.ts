@@ -24,6 +24,9 @@ export class PostsGateway {
   private pendingPostUpdates: unknown[] = [];
   private postUpdatesFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
+  private pendingCommentUpdates: unknown[] = [];
+  private commentUpdatesFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
   emitPostCreated(post: unknown): void {
     this.pendingPosts.push(post);
 
@@ -103,6 +106,46 @@ export class PostsGateway {
       );
 
       this.server.emit('post-updates-batch', batch);
+    }
+  }
+
+  emitCommentUpdate(update: unknown): void {
+    this.pendingCommentUpdates.push(update);
+
+    console.log(
+      `📥 Comment update added to buffer. Pending: ${this.pendingCommentUpdates.length}`,
+    );
+
+    if (this.pendingCommentUpdates.length >= this.BATCH_SIZE) {
+      this.flushPendingCommentUpdates();
+      return;
+    }
+
+    if (this.commentUpdatesFlushTimer === null) {
+      this.commentUpdatesFlushTimer = setTimeout(() => {
+        this.commentUpdatesFlushTimer = null;
+        this.flushPendingCommentUpdates();
+      }, this.BATCH_DELAY);
+    }
+  }
+
+  private flushPendingCommentUpdates(): void {
+    if (this.commentUpdatesFlushTimer !== null) {
+      clearTimeout(this.commentUpdatesFlushTimer);
+      this.commentUpdatesFlushTimer = null;
+    }
+
+    while (this.pendingCommentUpdates.length > 0) {
+      const batch = this.pendingCommentUpdates.splice(
+        0,
+        this.BATCH_SIZE,
+      );
+
+      console.log(
+        `📦 Emitting comment-updates-batch: ${batch.length} update(s)`,
+      );
+
+      this.server.emit('comment-updates-batch', batch);
     }
   }
 }

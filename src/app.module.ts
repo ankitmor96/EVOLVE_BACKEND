@@ -19,6 +19,7 @@ import { PostsModule } from './posts/posts.module';
 
 import { BullModule } from '@nestjs/bullmq';
 import { NotificationsModule } from './notifications/notifications.module';
+import { CommentsModule } from './comments/comments.module';
 
 
 
@@ -81,6 +82,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     CloudinaryModule,
 
     PostsModule,
+
+    CommentsModule,
   ],
 
 

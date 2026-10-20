@@ -1,7 +1,8 @@
 
 const { io } = require("socket.io-client");
 
-const socket = io("https://evolve-backend-4lux.onrender.com", {
+// const socket = io("https://evolve-backend-4lux.onrender.com", {
+const socket = io("http://localhost:3000", {
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
@@ -13,6 +14,12 @@ socket.on("connect", () => {
 
 socket.on("post-updates-batch", (updates) => {
     console.log("\n📦 Client 2 received updates:");
+
+    console.log(JSON.stringify(updates, null, 2));
+});
+
+socket.on("comment-updates-batch", (updates) => {
+    console.log("\n💬 Client 2 received comment updates:");
 
     console.log(JSON.stringify(updates, null, 2));
 });
