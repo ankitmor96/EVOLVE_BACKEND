@@ -2,8 +2,12 @@
 import {
   WebSocketGateway,
   WebSocketServer,
+  SubscribeMessage,
+  ConnectedSocket,
+  MessageBody,
 } from '@nestjs/websockets';
-import { Server } from 'socket.io';
+
+import { Socket, Server } from 'socket.io';
 
 @WebSocketGateway({
   cors: {
@@ -27,6 +31,20 @@ export class PostsGateway {
   private pendingCommentUpdates: unknown[] = [];
   private commentUpdatesFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Socket connect thay tyare
+  handleConnection(client: Socket): void {
+    console.log('🔌 Socket connected:', client.id);
+  }
+
+  // Socket disconnect thay tyare
+  handleDisconnect(client: Socket): void {
+    console.log('🔌 Socket disconnected:', client.id);
+  }
+
+  // =========================
+  // POSTS BATCH
+  // =========================
+
   emitPostCreated(post: unknown): void {
     this.pendingPosts.push(post);
 
@@ -34,13 +52,11 @@ export class PostsGateway {
       `📥 Post added to Socket.IO buffer. Pending: ${this.pendingPosts.length}`,
     );
 
-    // 10 posts bhega thay to immediately flush karo.
     if (this.pendingPosts.length >= this.BATCH_SIZE) {
       this.flushPendingPosts();
       return;
     }
 
-    // Ochha posts hoy to maximum 1 second wait karo.
     if (this.flushTimer === null) {
       this.flushTimer = setTimeout(() => {
         this.flushTimer = null;
@@ -62,10 +78,13 @@ export class PostsGateway {
         `📦 Emitting Socket.IO batch: ${batch.length} post(s)`,
       );
 
-      // Client ne array ma maximum 10 posts moklo.
       this.server.emit('posts-batch', batch);
     }
   }
+
+  // =========================
+  // POST REACTION / LEARNING UPDATES
+  // =========================
 
   emitPostUpdate(update: unknown): void {
     this.pendingPostUpdates.push(update);
@@ -74,13 +93,11 @@ export class PostsGateway {
       `📥 Post update added to buffer. Pending: ${this.pendingPostUpdates.length}`,
     );
 
-    // 10 updates thay to immediately emit karo.
     if (this.pendingPostUpdates.length >= this.BATCH_SIZE) {
       this.flushPendingPostUpdates();
       return;
     }
 
-    // Nahi to maximum 1 second wait karo.
     if (this.postUpdatesFlushTimer === null) {
       this.postUpdatesFlushTimer = setTimeout(() => {
         this.postUpdatesFlushTimer = null;
@@ -108,6 +125,10 @@ export class PostsGateway {
       this.server.emit('post-updates-batch', batch);
     }
   }
+
+  // =========================
+  // COMMENT UPDATES
+  // =========================
 
   emitCommentUpdate(update: unknown): void {
     this.pendingCommentUpdates.push(update);
@@ -147,5 +168,37 @@ export class PostsGateway {
 
       this.server.emit('comment-updates-batch', batch);
     }
+  }
+
+  // =========================
+  // CONNECTION REAL-TIME EVENTS
+  // =========================
+
+  emitConnectionRequested(
+    receiverId: number,
+    data: unknown,
+  ): void {
+    this.server.emit('connection.requested', data);
+  }
+
+  emitConnectionAccepted(
+    requesterId: number,
+    data: unknown,
+  ): void {
+    this.server.emit('connection.accepted', data);
+  }
+
+  emitConnectionRejected(
+    requesterId: number,
+    data: unknown,
+  ): void {
+    this.server.emit('connection.rejected', data);
+  }
+
+  emitConnectionRemoved(
+    otherUserId: number,
+    data: unknown,
+  ): void {
+    this.server.emit('connection.removed', data);
   }
 }

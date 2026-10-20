@@ -2,7 +2,7 @@
 const { io } = require("socket.io-client");
 
 // const socket = io("https://evolve-backend-4lux.onrender.com", {
-const socket = io("http://localhost:3000", {
+    const socket = io("http://localhost:3000", {
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
@@ -35,3 +35,25 @@ socket.on("connect_error", (error) => {
 socket.on("disconnect", (reason) => {
     console.log("🔌 Client 2 disconnected:", reason);
 });
+
+
+socket.on("connection.requested", (data) => {
+    console.log("\n👤 Client 2: Connection request received");
+    console.log(JSON.stringify(data, null, 2));
+});
+
+socket.on("connection.accepted", (data) => {
+    console.log("\n✅ Client 2: Connection accepted");
+    console.log(JSON.stringify(data, null, 2));
+});
+
+socket.on("connection.rejected", (data) => {
+    console.log("\n❌ Client 2: Connection rejected");
+    console.log(JSON.stringify(data, null, 2));
+});
+
+socket.on("connection.removed", (data) => {
+    console.log("\n🗑️ Client 2: Connection removed");
+    console.log(JSON.stringify(data, null, 2));
+});
+

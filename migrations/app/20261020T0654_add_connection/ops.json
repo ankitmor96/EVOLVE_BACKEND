@@ -1,0 +1,323 @@
+[
+  {
+    "id": "table.Connection",
+    "label": "Create table \"Connection\"",
+    "summary": "Creates table \"Connection\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Connection"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Connection\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Connection\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Connection\"",
+        "sql": "CREATE TABLE \"public\".\"Connection\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"receiverId\" int4 NOT NULL,\n  \"requesterId\" int4 NOT NULL,\n  \"status\" text DEFAULT 'PENDING' NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"Connection_status_check_904c6455\" CHECK (\"status\" IN ('PENDING', 'ACCEPTED', 'REJECTED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Connection\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Connection\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Connection.Connection_requesterId_receiverId_key",
+    "label": "Add unique constraint on \"Connection\" (requesterId, receiverId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Connection_requesterId_receiverId_key",
+        "table": "Connection"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Connection_requesterId_receiverId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Connection_requesterId_receiverId_key",
+          "public",
+          "\"public\".\"Connection\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Connection_requesterId_receiverId_key\"",
+        "sql": "ALTER TABLE \"public\".\"Connection\" ADD CONSTRAINT \"Connection_requesterId_receiverId_key\" UNIQUE (\"requesterId\", \"receiverId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Connection_requesterId_receiverId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Connection_requesterId_receiverId_key",
+          "public",
+          "\"public\".\"Connection\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Connection.Connection_receiverId_idx_fe124f44",
+    "label": "Create index \"Connection_receiverId_idx_fe124f44\" on \"Connection\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Connection_receiverId_idx_fe124f44",
+        "table": "Connection"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Connection_receiverId_idx_fe124f44\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Connection_receiverId_idx_fe124f44\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Connection_receiverId_idx_fe124f44\"",
+        "sql": "CREATE INDEX \"Connection_receiverId_idx_fe124f44\" ON \"public\".\"Connection\" (\"receiverId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Connection_receiverId_idx_fe124f44\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Connection_receiverId_idx_fe124f44\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Connection.Connection_receiverId_status_idx_1f8f1a2b",
+    "label": "Create index \"Connection_receiverId_status_idx_1f8f1a2b\" on \"Connection\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Connection_receiverId_status_idx_1f8f1a2b",
+        "table": "Connection"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Connection_receiverId_status_idx_1f8f1a2b\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Connection_receiverId_status_idx_1f8f1a2b\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Connection_receiverId_status_idx_1f8f1a2b\"",
+        "sql": "CREATE INDEX \"Connection_receiverId_status_idx_1f8f1a2b\" ON \"public\".\"Connection\" (\"receiverId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Connection_receiverId_status_idx_1f8f1a2b\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Connection_receiverId_status_idx_1f8f1a2b\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Connection.Connection_requesterId_idx_a5f4af92",
+    "label": "Create index \"Connection_requesterId_idx_a5f4af92\" on \"Connection\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Connection_requesterId_idx_a5f4af92",
+        "table": "Connection"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Connection_requesterId_idx_a5f4af92\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Connection_requesterId_idx_a5f4af92\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Connection_requesterId_idx_a5f4af92\"",
+        "sql": "CREATE INDEX \"Connection_requesterId_idx_a5f4af92\" ON \"public\".\"Connection\" (\"requesterId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Connection_requesterId_idx_a5f4af92\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Connection_requesterId_idx_a5f4af92\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Connection.Connection_requesterId_status_idx_d3ddea37",
+    "label": "Create index \"Connection_requesterId_status_idx_d3ddea37\" on \"Connection\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Connection_requesterId_status_idx_d3ddea37",
+        "table": "Connection"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Connection_requesterId_status_idx_d3ddea37\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Connection_requesterId_status_idx_d3ddea37\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Connection_requesterId_status_idx_d3ddea37\"",
+        "sql": "CREATE INDEX \"Connection_requesterId_status_idx_d3ddea37\" ON \"public\".\"Connection\" (\"requesterId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Connection_requesterId_status_idx_d3ddea37\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Connection_requesterId_status_idx_d3ddea37\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Connection.Connection_requesterId_fkey",
+    "label": "Add foreign key \"Connection_requesterId_fkey\" on \"Connection\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Connection_requesterId_fkey",
+        "table": "Connection"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Connection_requesterId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Connection_requesterId_fkey",
+          "public",
+          "\"public\".\"Connection\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Connection_requesterId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Connection\"\nADD CONSTRAINT \"Connection_requesterId_fkey\"\nFOREIGN KEY (\"requesterId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Connection_requesterId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Connection_requesterId_fkey",
+          "public",
+          "\"public\".\"Connection\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Connection.Connection_receiverId_fkey",
+    "label": "Add foreign key \"Connection_receiverId_fkey\" on \"Connection\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Connection_receiverId_fkey",
+        "table": "Connection"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Connection_receiverId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Connection_receiverId_fkey",
+          "public",
+          "\"public\".\"Connection\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Connection_receiverId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Connection\"\nADD CONSTRAINT \"Connection_receiverId_fkey\"\nFOREIGN KEY (\"receiverId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Connection_receiverId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Connection_receiverId_fkey",
+          "public",
+          "\"public\".\"Connection\""
+        ]
+      }
+    ]
+  }
+]
