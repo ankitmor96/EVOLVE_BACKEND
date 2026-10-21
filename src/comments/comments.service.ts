@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { Temporal } from '@js-temporal/polyfill';
 import { PrismaService } from '../prisma/prisma.service';
-
 import { PostsGateway } from '../posts/posts.gateway';
 
 @Injectable()
@@ -16,14 +15,13 @@ export class CommentsService {
         private readonly postsGateway: PostsGateway,
     ) { }
 
-    // Validate IDs
     private validateId(id: number, fieldName: string): void {
         if (!Number.isInteger(id) || id <= 0) {
             throw new BadRequestException(`Invalid ${fieldName}`);
         }
     }
 
-    // 1. CREATE COMMENT
+    // Create comment
     async createComment(
         postId: number,
         userId: number,
@@ -39,10 +37,7 @@ export class CommentsService {
         }
 
         const post = await this.prisma.client.orm.public.Post
-            .where({
-                id: postId,
-                deletedAt: null,
-            })
+            .where({ id: postId, deletedAt: null })
             .first();
 
         if (!post) {
@@ -55,6 +50,18 @@ export class CommentsService {
             content: trimmedContent,
         });
 
+        const profile = await this.prisma.client.orm.public.UserProfile
+            .where({ userId })
+            .first();
+
+        const commentWithUser = {
+            ...comment,
+            user: {
+                username: profile?.username ?? null,
+                avatarUrl: profile?.avatarUrl ?? null,
+            },
+        };
+
         const comments = await this.prisma.client.orm.public.Comment
             .where({ postId })
             .where((item) => item.deletedAt.isNull())
@@ -63,26 +70,23 @@ export class CommentsService {
         this.postsGateway.emitCommentUpdate({
             type: 'COMMENT_CREATED',
             postId,
-            comment,
+            comment: commentWithUser,
             commentCount: comments.length,
         });
 
         return {
             success: true,
             message: 'Comment created successfully',
-            data: comment,
+            data: commentWithUser,
         };
     }
 
-    // 2. GET ALL COMMENTS FOR A POST
+    // Get all comments for a post with commenter details
     async getPostComments(postId: number) {
         this.validateId(postId, 'post ID');
 
         const post = await this.prisma.client.orm.public.Post
-            .where({
-                id: postId,
-                deletedAt: null,
-            })
+            .where({ id: postId, deletedAt: null })
             .first();
 
         if (!post) {
@@ -98,14 +102,38 @@ export class CommentsService {
             ])
             .all();
 
+        const userIds = [
+            ...new Set(comments.map((comment) => comment.userId)),
+        ];
+
+        const userProfiles = userIds.length > 0
+            ? await this.prisma.client.orm.public.UserProfile
+                .where((profile) => profile.userId.in(userIds))
+                .all()
+            : [];
+
+        const commentsWithUser = comments.map((comment) => {
+            const profile = userProfiles.find(
+                (item) => item.userId === comment.userId,
+            );
+
+            return {
+                ...comment,
+                user: {
+                    username: profile?.username ?? null,
+                    avatarUrl: profile?.avatarUrl ?? null,
+                },
+            };
+        });
+
         return {
             success: true,
-            count: comments.length,
-            data: comments,
+            count: commentsWithUser.length,
+            data: commentsWithUser,
         };
     }
 
-    // 3. GET LOGGED-IN USER'S COMMENTS
+    // Get current user's comments with profile details
     async getMyComments(userId: number) {
         this.validateId(userId, 'user ID');
 
@@ -118,15 +146,26 @@ export class CommentsService {
             ])
             .all();
 
+        const profile = await this.prisma.client.orm.public.UserProfile
+            .where({ userId })
+            .first();
+
+        const commentsWithUser = comments.map((comment) => ({
+            ...comment,
+            user: {
+                username: profile?.username ?? null,
+                avatarUrl: profile?.avatarUrl ?? null,
+            },
+        }));
+
         return {
             success: true,
-            count: comments.length,
-            data: comments,
+            count: commentsWithUser.length,
+            data: commentsWithUser,
         };
     }
 
-
-    // 4. UPDATE OWN COMMENT
+    // Update comment with commenter details
     async updateComment(
         commentId: number,
         userId: number,
@@ -141,14 +180,9 @@ export class CommentsService {
             throw new BadRequestException('Comment content is required');
         }
 
-        const existingComment =
-            await this.prisma.client.orm.public.Comment
-                .where({
-                    id: commentId,
-                    userId,
-                    deletedAt: null,
-                })
-                .first();
+        const existingComment = await this.prisma.client.orm.public.Comment
+            .where({ id: commentId, userId, deletedAt: null })
+            .first();
 
         if (!existingComment) {
             throw new NotFoundException(
@@ -156,53 +190,52 @@ export class CommentsService {
             );
         }
 
-        const updatedComment =
-            await this.prisma.client.orm.public.Comment
-                .where({
-                    id: commentId,
-                    userId,
-                    deletedAt: null,
-                })
-                .update({
-                    content: trimmedContent,
-                    updatedAt: Temporal.Now.instant(),
-                });
+        const updatedComment = await this.prisma.client.orm.public.Comment
+            .where({ id: commentId, userId, deletedAt: null })
+            .update({
+                content: trimmedContent,
+                updatedAt: Temporal.Now.instant(),
+            });
 
-        const comments =
-            await this.prisma.client.orm.public.Comment
-                .where({ postId: existingComment.postId })
-                .where((item) => item.deletedAt.isNull())
-                .all();
+        const profile = await this.prisma.client.orm.public.UserProfile
+            .where({ userId })
+            .first();
+
+        const updatedCommentWithUser = {
+            ...updatedComment,
+            user: {
+                username: profile?.username ?? null,
+                avatarUrl: profile?.avatarUrl ?? null,
+            },
+        };
+
+        const comments = await this.prisma.client.orm.public.Comment
+            .where({ postId: existingComment.postId })
+            .where((item) => item.deletedAt.isNull())
+            .all();
 
         this.postsGateway.emitCommentUpdate({
             type: 'COMMENT_UPDATED',
             postId: existingComment.postId,
-            comment: updatedComment,
+            comment: updatedCommentWithUser,
             commentCount: comments.length,
         });
 
         return {
             success: true,
             message: 'Comment updated successfully',
-            data: updatedComment,
+            data: updatedCommentWithUser,
         };
     }
 
-
-
-    // 5. SOFT DELETE OWN COMMENT
+    // Soft delete comment
     async deleteComment(commentId: number, userId: number) {
         this.validateId(commentId, 'comment ID');
         this.validateId(userId, 'user ID');
 
-        const existingComment =
-            await this.prisma.client.orm.public.Comment
-                .where({
-                    id: commentId,
-                    userId,
-                    deletedAt: null,
-                })
-                .first();
+        const existingComment = await this.prisma.client.orm.public.Comment
+            .where({ id: commentId, userId, deletedAt: null })
+            .first();
 
         if (!existingComment) {
             throw new NotFoundException(
@@ -210,25 +243,20 @@ export class CommentsService {
             );
         }
 
+        const now = Temporal.Now.instant();
+
         await this.prisma.client.orm.public.Comment
-            .where({
-                id: commentId,
-                userId,
-                deletedAt: null,
-            })
+            .where({ id: commentId, userId, deletedAt: null })
             .update({
-                deletedAt: Temporal.Now.instant(),
-                updatedAt: Temporal.Now.instant(),
+                deletedAt: now,
+                updatedAt: now,
             });
 
-        // Delete pachi active comments no latest count melavo.
-        const comments =
-            await this.prisma.client.orm.public.Comment
-                .where({ postId: existingComment.postId })
-                .where((item) => item.deletedAt.isNull())
-                .all();
+        const comments = await this.prisma.client.orm.public.Comment
+            .where({ postId: existingComment.postId })
+            .where((item) => item.deletedAt.isNull())
+            .all();
 
-        // Real-time comment delete ane updated count emit karo.
         this.postsGateway.emitCommentUpdate({
             type: 'COMMENT_DELETED',
             postId: existingComment.postId,
@@ -244,16 +272,12 @@ export class CommentsService {
         };
     }
 
-
-    // 6. GET ACTIVE COMMENT COUNT FOR A POST
+    // Get active comment count for a post
     async getCommentCount(postId: number) {
         this.validateId(postId, 'post ID');
 
         const post = await this.prisma.client.orm.public.Post
-            .where({
-                id: postId,
-                deletedAt: null,
-            })
+            .where({ id: postId, deletedAt: null })
             .first();
 
         if (!post) {
