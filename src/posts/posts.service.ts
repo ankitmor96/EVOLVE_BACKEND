@@ -76,6 +76,51 @@ export class PostsService {
     }
   }
 
+  private async getUserSkillCategories(userId: number) {
+    const userSkills = await this.prisma.client.orm.public.UserSkill
+      .where({ userId })
+      .all();
+
+    const skillIds = [...new Set(userSkills.map((item) => item.skillId))];
+
+    if (skillIds.length === 0) {
+      return [];
+    }
+
+    const skills = await this.prisma.client.orm.public.Skill
+      .where((skill) => skill.id.in(skillIds))
+      .all();
+
+    const categoryIds = [
+      ...new Set(skills.map((skill) => skill.categoryId)),
+    ];
+
+    if (categoryIds.length === 0) {
+      return [];
+    }
+
+    const categories = await this.prisma.client.orm.public.SkillCategory
+      .where((category) => category.id.in(categoryIds))
+      .all();
+
+    return categories;
+  }
+
+  private async savePostSkills(postId: number, userId: number) {
+    const userSkills = await this.prisma.client.orm.public.UserSkill
+      .where({ userId })
+      .all();
+
+    for (const userSkill of userSkills) {
+      await this.prisma.client.orm.public.PostSkill.create({
+        postId,
+        skillId: userSkill.skillId,
+        relationshipType: userSkill.relationshipType,
+      });
+    }
+
+    return this.getUserSkillCategories(userId);
+  }
 
   // =====================================
   // VALIDATE IMAGE
@@ -255,6 +300,8 @@ export class PostsService {
       );
     }
 
+    const skillCategories = await this.savePostSkills(postId, userId);
+
     try {
       const mediaUrl = await this.uploadImageToCloudinary(
         file.buffer,
@@ -282,6 +329,7 @@ export class PostsService {
         message: 'Post created successfully with image',
         post,
         media,
+        skillCategories,
       };
 
     } catch (error) {
@@ -322,6 +370,8 @@ export class PostsService {
       );
     }
 
+    const skillCategories = await this.savePostSkills(postId, userId);
+
     try {
       const mediaUrl = await this.uploadVideoToCloudinary(
         file.buffer,
@@ -349,6 +399,7 @@ export class PostsService {
         message: 'Post created successfully with video',
         post,
         media,
+        skillCategories,
       };
 
     } catch (error) {
@@ -574,6 +625,8 @@ export class PostsService {
       );
     }
 
+    const skillCategories = await this.savePostSkills(postId, userId);
+
     try {
       const mediaUrl = await this.uploadDocumentToCloudinary(
         file.buffer,
@@ -608,6 +661,7 @@ export class PostsService {
         message: 'Document post created successfully',
         post,
         media,
+        skillCategories,
       };
 
     } catch (error) {
@@ -618,6 +672,7 @@ export class PostsService {
       );
     }
   }
+
 
 
   async getFeed(cursor?: number) {
@@ -653,7 +708,7 @@ export class PostsService {
       });
     }
 
-    // Fetch 11 posts to determine whether another page exists
+    // Fetch posts
     const posts = await query
       .limit(pageSize + 1)
       .all();
@@ -661,17 +716,35 @@ export class PostsService {
     const hasMore = posts.length > pageSize;
     const items = posts.slice(0, pageSize);
 
-    // Fetch media for the current page in one separate query
     const postIds = items.map((post) => post.id);
 
+    // Fetch media
     const media = postIds.length > 0
       ? await this.prisma.client.orm.public.PostMedia
-        .where((m) => m.postId.in(postIds))
-        .orderBy((m) => m.position.asc())
+        .where((item) => item.postId.in(postIds))
+        .orderBy((item) => item.position.asc())
         .all()
       : [];
 
-    // Attach each post's media without using include()
+    // Fetch post-skill relations
+    const postSkills = postIds.length > 0
+      ? await this.prisma.client.orm.public.PostSkill
+        .where((item) => item.postId.in(postIds))
+        .all()
+      : [];
+
+    // Fetch skills (without skill categories)
+    const skillIds = [
+      ...new Set(postSkills.map((item) => item.skillId)),
+    ];
+
+    const skills = skillIds.length > 0
+      ? await this.prisma.client.orm.public.Skill
+        .where((skill) => skill.id.in(skillIds))
+        .all()
+      : [];
+
+    // Attach media, skills and counts
     const itemsWithMedia = await Promise.all(
       items.map(async (post) => {
         const reactions =
@@ -684,17 +757,47 @@ export class PostsService {
             .where({ postId: post.id })
             .all();
 
+        const postSkillsForPost = postSkills.filter(
+          (postSkill) => postSkill.postId === post.id,
+        );
+
+        const skillsForPost = postSkillsForPost.flatMap(
+          (postSkill) => {
+            const skill = skills.find(
+              (item) => item.id === postSkill.skillId,
+            );
+
+            if (!skill) {
+              return [];
+            }
+
+            return [
+              {
+                ...skill,
+                relationshipType: postSkill.relationshipType,
+              },
+            ];
+          },
+        );
+
         return {
           ...post,
-          media: media.filter((item) => item.postId === post.id),
+
+          media: media.filter(
+            (item) => item.postId === post.id,
+          ),
+
+          skills: skillsForPost,
 
           reactionCounts: {
             APPRECIATE: reactions.filter(
-              (reaction) => reaction.reactionType === 'APPRECIATE',
+              (reaction) =>
+                reaction.reactionType === 'APPRECIATE',
             ).length,
 
             HELPFUL: reactions.filter(
-              (reaction) => reaction.reactionType === 'HELPFUL',
+              (reaction) =>
+                reaction.reactionType === 'HELPFUL',
             ).length,
           },
 
@@ -711,7 +814,8 @@ export class PostsService {
       pagination: {
         limit: pageSize,
         hasMore,
-        nextCursor: hasMore && lastPost ? lastPost.id : null,
+        nextCursor:
+          hasMore && lastPost ? lastPost.id : null,
       },
     };
   }

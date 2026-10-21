@@ -40,6 +40,10 @@
       "model": "PostReaction",
       "namespace": "public"
     },
+    "PostSkill": {
+      "model": "PostSkill",
+      "namespace": "public"
+    },
     "Skill": {
       "model": "Skill",
       "namespace": "public"
@@ -856,6 +860,21 @@
                   "namespace": "public"
                 }
               },
+              "skills": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "postId"
+                  ]
+                },
+                "to": {
+                  "model": "PostSkill",
+                  "namespace": "public"
+                }
+              },
               "user": {
                 "cardinality": "N:1",
                 "nullable": false,
@@ -1221,6 +1240,106 @@
               "table": "PostReaction"
             }
           },
+          "PostSkill": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "postId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "relationshipType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "SkillRelationshipType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "skillId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "post": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "postId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Post",
+                  "namespace": "public"
+                }
+              },
+              "skill": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "skillId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Skill",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "postId": {
+                  "column": "postId"
+                },
+                "relationshipType": {
+                  "column": "relationshipType"
+                },
+                "skillId": {
+                  "column": "skillId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "PostSkill"
+            }
+          },
           "Skill": {
             "fields": {
               "categoryId": {
@@ -1309,6 +1428,21 @@
                 },
                 "to": {
                   "model": "UserCuriosity",
+                  "namespace": "public"
+                }
+              },
+              "postSkills": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "skillId"
+                  ]
+                },
+                "to": {
+                  "model": "PostSkill",
                   "namespace": "public"
                 }
               },
@@ -3120,6 +3254,124 @@
                 }
               ]
             },
+            "PostSkill": {
+              "checks": [
+                {
+                  "expression": "\"relationshipType\" IN ('CAN_DO', 'LEARNING', 'WANT_TO_IMPROVE')",
+                  "name": "PostSkill_relationshipType_check_d13d0d3b",
+                  "prefix": "PostSkill_relationshipType_check"
+                }
+              ],
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "postId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "relationshipType": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "SkillRelationshipType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "skillId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "postId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "PostSkill"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Post"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "skillId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "PostSkill"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Skill"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "postId"
+                  ],
+                  "name": "PostSkill_postId_idx_a7a72715",
+                  "prefix": "PostSkill_postId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "skillId"
+                  ],
+                  "name": "PostSkill_skillId_idx_6e19993d",
+                  "prefix": "PostSkill_skillId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "postId",
+                    "skillId",
+                    "relationshipType"
+                  ]
+                }
+              ]
+            },
             "Skill": {
               "columns": {
                 "categoryId": {
@@ -3891,7 +4143,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "e0ca46b37127617ba31e733dd7f06d007718d3dd0ded91ee6fdce4a3ecd49d8c"
+    "storageHash": "a6b389ff4c1f5b824a871b910cfc771c19ba2cc94b44127762d187291f33b72f"
   },
   "capabilities": {
     "postgres": {
