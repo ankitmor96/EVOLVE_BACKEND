@@ -675,6 +675,7 @@ export class PostsService {
 
 
 
+
   async getFeed(cursor?: number) {
     const pageSize = 10;
 
@@ -726,25 +727,7 @@ export class PostsService {
         .all()
       : [];
 
-    // Fetch post-skill relations
-    const postSkills = postIds.length > 0
-      ? await this.prisma.client.orm.public.PostSkill
-        .where((item) => item.postId.in(postIds))
-        .all()
-      : [];
-
-    // Fetch skills (without skill categories)
-    const skillIds = [
-      ...new Set(postSkills.map((item) => item.skillId)),
-    ];
-
-    const skills = skillIds.length > 0
-      ? await this.prisma.client.orm.public.Skill
-        .where((skill) => skill.id.in(skillIds))
-        .all()
-      : [];
-
-    // Attach media, skills and counts
+    // Attach media and counts
     const itemsWithMedia = await Promise.all(
       items.map(async (post) => {
         const reactions =
@@ -757,37 +740,12 @@ export class PostsService {
             .where({ postId: post.id })
             .all();
 
-        const postSkillsForPost = postSkills.filter(
-          (postSkill) => postSkill.postId === post.id,
-        );
-
-        const skillsForPost = postSkillsForPost.flatMap(
-          (postSkill) => {
-            const skill = skills.find(
-              (item) => item.id === postSkill.skillId,
-            );
-
-            if (!skill) {
-              return [];
-            }
-
-            return [
-              {
-                ...skill,
-                relationshipType: postSkill.relationshipType,
-              },
-            ];
-          },
-        );
-
         return {
           ...post,
 
           media: media.filter(
             (item) => item.postId === post.id,
           ),
-
-          skills: skillsForPost,
 
           reactionCounts: {
             APPRECIATE: reactions.filter(
@@ -819,6 +777,7 @@ export class PostsService {
       },
     };
   }
+
 
   async getMyPostsByMediaType(
     userId: number,
