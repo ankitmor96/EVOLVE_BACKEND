@@ -719,6 +719,24 @@ export class PostsService {
 
     const postIds = items.map((post) => post.id);
 
+    // Fetch users for feed posts
+    const userIds = [...new Set(items.map((post) => post.userId))];
+
+    const users = userIds.length > 0
+      ? await this.prisma.client.orm.public.User
+        .where((user) => user.id.in(userIds))
+        .all()
+      : [];
+
+    const userProfiles = userIds.length > 0
+      ? await this.prisma.client.orm.public.UserProfile
+        .where((profile) => profile.userId.in(userIds))
+        .all()
+      : [];
+
+    console.log('Feed userIds:', userIds);
+    console.log('Fetched userProfiles:', userProfiles);
+
     // Fetch media
     const media = postIds.length > 0
       ? await this.prisma.client.orm.public.PostMedia
@@ -742,6 +760,15 @@ export class PostsService {
 
         return {
           ...post,
+          user: {
+            name: users.find(
+              (user) => user.id === post.userId,
+            )?.name ?? null,
+
+            avatarUrl: userProfiles.find(
+              (profile) => profile.userId === post.userId,
+            )?.avatarUrl ?? null,
+          },
 
           media: media.filter(
             (item) => item.postId === post.id,
