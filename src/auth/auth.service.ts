@@ -466,72 +466,79 @@ export class AuthService {
   // GOOGLE LOGIN
   // =====================================================
 
+
+
   async googleLogin(
     googleUser: {
       googleId?: string;
-      email: string;
-      name: string;
+      email?: string;
+      name?: string;
       picture?: string;
     },
   ) {
-    const normalizedEmail =
-      googleUser.email.trim().toLowerCase();
+    const normalizedEmail = googleUser.email?.trim().toLowerCase();
 
-    let user =
+    if (!normalizedEmail || !googleUser.googleId) {
+      throw new UnauthorizedException(
+        'Google account email could not be verified.',
+      );
+    }
+
+    // Step 1: Find registered user
+    const existingUser =
       await this.prisma.client.orm.public.User.first({
         email: normalizedEmail,
       });
 
-    if (!user) {
-      // Google-only account: no password is ever set.
-      user =
-        await this.prisma.client.orm.public.User.create({
-          name: googleUser.name,
-          email: normalizedEmail,
-          password: null,
-          googleId: googleUser.googleId,
-          emailVerified: true,
-        });
-    } else if (googleUser.googleId && !user.googleId) {
-      // Link the Google identity to an existing password account.
-      user =
-        await this.prisma.client.orm.public.User
-          .where(
-            { id: user.id },
-          )
-          .update(
-            {
-              googleId: googleUser.googleId,
-              emailVerified: true,
-            },
-          );
-    }
-
-    if (!user) {
+    // Step 2: If user is not registered, stop login
+    if (!existingUser) {
       throw new UnauthorizedException(
-        'Google login failed. Please try again.',
+        'Account not registered. Please register first.',
       );
     }
 
+    // Step 3: Verify existing Google account link
+    if (
+      existingUser.googleId &&
+      existingUser.googleId !== googleUser.googleId
+    ) {
+      throw new UnauthorizedException(
+        'This account is linked to a different Google account.',
+      );
+    }
+
+    // Step 4: Link Google ID to an existing account
+
+    let user = existingUser;
+
+    if (!existingUser.googleId) {
+      await this.prisma.client.orm.public.User
+        .where({ id: existingUser.id })
+        .update({
+          googleId: googleUser.googleId,
+          emailVerified: true,
+        });
+
+      // Keep the already verified existing user object.
+      user = {
+        ...existingUser,
+        googleId: googleUser.googleId,
+        emailVerified: true,
+      };
+    }
+
+    // Step 5: Generate JWT only after user is confirmed
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
     };
 
-    console.log(
-      'Google login token generated at:',
-      new Date().toISOString(),
-    );
-
-    const accessToken =
-      await this.jwtService.signAsync(
-        payload,
-      );
+    const accessToken = await this.jwtService.signAsync(payload);
 
     return {
+      success: true,
       message: 'Google login successful',
-
       data: {
         id: user.id,
         name: user.name,

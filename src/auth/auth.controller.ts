@@ -8,22 +8,22 @@ import {
   Res,
   UseFilters,
   UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { SendEmailOtpDto } from './dto/email-otp.dto';
-
-import { AuthService } from './auth.service';
-import { GoogleAuthGuard } from './guards/google-auth.guard';
-import { GoogleOAuthFilter } from './filters/google-oauth.filter';
 import { VerifyEmailOtpDto } from './dto/verify-email-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
+import { AuthService } from './auth.service';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { GoogleOAuthFilter } from './filters/google-oauth.filter';
 
 @Controller('auth')
 export class AuthController {
@@ -37,12 +37,8 @@ export class AuthController {
   // =====================================================
 
   @Post('register')
-  register(
-    @Body() registerDto: RegisterDto,
-  ) {
-    return this.authService.register(
-      registerDto,
-    );
+  register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
   }
 
   // =====================================================
@@ -50,12 +46,8 @@ export class AuthController {
   // =====================================================
 
   @Post('login')
-  login(
-    @Body() loginDto: LoginDto,
-  ) {
-    return this.authService.login(
-      loginDto,
-    );
+  login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
   }
 
   // =====================================================
@@ -63,16 +55,18 @@ export class AuthController {
   // =====================================================
 
   @Post('email-otp/send')
-  sendEmailOtp(
-    @Body() sendEmailOtpDto: SendEmailOtpDto,
-  ) {
+  sendEmailOtp(@Body() sendEmailOtpDto: SendEmailOtpDto) {
     return this.authService.sendEmailOtp(
       sendEmailOtpDto.email,
     );
   }
 
+  // =====================================================
+  // VERIFY EMAIL OTP
+  // =====================================================
+
   @Post('email-otp/verify')
-  async verifyEmailOtp(
+  verifyEmailOtp(
     @Body() verifyEmailOtpDto: VerifyEmailOtpDto,
   ) {
     return this.authService.verifyEmailOtp(
@@ -110,139 +104,70 @@ export class AuthController {
   // GOOGLE LOGIN
   // =====================================================
 
-  // @Get('google')
-  // @UseGuards(GoogleAuthGuard)
-  // googleLogin() {
-  //   return;
-  // }
-
-  // @Get('google/callback')
-  // @UseGuards(GoogleAuthGuard)
-  // @UseFilters(GoogleOAuthFilter)
-  // async googleCallback(
-  //   @Req() req: any,
-  //   @Res() res: Response,
-  // ) {
-  //   const result =
-  //     await this.authService.googleLogin(
-  //       req.user,
-  //     );
-
-  //   const frontendUrl =
-  //     this.configService.get<string>(
-  //       'FRONTEND_URL',
-  //     ) ?? 'http://localhost:5173';
-
-  //   const target =
-  //     new URL(
-  //       '/login',
-  //       frontendUrl,
-  //     );
-
-  //   target.searchParams.set(
-  //     'token',
-  //     String(result.data.accessToken),
-  //   );
-
-  //   target.searchParams.set(
-  //     'email',
-  //     String(result.data.email),
-  //   );
-
-  //   if (result.data.name) {
-  //     target.searchParams.set(
-  //       'name',
-  //       String(result.data.name),
-  //     );
-  //   }
-
-  //   return res.redirect(
-  //     target.toString(),
-  //   );
-  // }
-
-  // =====================================================
-  // GOOGLE LOGIN
-  // =====================================================
-
+  // Start Google OAuth
   @Get('google')
   @UseGuards(GoogleAuthGuard)
   googleLogin() {
-    console.log('🟡 GET /auth/google route reached');
-    return;
+    // Passport redirects the user to Google.
   }
 
+  // Google OAuth callback
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   @UseFilters(GoogleOAuthFilter)
   async googleCallback(
-    @Req() req: any,
+    @Req() req: Request,
     @Res() res: Response,
   ) {
-    console.log('🔵 Google callback reached');
-    console.log('🔵 req.user:', {
-      googleId: req.user?.googleId,
-      email: req.user?.email,
-      name: req.user?.name,
-    });
-
-    let result;
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ??
+      'http://localhost:5173';
 
     try {
-      console.log('🟡 Calling googleLogin service...');
+      const googleUser = req.user as {
+        googleId: string;
+        email: string;
+        name: string;
+      };
 
-      result = await this.authService.googleLogin(req.user);
+      const result = await this.authService.googleLogin(
+        googleUser,
+      );
 
-      console.log('🟢 googleLogin service successful:', {
-        success: !!result?.data?.accessToken,
-        email: result?.data?.email,
-        hasToken: !!result?.data?.accessToken,
-      });
+      const target = new URL('/login', frontendUrl);
+
+      target.searchParams.set(
+        'token',
+        result.data.accessToken,
+      );
+
+
+      target.searchParams.set(
+        'email',
+        String(result.data.email),
+      );
+
+      if (result.data.name) {
+        target.searchParams.set(
+          'name',
+          String(result.data.name),
+        );
+      }
+
+      return res.redirect(target.toString());
     } catch (error) {
-      console.error('🔴 googleLogin service failed:', error);
+      if (error instanceof UnauthorizedException) {
+        const target = new URL('/login', frontendUrl);
+
+        target.searchParams.set(
+          'authError',
+          'google_not_registered',
+        );
+
+        return res.redirect(target.toString());
+      }
+
       throw error;
     }
-
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'https://evolve-inky-five.vercel.app',
-    ];
-
-    // Origin must be saved and restored by your OAuth guard/session.
-    const requestedOrigin =
-      req.session?.oauthFrontendOrigin ??
-      req.oauthFrontendOrigin;
-
-    const configuredOrigin =
-      this.configService.get<string>('FRONTEND_URL') ??
-      'https://evolve-inky-five.vercel.app';
-
-    const frontendOrigin = allowedOrigins.includes(requestedOrigin)
-      ? requestedOrigin
-      : allowedOrigins.includes(configuredOrigin)
-        ? configuredOrigin
-        : 'https://evolve-inky-five.vercel.app';
-
-    const target = new URL('/login', frontendOrigin);
-
-    target.searchParams.set(
-      'token',
-      String(result.data.accessToken),
-    );
-
-    target.searchParams.set(
-      'email',
-      String(result.data.email),
-    );
-
-    if (result.data.name) {
-      target.searchParams.set(
-        'name',
-        String(result.data.name),
-      );
-    }
-
-    return res.redirect(target.toString());
   }
 }
-
