@@ -20,7 +20,7 @@ export class PostsGateway {
   server!: Server;
 
   private readonly BATCH_SIZE = 10;
-  private readonly BATCH_DELAY = 1000;
+  private readonly BATCH_DELAY = 700;
 
   private pendingPosts: unknown[] = [];
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
