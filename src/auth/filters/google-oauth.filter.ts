@@ -100,11 +100,14 @@ export class GoogleOAuthFilter
     const requestedOrigin =
       (req as any).oauthFrontendOrigin;
 
+    console.log('🔴 Google OAuth filter triggered');
+    console.error('🔴 OAuth exception:', exception);
+
     const frontendUrl =
       ALLOWED_FRONTENDS.includes(requestedOrigin)
         ? requestedOrigin
         : process.env.FRONTEND_URL ??
-          'https://evolve-inky-five.vercel.app';
+        'https://evolve-inky-five.vercel.app';
 
     const target = new URL('/login', frontendUrl);
 

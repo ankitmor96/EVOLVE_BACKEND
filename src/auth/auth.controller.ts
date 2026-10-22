@@ -168,6 +168,7 @@ export class AuthController {
   @Get('google')
   @UseGuards(GoogleAuthGuard)
   googleLogin() {
+    console.log('🟡 GET /auth/google route reached');
     return;
   }
 
@@ -178,7 +179,29 @@ export class AuthController {
     @Req() req: any,
     @Res() res: Response,
   ) {
-    const result = await this.authService.googleLogin(req.user);
+    console.log('🔵 Google callback reached');
+    console.log('🔵 req.user:', {
+      googleId: req.user?.googleId,
+      email: req.user?.email,
+      name: req.user?.name,
+    });
+
+    let result;
+
+    try {
+      console.log('🟡 Calling googleLogin service...');
+
+      result = await this.authService.googleLogin(req.user);
+
+      console.log('🟢 googleLogin service successful:', {
+        success: !!result?.data?.accessToken,
+        email: result?.data?.email,
+        hasToken: !!result?.data?.accessToken,
+      });
+    } catch (error) {
+      console.error('🔴 googleLogin service failed:', error);
+      throw error;
+    }
 
     const allowedOrigins = [
       'http://localhost:5173',

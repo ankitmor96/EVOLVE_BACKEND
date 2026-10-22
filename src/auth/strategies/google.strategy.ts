@@ -29,6 +29,14 @@ export class GoogleStrategy extends PassportStrategy(
     refreshToken: string,
     profile: Profile,
   ) {
+    console.log('🔵 GoogleStrategy validate reached');
+
+    console.log('🔵 Google profile:', {
+      id: profile.id,
+      email: profile.emails?.[0]?.value,
+      name: profile.displayName,
+    });
+
     return {
       googleId: profile.id,
       email: profile.emails?.[0]?.value,

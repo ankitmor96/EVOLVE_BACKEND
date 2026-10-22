@@ -519,6 +519,11 @@ export class AuthService {
       role: user.role,
     };
 
+    console.log(
+      'Google login token generated at:',
+      new Date().toISOString(),
+    );
+
     const accessToken =
       await this.jwtService.signAsync(
         payload,
