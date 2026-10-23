@@ -7,7 +7,6 @@ import {
 
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 
@@ -17,7 +16,6 @@ import { randomInt } from 'crypto';
 import { Temporal } from '@js-temporal/polyfill';
 
 import { VerifyEmailOtpDto } from './dto/verify-email-otp.dto';
-
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
@@ -33,70 +31,54 @@ export class AuthService {
   // OTP HELPERS
   // =====================================================
 
-  // Keeps at most one OTP row per address: an existing row is overwritten
-  // instead of accumulating a new row on every request.
   private async saveOtp(
     email: string,
     otp: string,
     expiresAt: Temporal.Instant,
   ) {
     const existing =
-      await this.prisma.client.orm.public.EmailOtp.first(
-        { email },
-      );
+      await this.prisma.client.orm.public.EmailOtp.first({
+        email,
+      });
 
     if (existing) {
       await this.prisma.client.orm.public.EmailOtp
-        .where(
-          { id: existing.id },
-        )
-        .update(
-          { otp, expiresAt },
-        );
+        .where({ id: existing.id })
+        .update({ otp, expiresAt });
 
       return;
     }
 
-    await this.prisma.client.orm.public.EmailOtp.create(
-      { email, otp, expiresAt },
-    );
+    await this.prisma.client.orm.public.EmailOtp.create({
+      email,
+      otp,
+      expiresAt,
+    });
   }
 
-  // Burns an OTP once it has been spent, so the same code cannot be replayed
-  // before it expires.
   private async burnOtp(id: number) {
     await this.prisma.client.orm.public.EmailOtp
-      .where(
-        { id },
-      )
-      .update(
-        {
-          expiresAt: Temporal.Instant.fromEpochMilliseconds(
-            Date.now() - 1000,
-          ),
-        },
-      );
+      .where({ id })
+      .update({
+        expiresAt: Temporal.Instant.fromEpochMilliseconds(
+          Date.now() - 1000,
+        ),
+      });
   }
 
-  // Always resolves the newest OTP, never an older spent one.
   private async latestOtp(email: string) {
     return this.prisma.client.orm.public.EmailOtp
-      .where(
-        { email },
-      )
-      .orderBy(
-        (otp) => otp.createdAt.desc(),
-      )
+      .where({ email })
+      .orderBy((otp) => otp.createdAt.desc())
       .limit(1)
       .first();
   }
 
   // =====================================================
-  // REGISTER
+  // REGISTER WITH PASSWORD
   // =====================================================
 
   async register(registerDto: RegisterDto) {
-    // Normalize so the address matches the OTP flows, which always lowercase.
     const normalizedEmail =
       registerDto.email.trim().toLowerCase();
 
@@ -111,11 +93,10 @@ export class AuthService {
       );
     }
 
-    const hashedPassword =
-      await bcrypt.hash(
-        registerDto.password,
-        10,
-      );
+    const hashedPassword = await bcrypt.hash(
+      registerDto.password,
+      10,
+    );
 
     const user =
       await this.prisma.client.orm.public.User.create({
@@ -126,7 +107,6 @@ export class AuthService {
 
     return {
       message: 'User registered successfully',
-
       data: {
         id: user.id,
         name: user.name,
@@ -140,12 +120,12 @@ export class AuthService {
   // FORGOT PASSWORD - SEND OTP
   // =====================================================
 
-  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
-    // 1. Normalize email
+  async forgotPassword(
+    forgotPasswordDto: ForgotPasswordDto,
+  ) {
     const normalizedEmail =
       forgotPasswordDto.email.trim().toLowerCase();
 
-    // 2. Check user
     const user =
       await this.prisma.client.orm.public.User.first({
         email: normalizedEmail,
@@ -157,24 +137,19 @@ export class AuthService {
       );
     }
 
-    // 3. Generate secure 6-digit OTP
-    const otp =
-      randomInt(100000, 1000000).toString();
+    const otp = randomInt(100000, 1000000).toString();
 
-    // 4. OTP expires after 5 minutes
     const expiresAt =
       Temporal.Instant.fromEpochMilliseconds(
         Date.now() + 5 * 60 * 1000,
       );
 
-    // 5. Save OTP
     await this.saveOtp(
       normalizedEmail,
       otp,
       expiresAt,
     );
 
-    // 6. Send OTP
     await this.emailService.sendEmailOtp(
       normalizedEmail,
       otp,
@@ -189,7 +164,9 @@ export class AuthService {
   // RESET PASSWORD
   // =====================================================
 
-  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+  async resetPassword(
+    resetPasswordDto: ResetPasswordDto,
+  ) {
     const normalizedEmail =
       resetPasswordDto.email.trim().toLowerCase();
 
@@ -204,7 +181,6 @@ export class AuthService {
       );
     }
 
-    // Find the newest OTP
     const otpRecord =
       await this.latestOtp(normalizedEmail);
 
@@ -215,9 +191,7 @@ export class AuthService {
     }
 
     if (otpRecord.otp !== resetPasswordDto.otp) {
-      throw new UnauthorizedException(
-        'Invalid OTP',
-      );
+      throw new UnauthorizedException('Invalid OTP');
     }
 
     const expiresAt = Temporal.Instant.from(
@@ -235,21 +209,15 @@ export class AuthService {
       );
     }
 
-    const hashedPassword =
-      await bcrypt.hash(
-        resetPasswordDto.newPassword,
-        10,
-      );
+    const hashedPassword = await bcrypt.hash(
+      resetPasswordDto.newPassword,
+      10,
+    );
 
     await this.prisma.client.orm.public.User
-      .where({
-        id: user.id,
-      })
-      .update({
-        password: hashedPassword,
-      });
+      .where({ id: user.id })
+      .update({ password: hashedPassword });
 
-    // Burn the OTP so the same code cannot reset the password twice.
     await this.burnOtp(Number(otpRecord.id));
 
     return {
@@ -261,7 +229,6 @@ export class AuthService {
   // SEND EMAIL OTP
   // =====================================================
 
-
   async sendEmailOtp(
     email: string,
     mode: 'login' | 'signup' = 'login',
@@ -269,61 +236,79 @@ export class AuthService {
   ) {
     const normalizedEmail = email.trim().toLowerCase();
 
-    let user = await this.prisma.client.orm.public.User.first({
-      email: normalizedEmail,
-    });
-
-    // Login: user must already exist.
-    if (!user && mode === 'login') {
+    if (!normalizedEmail) {
       throw new UnauthorizedException(
-        'No account found with this email. Please sign up first.',
+        'Email is required.',
       );
     }
 
-    // Signup: create a password-less account if it doesn't exist.
-    if (!user && mode === 'signup') {
-      user = await this.prisma.client.orm.public.User.create({
+    // Find an existing account.
+    let user =
+      await this.prisma.client.orm.public.User.first({
         email: normalizedEmail,
-        name: name?.trim() || normalizedEmail.split('@')[0],
-        emailVerified: false,
       });
+
+    // Automatically create an account if this email is new.
+    // OTP verification is still required before login.
+    if (!user) {
+      user =
+        await this.prisma.client.orm.public.User.create({
+          email: normalizedEmail,
+          name:
+            name?.trim() ||
+            normalizedEmail.split('@')[0],
+          emailVerified: false,
+        });
     }
 
-    // Generate a secure 6-digit OTP.
+    // Generate a secure six-digit OTP.
     const otp = randomInt(100000, 1000000).toString();
 
-    // OTP expires after 5 minutes.
-    const expiresAt = Temporal.Instant.fromEpochMilliseconds(
-      Date.now() + 5 * 60 * 1000,
+    const expiresAt =
+      Temporal.Instant.fromEpochMilliseconds(
+        Date.now() + 5 * 60 * 1000,
+      );
+
+    await this.saveOtp(
+      normalizedEmail,
+      otp,
+      expiresAt,
     );
 
-    // Save OTP and send it to the user's email.
-    await this.saveOtp(normalizedEmail, otp, expiresAt);
+    await this.emailService.sendEmailOtp(
+      normalizedEmail,
+      otp,
+    );
 
-    await this.emailService.sendEmailOtp(normalizedEmail, otp);
-
-    // Never return the OTP to the frontend.
     return {
+      success: true,
       message: 'OTP sent successfully',
     };
   }
 
+  // =====================================================
+  // VERIFY EMAIL OTP AND LOGIN
+  // =====================================================
 
-  async verifyEmailOtp(verifyEmailOtpDto: VerifyEmailOtpDto) {
+  async verifyEmailOtp(
+    verifyEmailOtpDto: VerifyEmailOtpDto,
+  ) {
     const normalizedEmail =
       verifyEmailOtpDto.email.trim().toLowerCase();
 
-    const user = await this.prisma.client.orm.public.User.first({
-      email: normalizedEmail,
-    });
+    const user =
+      await this.prisma.client.orm.public.User.first({
+        email: normalizedEmail,
+      });
 
     if (!user) {
       throw new UnauthorizedException(
-        'No account found with this email. Please sign up first.',
+        'Account not found. Please request a new OTP.',
       );
     }
 
-    const otpRecord = await this.latestOtp(normalizedEmail);
+    const otpRecord =
+      await this.latestOtp(normalizedEmail);
 
     if (!otpRecord) {
       throw new UnauthorizedException(
@@ -350,10 +335,12 @@ export class AuthService {
       );
     }
 
+    // Verify the email only after successful OTP verification.
     await this.prisma.client.orm.public.User
       .where({ id: user.id })
       .update({ emailVerified: true });
 
+    // OTP can only be used once.
     await this.burnOtp(Number(otpRecord.id));
 
     const accessToken = await this.jwtService.signAsync({
@@ -363,6 +350,7 @@ export class AuthService {
     });
 
     return {
+      success: true,
       message: 'Email OTP verification successful',
       data: {
         id: user.id,
@@ -374,13 +362,18 @@ export class AuthService {
     };
   }
 
+  // =====================================================
+  // LOGIN WITH EMAIL AND PASSWORD
+  // =====================================================
 
   async login(loginDto: LoginDto) {
-    const normalizedEmail = loginDto.email.trim().toLowerCase();
+    const normalizedEmail =
+      loginDto.email.trim().toLowerCase();
 
-    const user = await this.prisma.client.orm.public.User.first({
-      email: normalizedEmail,
-    });
+    const user =
+      await this.prisma.client.orm.public.User.first({
+        email: normalizedEmail,
+      });
 
     if (!user || !user.password) {
       throw new UnauthorizedException(
@@ -416,12 +409,9 @@ export class AuthService {
     };
   }
 
-
   // =====================================================
-  // GOOGLE LOGIN
+  // GOOGLE LOGIN / SIGNUP
   // =====================================================
-
-
 
   async googleLogin(
     googleUser: {
@@ -430,8 +420,10 @@ export class AuthService {
       name?: string;
       picture?: string;
     },
+    mode: 'login' | 'signup' = 'login',
   ) {
-    const normalizedEmail = googleUser.email?.trim().toLowerCase();
+    const normalizedEmail =
+      googleUser.email?.trim().toLowerCase();
 
     if (!normalizedEmail || !googleUser.googleId) {
       throw new UnauthorizedException(
@@ -439,57 +431,64 @@ export class AuthService {
       );
     }
 
-    // Step 1: Find registered user
     const existingUser =
       await this.prisma.client.orm.public.User.first({
         email: normalizedEmail,
       });
 
-    // Step 2: If user is not registered, stop login
-    if (!existingUser) {
-      throw new UnauthorizedException(
-        'Account not registered. Please register first.',
-      );
-    }
-
-    // Step 3: Verify existing Google account link
-    if (
-      existingUser.googleId &&
-      existingUser.googleId !== googleUser.googleId
-    ) {
-      throw new UnauthorizedException(
-        'This account is linked to a different Google account.',
-      );
-    }
-
-    // Step 4: Link Google ID to an existing account
-
     let user = existingUser;
 
-    if (!existingUser.googleId) {
-      await this.prisma.client.orm.public.User
-        .where({ id: existingUser.id })
-        .update({
+    // Automatically create a user for a new Google account.
+    // Google OAuth must have successfully verified the identity.
+    if (!existingUser) {
+      user =
+        await this.prisma.client.orm.public.User.create({
+          email: normalizedEmail,
+          name:
+            googleUser.name?.trim() ||
+            normalizedEmail.split('@')[0],
           googleId: googleUser.googleId,
           emailVerified: true,
         });
+    } else {
+      // Reject a conflicting Google ID already linked to this email.
+      if (
+        existingUser.googleId &&
+        existingUser.googleId !== googleUser.googleId
+      ) {
+        throw new UnauthorizedException(
+          'This account is linked to a different Google account.',
+        );
+      }
 
-      // Keep the already verified existing user object.
-      user = {
-        ...existingUser,
-        googleId: googleUser.googleId,
-        emailVerified: true,
-      };
+      // Link Google to an existing account that has no Google ID.
+      if (!existingUser.googleId) {
+        await this.prisma.client.orm.public.User
+          .where({ id: existingUser.id })
+          .update({
+            googleId: googleUser.googleId,
+            emailVerified: true,
+          });
+
+        user = {
+          ...existingUser,
+          googleId: googleUser.googleId,
+          emailVerified: true,
+        };
+      }
     }
 
-    // Step 5: Generate JWT only after user is confirmed
-    const payload = {
+    if (!user) {
+      throw new UnauthorizedException(
+        'Unable to create or find Google account.',
+      );
+    }
+
+    const accessToken = await this.jwtService.signAsync({
       sub: user.id,
       email: user.email,
       role: user.role,
-    };
-
-    const accessToken = await this.jwtService.signAsync(payload);
+    });
 
     return {
       success: true,
@@ -504,4 +503,3 @@ export class AuthService {
     };
   }
 }
-

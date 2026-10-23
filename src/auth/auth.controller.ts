@@ -45,12 +45,16 @@ export class AuthController {
   }
 
   // SEND EMAIL OTP
+
   @Post('email-otp/send')
   sendEmailOtp(@Body() sendEmailOtpDto: SendEmailOtpDto) {
     return this.authService.sendEmailOtp(
       sendEmailOtpDto.email,
+      sendEmailOtpDto.mode ?? 'login',
+      sendEmailOtpDto.name,
     );
   }
+
 
   // VERIFY EMAIL OTP
   @Post('email-otp/verify')
@@ -159,21 +163,9 @@ export class AuthController {
         return res.redirect(target.toString());
       }
 
-      // Login mode: do not allow an unregistered user to sign in.
-      if (
-        googleUser.notRegistered &&
-        mode === 'login'
-      ) {
-        const target = new URL('/login', frontendUrl);
-        target.searchParams.set(
-          'authError',
-          'google_not_registered',
-        );
-        return res.redirect(target.toString());
-      }
-
       const result = await this.authService.googleLogin(
         googleUser,
+        mode === 'signup' ? 'signup' : 'login',
       );
 
       const target = new URL('/login', frontendUrl);
