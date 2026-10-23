@@ -1154,4 +1154,45 @@ export class PostsService {
     };
   }
 
+
+  async deletePost(postId: number, userId: number) {
+    // Check that this post belongs to the logged-in user
+    const post = await this.prisma.client.orm.public.Post
+      .where({
+        id: postId,
+        userId: userId,
+        deletedAt: null,
+      })
+      .first();
+
+    if (!post) {
+      throw new NotFoundException(
+        'Post not found or you do not have permission to delete it',
+      );
+    }
+
+    // Soft delete: mark the post as deleted
+    await this.prisma.client.orm.public.Post
+      .where({
+        id: postId,
+        userId: userId,
+        deletedAt: null,
+      })
+      .update({
+        deletedAt: Temporal.Now.instant(),
+      });
+
+    // Notify connected clients
+    this.postsGateway.emitPostUpdate({
+      type: 'POST_DELETED',
+      postId,
+      userId,
+    });
+
+    return {
+      success: true,
+      message: 'Post deleted successfully',
+    };
+  }
+
 }
