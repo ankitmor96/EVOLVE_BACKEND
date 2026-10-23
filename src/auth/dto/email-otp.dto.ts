@@ -1,15 +1,26 @@
-
 import {
   IsEmail,
   IsNotEmpty,
   IsString,
   Length,
   Matches,
+  IsOptional,
+  IsIn,
+  MaxLength,
 } from 'class-validator';
 
 export class SendEmailOtpDto {
   @IsEmail()
   email: string;
+
+  @IsOptional()
+  @IsIn(['login', 'signup'])
+  mode?: 'login' | 'signup';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  name?: string;
 }
 
 export class VerifyEmailOtpDto {
@@ -24,4 +35,3 @@ export class VerifyEmailOtpDto {
   })
   otp: string;
 }
-

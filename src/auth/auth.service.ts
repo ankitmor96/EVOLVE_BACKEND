@@ -261,77 +261,69 @@ export class AuthService {
   // SEND EMAIL OTP
   // =====================================================
 
-  async sendEmailOtp(email: string) {
-    // 1. Normalize email
-    const normalizedEmail =
-      email.trim().toLowerCase();
 
-    // 2. Check whether user already exists
-    const user =
-      await this.prisma.client.orm.public.User.first({
-        email: normalizedEmail,
-      });
+  async sendEmailOtp(
+    email: string,
+    mode: 'login' | 'signup' = 'login',
+    name?: string,
+  ) {
+    const normalizedEmail = email.trim().toLowerCase();
 
-    // 3. If user does not exist, don't send OTP
-    if (!user) {
+    let user = await this.prisma.client.orm.public.User.first({
+      email: normalizedEmail,
+    });
+
+    // Login: user must already exist.
+    if (!user && mode === 'login') {
       throw new UnauthorizedException(
-        'No account found with this email. Please create an account first.',
+        'No account found with this email. Please sign up first.',
       );
     }
 
-    // 4. Generate secure 6-digit OTP
-    const otp =
-      randomInt(100000, 1000000).toString();
+    // Signup: create a password-less account if it doesn't exist.
+    if (!user && mode === 'signup') {
+      user = await this.prisma.client.orm.public.User.create({
+        email: normalizedEmail,
+        name: name?.trim() || normalizedEmail.split('@')[0],
+        emailVerified: false,
+      });
+    }
 
-    // 5. OTP expires after 5 minutes
-    const expiresAt =
-      Temporal.Instant.fromEpochMilliseconds(
-        Date.now() + 5 * 60 * 1000,
-      );
+    // Generate a secure 6-digit OTP.
+    const otp = randomInt(100000, 1000000).toString();
 
-    // 6. Save OTP
-    await this.saveOtp(
-      normalizedEmail,
-      otp,
-      expiresAt,
+    // OTP expires after 5 minutes.
+    const expiresAt = Temporal.Instant.fromEpochMilliseconds(
+      Date.now() + 5 * 60 * 1000,
     );
 
-    // 7. Send OTP to email
-    await this.emailService.sendEmailOtp(
-      normalizedEmail,
-      otp,
-    );
+    // Save OTP and send it to the user's email.
+    await this.saveOtp(normalizedEmail, otp, expiresAt);
 
-    // 8. Never return OTP to frontend
+    await this.emailService.sendEmailOtp(normalizedEmail, otp);
+
+    // Never return the OTP to the frontend.
     return {
       message: 'OTP sent successfully',
     };
   }
 
-  // =====================================================
-  // VERIFY EMAIL OTP
-  // =====================================================
 
   async verifyEmailOtp(verifyEmailOtpDto: VerifyEmailOtpDto) {
-    // 1. Normalize email
     const normalizedEmail =
       verifyEmailOtpDto.email.trim().toLowerCase();
 
-    // 2. Find user
-    const user =
-      await this.prisma.client.orm.public.User.first({
-        email: normalizedEmail,
-      });
+    const user = await this.prisma.client.orm.public.User.first({
+      email: normalizedEmail,
+    });
 
     if (!user) {
       throw new UnauthorizedException(
-        'No account found with this email. Please create an account first.',
+        'No account found with this email. Please sign up first.',
       );
     }
 
-    // 3. Find the newest OTP for this address
-    const otpRecord =
-      await this.latestOtp(normalizedEmail);
+    const otpRecord = await this.latestOtp(normalizedEmail);
 
     if (!otpRecord) {
       throw new UnauthorizedException(
@@ -339,14 +331,10 @@ export class AuthService {
       );
     }
 
-    // 4. Check OTP
     if (otpRecord.otp !== verifyEmailOtpDto.otp) {
-      throw new UnauthorizedException(
-        'Invalid OTP',
-      );
+      throw new UnauthorizedException('Invalid OTP');
     }
 
-    // 5. Check expiry
     const expiresAt = Temporal.Instant.from(
       String(otpRecord.expiresAt),
     );
@@ -362,76 +350,48 @@ export class AuthService {
       );
     }
 
-    // 6. Mark the address verified and burn the OTP so it cannot be replayed
     await this.prisma.client.orm.public.User
-      .where(
-        { id: user.id },
-      )
-      .update(
-        { emailVerified: true },
-      );
+      .where({ id: user.id })
+      .update({ emailVerified: true });
 
     await this.burnOtp(Number(otpRecord.id));
 
-    // 7. Generate JWT
-    const payload = {
+    const accessToken = await this.jwtService.signAsync({
       sub: user.id,
       email: user.email,
       role: user.role,
-    };
+    });
 
-    const accessToken =
-      await this.jwtService.signAsync(payload);
-
-    // 8. Return login response
     return {
-      message: 'Email OTP login successful',
-
+      message: 'Email OTP verification successful',
       data: {
         id: user.id,
         name: user.name,
         email: user.email,
-        emailVerified: user.emailVerified,
+        emailVerified: true,
         accessToken,
       },
     };
   }
 
 
-  // =====================================================
-  // LOGIN
-  // =====================================================
-
   async login(loginDto: LoginDto) {
-    // Normalize to match register and the OTP flows.
-    const normalizedEmail =
-      loginDto.email.trim().toLowerCase();
+    const normalizedEmail = loginDto.email.trim().toLowerCase();
 
-    const user =
-      await this.prisma.client.orm.public.User.first({
-        email: normalizedEmail,
-      });
+    const user = await this.prisma.client.orm.public.User.first({
+      email: normalizedEmail,
+    });
 
-    if (!user) {
+    if (!user || !user.password) {
       throw new UnauthorizedException(
         'Invalid email or password',
       );
     }
 
-    if (!user.password) {
-      throw new UnauthorizedException(
-        'Invalid email or password',
-      );
-    }
-
-    const storedPassword =
-      String(user.password);
-
-    const isPasswordValid =
-      await bcrypt.compare(
-        loginDto.password,
-        storedPassword,
-      );
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      String(user.password),
+    );
 
     if (!isPasswordValid) {
       throw new UnauthorizedException(
@@ -439,20 +399,14 @@ export class AuthService {
       );
     }
 
-    const payload = {
+    const accessToken = await this.jwtService.signAsync({
       sub: user.id,
       email: user.email,
       role: user.role,
-    };
-
-    const accessToken =
-      await this.jwtService.signAsync(
-        payload,
-      );
+    });
 
     return {
       message: 'Login successful',
-
       data: {
         id: user.id,
         name: user.name,
@@ -461,6 +415,7 @@ export class AuthService {
       },
     };
   }
+
 
   // =====================================================
   // GOOGLE LOGIN
