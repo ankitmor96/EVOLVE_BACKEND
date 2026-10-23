@@ -214,10 +214,34 @@ export class ConnectionsService {
             .orderBy((c) => c.createdAt.desc())
             .all();
 
+        const data = await Promise.all(
+            requests.map(async (request) => {
+                const requesterId = Number(request.requesterId);
+
+                const requester = await this.prisma.client.orm.public.User
+                    .where({ id: requesterId })
+                    .first();
+
+                const profile = await this.prisma.client.orm.public.UserProfile
+                    .where({ userId: requesterId })
+                    .first();
+
+                return {
+                    ...request,
+                    requester: {
+                        id: requesterId,
+                        name: requester?.name ?? null,
+                        username: profile?.username ?? null,
+                        avatarUrl: profile?.avatarUrl ?? null,
+                    },
+                };
+            }),
+        );
+
         return {
             success: true,
-            count: requests.length,
-            data: requests,
+            count: data.length,
+            data,
         };
     }
 
@@ -231,13 +255,37 @@ export class ConnectionsService {
             .orderBy((c) => c.createdAt.desc())
             .all();
 
+        const data = await Promise.all(
+            requests.map(async (request) => {
+                const receiverId = Number(request.receiverId);
+
+                const receiver = await this.prisma.client.orm.public.User
+                    .where({ id: receiverId })
+                    .first();
+
+                const profile = await this.prisma.client.orm.public.UserProfile
+                    .where({ userId: receiverId })
+                    .first();
+
+                return {
+                    ...request,
+                    receiver: {
+                        id: receiverId,
+                        name: receiver?.name ?? null,
+                        username: profile?.username ?? null,
+                        avatarUrl: profile?.avatarUrl ?? null,
+                    },
+                };
+            }),
+        );
+
         return {
             success: true,
-            count: requests.length,
-            data: requests,
+            count: data.length,
+            data,
         };
     }
-
+    
     // 6. Get accepted connections
     async getMyConnections(userId: number) {
         const sentConnections =
@@ -261,12 +309,44 @@ export class ConnectionsService {
             ...receivedConnections,
         ];
 
+        const data = await Promise.all(
+            connections.map(async (connection) => {
+                const isRequester =
+                    Number(connection.requesterId) === userId;
+
+                const otherUserId = isRequester
+                    ? Number(connection.receiverId)
+                    : Number(connection.requesterId);
+
+                const otherUser =
+                    await this.prisma.client.orm.public.User
+                        .where({ id: otherUserId })
+                        .first();
+
+                const profile =
+                    await this.prisma.client.orm.public.UserProfile
+                        .where({ userId: otherUserId })
+                        .first();
+
+                return {
+                    ...connection,
+                    user: {
+                        id: otherUserId,
+                        name: otherUser?.name ?? null,
+                        username: profile?.username ?? null,
+                        avatarUrl: profile?.avatarUrl ?? null,
+                    },
+                };
+            }),
+        );
+
         return {
             success: true,
-            count: connections.length,
-            data: connections,
+            count: data.length,
+            data,
         };
     }
+
     // 7. Cancel pending request or remove accepted connection
     async removeConnection(userId: number, connectionId: number) {
         this.validateId(userId, 'user ID');
