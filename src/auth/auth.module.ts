@@ -20,7 +20,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       secret: 'evolv-secret-key',
 
       signOptions: {
-        expiresIn: '1h',
+        expiresIn: '1d',
       },
     }),
 

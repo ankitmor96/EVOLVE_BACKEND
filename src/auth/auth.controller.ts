@@ -32,28 +32,19 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) { }
 
-  // =====================================================
   // REGISTER
-  // =====================================================
-
   @Post('register')
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
-  // =====================================================
   // LOGIN
-  // =====================================================
-
   @Post('login')
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 
-  // =====================================================
   // SEND EMAIL OTP
-  // =====================================================
-
   @Post('email-otp/send')
   sendEmailOtp(@Body() sendEmailOtpDto: SendEmailOtpDto) {
     return this.authService.sendEmailOtp(
@@ -61,10 +52,7 @@ export class AuthController {
     );
   }
 
-  // =====================================================
   // VERIFY EMAIL OTP
-  // =====================================================
-
   @Post('email-otp/verify')
   verifyEmailOtp(
     @Body() verifyEmailOtpDto: VerifyEmailOtpDto,
@@ -74,10 +62,7 @@ export class AuthController {
     );
   }
 
-  // =====================================================
   // FORGOT PASSWORD
-  // =====================================================
-
   @Post('forgot-password')
   forgotPassword(
     @Body() forgotPasswordDto: ForgotPasswordDto,
@@ -87,10 +72,7 @@ export class AuthController {
     );
   }
 
-  // =====================================================
   // RESET PASSWORD
-  // =====================================================
-
   @Post('reset-password')
   resetPassword(
     @Body() resetPasswordDto: ResetPasswordDto,
@@ -100,18 +82,14 @@ export class AuthController {
     );
   }
 
-  // =====================================================
-  // GOOGLE LOGIN
-  // =====================================================
-
-  // Start Google OAuth
+  // START GOOGLE OAUTH
   @Get('google')
   @UseGuards(GoogleAuthGuard)
   googleLogin() {
     // Passport redirects the user to Google.
   }
 
-  // Google OAuth callback
+  // GOOGLE OAUTH CALLBACK
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   @UseFilters(GoogleOAuthFilter)
@@ -119,16 +97,80 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const frontendUrl =
+    const defaultFrontend =
       this.configService.get<string>('FRONTEND_URL') ??
       'http://localhost:5173';
+
+    const allowedOrigins = (
+      this.configService.get<string>(
+        'ALLOWED_FRONTEND_ORIGINS',
+      ) ?? defaultFrontend
+    )
+      .split(',')
+      .map((origin) => origin.trim().replace(/\/$/, ''))
+      .filter(Boolean);
+
+    let returnUrl: string | undefined;
+    let mode: string | undefined;
+
+    // Decode OAuth state
+    try {
+      const state = req.query.state;
+
+      if (typeof state === 'string') {
+        const decoded = JSON.parse(
+          Buffer.from(state, 'base64url').toString('utf8'),
+        );
+
+        returnUrl =
+          typeof decoded.returnUrl === 'string'
+            ? decoded.returnUrl.replace(/\/$/, '')
+            : undefined;
+
+        mode =
+          typeof decoded.mode === 'string'
+            ? decoded.mode
+            : undefined;
+      }
+    } catch {
+      // Invalid state: fall back to the default frontend.
+    }
+
+    // Only allow redirects to configured frontend origins.
+    const frontendUrl =
+      returnUrl && allowedOrigins.includes(returnUrl)
+        ? returnUrl
+        : defaultFrontend;
 
     try {
       const googleUser = req.user as {
         googleId: string;
         email: string;
         name: string;
+        notRegistered?: boolean;
       };
+
+      if (!googleUser) {
+        const target = new URL('/login', frontendUrl);
+        target.searchParams.set(
+          'authError',
+          'google_failed',
+        );
+        return res.redirect(target.toString());
+      }
+
+      // Login mode: do not allow an unregistered user to sign in.
+      if (
+        googleUser.notRegistered &&
+        mode === 'login'
+      ) {
+        const target = new URL('/login', frontendUrl);
+        target.searchParams.set(
+          'authError',
+          'google_not_registered',
+        );
+        return res.redirect(target.toString());
+      }
 
       const result = await this.authService.googleLogin(
         googleUser,
@@ -141,10 +183,9 @@ export class AuthController {
         result.data.accessToken,
       );
 
-
       target.searchParams.set(
         'email',
-        String(result.data.email),
+        String(result.data.email ?? ''),
       );
 
       if (result.data.name) {
