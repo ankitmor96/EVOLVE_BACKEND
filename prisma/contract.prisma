@@ -43,6 +43,8 @@ enum MediaType {
 
 enum NotificationType {
   POST_CREATED
+  CONNECTION_REQUEST
+  CONNECTION_ACCEPTED
 }
 
 enum PostReactionType {

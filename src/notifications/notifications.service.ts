@@ -1,10 +1,15 @@
 
 import { Injectable, NotFoundException, } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsGateway } from './notifications.gateway';
 
 @Injectable()
 export class NotificationsService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly notificationsGateway: NotificationsGateway,
+    ) { }
+
 
     async getMyNotifications(userId: number) {
         const notifications =
@@ -12,13 +17,20 @@ export class NotificationsService {
                 .where({ userId })
                 .all();
 
-        return notifications.sort((a, b) => {
-            const dateA = String(a.createdAt);
-            const dateB = String(b.createdAt);
+        return notifications
+            .filter(
+                (notification) =>
+                    notification.type === 'CONNECTION_REQUEST' ||
+                    notification.type === 'CONNECTION_ACCEPTED',
+            )
+            .sort((a, b) => {
+                const dateA = String(a.createdAt);
+                const dateB = String(b.createdAt);
 
-            return dateB.localeCompare(dateA);
-        });
+                return dateB.localeCompare(dateA);
+            });
     }
+
 
 
     async markAsRead(userId: number, notificationId: number) {
@@ -54,6 +66,28 @@ export class NotificationsService {
             success: true,
             message: 'Notification marked as read',
         };
+    }
+
+    async createNotification(
+        userId: number,
+        type: 'CONNECTION_REQUEST' | 'CONNECTION_ACCEPTED',
+        title: string,
+        message: string,
+    ) {
+        const notification =
+            await this.prisma.client.orm.public.Notification.create({
+                userId,
+                type,
+                title,
+                message,
+            });
+
+        this.notificationsGateway.emitNotification(
+            userId,
+            notification,
+        );
+
+        return notification;
     }
 
 }

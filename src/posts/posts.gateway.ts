@@ -7,6 +7,8 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 
+import { JwtService } from '@nestjs/jwt';
+
 import { Socket, Server } from 'socket.io';
 
 @WebSocketGateway({
@@ -16,6 +18,9 @@ import { Socket, Server } from 'socket.io';
   },
 })
 export class PostsGateway {
+
+  constructor(private readonly jwtService: JwtService) { }
+
   @WebSocketServer()
   server!: Server;
 

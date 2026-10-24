@@ -20,7 +20,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       secret: 'evolv-secret-key',
 
       signOptions: {
-        expiresIn: '1d',
+        expiresIn: '1h',
       },
     }),
 
@@ -37,5 +37,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   controllers: [
     AuthController,
   ],
+
+  exports: [JwtModule],
 })
-export class AuthModule {}
+export class AuthModule { }

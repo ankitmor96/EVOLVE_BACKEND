@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'a6b389ff4c1f5b824a871b910cfc771c19ba2cc94b44127762d187291f33b72f'>;
+  StorageHashBase<'e997e7671e64d5dcfbb139dac6d5f16a825e6cd760ddcb8fb12c98f56f93a15e'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -287,7 +287,7 @@ export type FieldOutputTypes = {
       readonly isRead: CodecTypes['pg/bool@1']['output'];
       readonly message: CodecTypes['pg/text@1']['output'];
       readonly title: CodecTypes['pg/text@1']['output'];
-      readonly type: 'POST_CREATED';
+      readonly type: 'POST_CREATED' | 'CONNECTION_REQUEST' | 'CONNECTION_ACCEPTED';
       readonly userId: CodecTypes['pg/int4@1']['output'];
     };
     readonly Post: {
@@ -438,7 +438,7 @@ export type FieldInputTypes = {
       readonly isRead: CodecTypes['pg/bool@1']['input'];
       readonly message: CodecTypes['pg/text@1']['input'];
       readonly title: CodecTypes['pg/text@1']['input'];
-      readonly type: 'POST_CREATED';
+      readonly type: 'POST_CREATED' | 'CONNECTION_REQUEST' | 'CONNECTION_ACCEPTED';
       readonly userId: CodecTypes['pg/int4@1']['input'];
     };
     readonly Post: {
@@ -589,7 +589,7 @@ export type StorageColumnTypes = {
       readonly isRead: CodecTypes['pg/bool@1']['output'];
       readonly message: CodecTypes['pg/text@1']['output'];
       readonly title: CodecTypes['pg/text@1']['output'];
-      readonly type: 'POST_CREATED';
+      readonly type: 'POST_CREATED' | 'CONNECTION_REQUEST' | 'CONNECTION_ACCEPTED';
       readonly userId: CodecTypes['pg/int4@1']['output'];
     };
     readonly Post: {
@@ -740,7 +740,7 @@ export type StorageColumnInputTypes = {
       readonly isRead: CodecTypes['pg/bool@1']['input'];
       readonly message: CodecTypes['pg/text@1']['input'];
       readonly title: CodecTypes['pg/text@1']['input'];
-      readonly type: 'POST_CREATED';
+      readonly type: 'POST_CREATED' | 'CONNECTION_REQUEST' | 'CONNECTION_ACCEPTED';
       readonly userId: CodecTypes['pg/int4@1']['input'];
     };
     readonly Post: {
@@ -900,7 +900,7 @@ export namespace Models {
     isRead: CodecTypes['pg/bool@1']['output'];
     message: CodecTypes['pg/text@1']['output'];
     title: CodecTypes['pg/text@1']['output'];
-    type: 'POST_CREATED';
+    type: 'POST_CREATED' | 'CONNECTION_REQUEST' | 'CONNECTION_ACCEPTED';
     userId: CodecTypes['pg/int4@1']['output'];
     readonly [RelationKeys]?: never;
   };
@@ -2410,7 +2410,11 @@ type ContractBase = Omit<
             };
             readonly NotificationType: {
               readonly kind: 'valueSet';
-              readonly values: readonly ['POST_CREATED'];
+              readonly values: readonly [
+                'POST_CREATED',
+                'CONNECTION_REQUEST',
+                'CONNECTION_ACCEPTED',
+              ];
             };
             readonly PostKind: {
               readonly kind: 'valueSet';
@@ -3789,6 +3793,8 @@ type ContractBase = Omit<
             readonly codecId: 'pg/text@1';
             readonly members: readonly [
               { readonly name: 'POST_CREATED'; readonly value: 'POST_CREATED' },
+              { readonly name: 'CONNECTION_REQUEST'; readonly value: 'CONNECTION_REQUEST' },
+              { readonly name: 'CONNECTION_ACCEPTED'; readonly value: 'CONNECTION_ACCEPTED' },
             ];
           };
           readonly PostKind: {

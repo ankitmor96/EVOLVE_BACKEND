@@ -121,6 +121,14 @@
               {
                 "name": "POST_CREATED",
                 "value": "POST_CREATED"
+              },
+              {
+                "name": "CONNECTION_REQUEST",
+                "value": "CONNECTION_REQUEST"
+              },
+              {
+                "name": "CONNECTION_ACCEPTED",
+                "value": "CONNECTION_ACCEPTED"
               }
             ]
           },
@@ -2647,8 +2655,8 @@
             "Notification": {
               "checks": [
                 {
-                  "expression": "\"type\" IN ('POST_CREATED')",
-                  "name": "Notification_type_check_0f3d4756",
+                  "expression": "\"type\" IN ('POST_CREATED', 'CONNECTION_REQUEST', 'CONNECTION_ACCEPTED')",
+                  "name": "Notification_type_check_26031f70",
                   "prefix": "Notification_type_check"
                 }
               ],
@@ -4084,7 +4092,9 @@
             "NotificationType": {
               "kind": "valueSet",
               "values": [
-                "POST_CREATED"
+                "POST_CREATED",
+                "CONNECTION_REQUEST",
+                "CONNECTION_ACCEPTED"
               ]
             },
             "PostKind": {
@@ -4143,7 +4153,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "a6b389ff4c1f5b824a871b910cfc771c19ba2cc94b44127762d187291f33b72f"
+    "storageHash": "e997e7671e64d5dcfbb139dac6d5f16a825e6cd760ddcb8fb12c98f56f93a15e"
   },
   "capabilities": {
     "postgres": {

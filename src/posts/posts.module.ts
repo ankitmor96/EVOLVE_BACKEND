@@ -9,9 +9,11 @@ import { PostsGateway } from './posts.gateway';
 
 import { PrismaModule } from '../prisma/prisma.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
+    AuthModule,
     PrismaModule,
     CloudinaryModule,
     BullModule.registerQueue({

@@ -9,12 +9,14 @@ import {
 import { Temporal } from '@js-temporal/polyfill';
 import { PrismaService } from '../prisma/prisma.service';
 import { PostsGateway } from '../posts/posts.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ConnectionsService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly postsGateway: PostsGateway,
+        private readonly notificationsService: NotificationsService,
     ) { }
 
     // 1. Send connection request
@@ -77,6 +79,13 @@ export class ConnectionsService {
                 updatedAt: Temporal.Now.instant(),
             });
 
+        await this.notificationsService.createNotification(
+            receiverId,
+            'CONNECTION_REQUEST',
+            'New Connection Request',
+            'You have received a new connection request.',
+        );
+
         this.postsGateway.emitConnectionRequested(receiverId, {
             connectionId: connection.id,
             requesterId,
@@ -129,6 +138,13 @@ export class ConnectionsService {
                 'Connection request could not be updated',
             );
         }
+
+        await this.notificationsService.createNotification(
+            Number(connection.requesterId),
+            'CONNECTION_ACCEPTED',
+            'Connection Request Accepted',
+            'Your connection request has been accepted.',
+        );
 
         this.postsGateway.emitConnectionAccepted(
             Number(connection.requesterId),
@@ -285,7 +301,7 @@ export class ConnectionsService {
             data,
         };
     }
-    
+
     // 6. Get accepted connections
     async getMyConnections(userId: number) {
         const sentConnections =
