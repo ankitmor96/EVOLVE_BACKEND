@@ -21,6 +21,7 @@ import { CreateProfileDto } from './dto/create-profile.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateProfileBioDto } from './dto/update-profile-bio.dto';
+import { Query } from '@nestjs/common';
 
 @Controller('profile')
 export class ProfileController {
@@ -230,6 +231,22 @@ export class ProfileController {
         return this.profileService.updateBio(
             req.user.userId,
             dto.bio,
+        );
+    }
+
+    // =====================================
+    // SEARCH USERS
+    // =====================================
+
+    @UseGuards(JwtAuthGuard)
+    @Get('search')
+    async searchUsers(
+        @Req() req: any,
+        @Query('search') search: string,
+    ) {
+        return this.profileService.searchUsers(
+            Number(req.user.userId),
+            search,
         );
     }
 }

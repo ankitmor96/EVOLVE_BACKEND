@@ -629,4 +629,116 @@ export class ProfileService {
       skills,
     };
   }
+
+
+  async searchUsers(currentUserId: number, search: string) {
+    const term = String(search ?? '').trim().toLowerCase();
+
+    if (!term) {
+      throw new BadRequestException('Search query is required');
+    }
+
+    const normalizedTerm = term.startsWith('@')
+      ? term.slice(1)
+      : term;
+
+    if (!normalizedTerm) {
+      throw new BadRequestException('Search query is required');
+    }
+
+    const [users, profiles] = await Promise.all([
+      this.prisma.client.orm.public.User.all(),
+      this.prisma.client.orm.public.UserProfile.all(),
+    ]);
+
+    const profileByUserId = new Map(
+      profiles.map((profile) => [
+        Number(profile.userId),
+        {
+          username: String(profile.username ?? ''),
+          avatarUrl: profile.avatarUrl
+            ? String(profile.avatarUrl)
+            : null,
+        },
+      ] as const),
+    );
+
+    type SearchResult = {
+      userId: number;
+      fullName: string;
+      username: string;
+      avatarUrl: string | null;
+      _rank: number;
+    };
+
+    const results: SearchResult[] = [];
+
+    for (const user of users) {
+      const userId = Number(user.id);
+
+      // Never return the logged-in user.
+      if (userId === Number(currentUserId)) {
+        continue;
+      }
+
+      const profile = profileByUserId.get(userId);
+
+      // Search only users who have a profile.
+      if (!profile) {
+        continue;
+      }
+
+      const fullName = String(user.name ?? '');
+      const email = String(user.email ?? '');
+      const username = profile.username;
+
+      const nameLower = fullName.toLowerCase();
+      const emailLower = email.toLowerCase();
+      const usernameLower = username.toLowerCase();
+
+      // Match the entered text against name, username, or email.
+      const nameMatch = nameLower.includes(term);
+      const usernameMatch = usernameLower.includes(normalizedTerm);
+      const emailMatch = emailLower.includes(term);
+
+      if (!nameMatch && !usernameMatch && !emailMatch) {
+        continue;
+      }
+
+      const exactMatch =
+        nameLower === term ||
+        usernameLower === normalizedTerm ||
+        emailLower === term;
+
+      const startsWithMatch =
+        nameLower.startsWith(term) ||
+        usernameLower.startsWith(normalizedTerm) ||
+        emailLower.startsWith(term);
+
+      results.push({
+        userId,
+        fullName,
+        username,
+        avatarUrl: profile.avatarUrl,
+        _rank: exactMatch ? 0 : startsWithMatch ? 1 : 2,
+      });
+    }
+
+    results.sort((a, b) => {
+      if (a._rank !== b._rank) {
+        return a._rank - b._rank;
+      }
+
+      return a.fullName.localeCompare(b.fullName);
+    });
+
+    const data = results.map(({ _rank, ...user }) => user);
+
+    return {
+      success: true,
+      count: data.length,
+      data,
+    };
+  }
+
 }
