@@ -674,14 +674,32 @@ export class PostsService {
   }
 
 
-
-
-  async getFeed(cursor?: number) {
+  async getFeed(userId: number, cursor?: number) {
     const pageSize = 10;
+
+
+    const connections = await this.prisma.client.orm.public.Connection
+      .where((connection) =>
+        connection.status.eq('ACCEPTED'),
+      )
+      .all();
+
+    const connectedUserIds = connections
+      .filter(
+        (connection) =>
+          connection.requesterId === userId ||
+          connection.receiverId === userId,
+      )
+      .map((connection) =>
+        connection.requesterId === userId
+          ? connection.receiverId
+          : connection.requesterId,
+      );
+
 
     let query = this.prisma.client.orm.public.Post
       .where((p) => p.status.eq('PUBLISHED'))
-      .where((p) => p.visibility.eq('PUBLIC'))
+      // .where((p) => p.visibility.eq('PUBLIC'))
       .where((p) => p.deletedAt.isNull())
       .where((p) => p.publishedAt.isNotNull())
       .orderBy([
@@ -710,9 +728,25 @@ export class PostsService {
     }
 
     // Fetch posts
-    const posts = await query
-      .limit(pageSize + 1)
-      .all();
+    const allPosts = await query.limit(pageSize + 1).all();
+
+    const visiblePosts = allPosts.filter((post) => {
+      if (post.userId === userId) {
+        return true;
+      }
+
+      if (post.visibility === 'PUBLIC') {
+        return true;
+      }
+
+      if (post.visibility === 'CONNECTIONS') {
+        return connectedUserIds.includes(post.userId);
+      }
+
+      return false;
+    });
+
+    const posts = visiblePosts.slice(0, pageSize + 1);
 
     const hasMore = posts.length > pageSize;
     const items = posts.slice(0, pageSize);

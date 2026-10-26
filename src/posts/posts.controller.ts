@@ -171,10 +171,21 @@ export class PostsController {
     // GET FEED WITH CURSOR PAGINATION
     // =====================================
 
+
     @Get('feed')
+    @UseGuards(JwtAuthGuard)
     async getFeed(
+        @Req() req: any,
         @Query('cursor') cursor?: string,
     ) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
+        }
+
         let cursorId: number | undefined;
 
         if (cursor !== undefined) {
@@ -187,8 +198,9 @@ export class PostsController {
             }
         }
 
-        return this.postsService.getFeed(cursorId);
+        return this.postsService.getFeed(userId, cursorId);
     }
+
 
     // GET LOGGED-IN USER'S IMAGE POSTS
     @UseGuards(JwtAuthGuard)
