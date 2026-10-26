@@ -11,6 +11,7 @@ import {
     UseInterceptors,
     UploadedFile,
     BadRequestException,
+    Param,
 } from '@nestjs/common';
 
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -161,6 +162,23 @@ export class ProfileController {
             req.user.userId,
         );
     }
+
+
+    // =====================================
+    // GET COMPLETE PROFILE BY USER ID
+    // =====================================
+
+    @UseGuards(JwtAuthGuard)
+    @Get(':userId/complete')
+    async getCompleteProfileByUserId(
+        @Req() req: any,
+        @Param('userId') userId: string,
+    ) {
+        return this.profileService.getCompleteProfileByUserId(
+            Number(userId),
+        );
+    }
+
 
     // =====================================
     // UPDATE PROFILE

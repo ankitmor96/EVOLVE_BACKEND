@@ -630,6 +630,57 @@ export class ProfileService {
     };
   }
 
+  async getCompleteProfileByUserId(userId: number) {
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new BadRequestException('Valid user ID is required');
+    }
+
+    const profile =
+      await this.prisma.client.orm.public.UserProfile
+        .where({ userId })
+        .first();
+
+    if (!profile) {
+      throw new NotFoundException('User profile not found');
+    }
+
+    const userIdentities =
+      await this.prisma.client.orm.public.UserIdentity
+        .where({ userId })
+        .all();
+
+    const identities = [];
+
+    for (const identity of userIdentities) {
+      const identityType =
+        await this.prisma.client.orm.public.IdentityType
+          .where({ id: identity.identityTypeId })
+          .first();
+
+      identities.push({
+        ...identity,
+        identityType,
+      });
+    }
+
+    const curiosities =
+      await this.prisma.client.orm.public.UserCuriosity
+        .where({ userId })
+        .all();
+
+    const skills =
+      await this.prisma.client.orm.public.UserSkill
+        .where({ userId })
+        .all();
+
+    return {
+      profile,
+      identities,
+      curiosities,
+      skills,
+    };
+  }
+
 
   async searchUsers(currentUserId: number, search: string) {
     const term = String(search ?? '').trim().toLowerCase();
