@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { Temporal } from '@js-temporal/polyfill';
 
 @Injectable()
 export class MessagingService {
@@ -484,7 +485,7 @@ export class MessagingService {
         await this.prisma.client.orm.public.Conversation
             .where({ id: conversationId })
             .update({
-                updatedAt: new Date(),
+                updatedAt: Temporal.Now.instant(),
             });
 
         return {

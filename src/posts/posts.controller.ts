@@ -254,6 +254,20 @@ export class PostsController {
         return this.postsService.getMyPostsCounts(userId);
     }
 
+
+    @Get('my-posts/engagement-counts')
+    @UseGuards(JwtAuthGuard)
+    async getMyPostsEngagementCounts(@Req() req: any) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException('Invalid authenticated user');
+        }
+
+        return this.postsService.getMyPostsEngagementCounts(userId);
+    }
+
+
     @Put(':postId/reactions/:reactionType')
     @UseGuards(JwtAuthGuard)
     async setPostReaction(

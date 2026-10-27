@@ -921,6 +921,49 @@ export class PostsService {
     };
   }
 
+  async getMyPostsEngagementCounts(userId: number) {
+    const myPosts = await this.prisma.client.orm.public.Post
+      .where((post) => post.userId.eq(userId))
+      .where((post) => post.deletedAt.isNull())
+      .all();
+
+    const postIds = myPosts.map((post) => post.id);
+
+    if (postIds.length === 0) {
+      return {
+        success: true,
+        data: {
+          appreciateCount: 0,
+          helpfulCount: 0,
+          learnedCount: 0,
+        },
+      };
+    }
+
+    const reactions = await this.prisma.client.orm.public.PostReaction
+      .where((reaction) => reaction.postId.in(postIds))
+      .all();
+
+    const learningRecords = await this.prisma.client.orm.public.PostLearning
+      .where((learning) => learning.postId.in(postIds))
+      .all();
+
+    return {
+      success: true,
+      data: {
+        appreciateCount: reactions.filter(
+          (reaction) => reaction.reactionType === 'APPRECIATE',
+        ).length,
+
+        helpfulCount: reactions.filter(
+          (reaction) => reaction.reactionType === 'HELPFUL',
+        ).length,
+
+        learnedCount: learningRecords.length,
+      },
+    };
+  }
+
   async setPostReaction(
     postId: number,
     userId: number,
