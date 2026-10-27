@@ -21,6 +21,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { NotificationsModule } from './notifications/notifications.module';
 import { CommentsModule } from './comments/comments.module';
 import { ConnectionsModule } from './connections/connections.module';
+import { MessagingModule } from './messaging/messaging.module';
 
 
 
@@ -87,6 +88,8 @@ import { ConnectionsModule } from './connections/connections.module';
     CommentsModule,
 
     ConnectionsModule,
+
+    MessagingModule,
   ],
 
 

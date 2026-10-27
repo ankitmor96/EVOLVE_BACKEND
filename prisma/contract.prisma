@@ -1,6 +1,4 @@
-
 // use prisma-8
-
 enum SkillRelationshipType {
   CAN_DO
   LEARNING
@@ -52,48 +50,45 @@ enum PostReactionType {
   HELPFUL
 }
 
-
 enum ConnectionStatus {
   PENDING
   ACCEPTED
   REJECTED
 }
 
-
 // ========================================
 // USER
 // ========================================
-
 model User {
-  id            Int      @id @default(autoincrement())
-  name          String?
-  email         String   @unique
-  password      String?
-  googleId      String?  @unique
-  emailVerified Boolean  @default(false)
+  id                         Int                       @id @default(autoincrement())
+  name                       String?
+  email                      String                    @unique
+  password                   String?
+  googleId                   String?                   @unique
+  emailVerified              Boolean                   @default(false)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @default(now())
 
-  profile        UserProfile?
-  identities     UserIdentity[]
-  curiosities    UserCuriosity[]
-  skills         UserSkill[]
-  posts          Post[]
-  postReactions  PostReaction[]
-  postLearning   PostLearning[]
-  comments       Comment[]
+  profile                    UserProfile?
+  identities                 UserIdentity[]
+  curiosities                UserCuriosity[]
+  skills                     UserSkill[]
+  posts                      Post[]
+  postReactions              PostReaction[]
+  postLearning               PostLearning[]
+  comments                   Comment[]
 
-  
-  sentConnections     Connection[] @relation("ConnectionRequester")
-  receivedConnections Connection[] @relation("ConnectionReceiver")
+  sentConnections            Connection[]              @relation("ConnectionRequester")
+  receivedConnections        Connection[]              @relation("ConnectionReceiver")
 
+  conversationsAsParticipant ConversationParticipant[]
+  sentMessages               Message[]
 }
 
 // ========================================
 // EMAIL OTP
 // ========================================
-
 model EmailOtp {
   id        Int      @id @default(autoincrement())
   email     String
@@ -105,27 +100,26 @@ model EmailOtp {
 // ========================================
 // IDENTITY
 // ========================================
-
 model IdentityType {
-  id        Int      @id @default(autoincrement())
-  name      String
-  slug      String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  id             Int            @id @default(autoincrement())
+  name           String
+  slug           String         @unique
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @default(now())
 
   userIdentities UserIdentity[]
 }
 
 model UserIdentity {
-  id             Int      @id @default(autoincrement())
+  id             Int          @id @default(autoincrement())
   userId         Int
   identityTypeId Int
-  isPrimary      Boolean  @default(false)
-  createdAt      DateTime @default(now())
+  isPrimary      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
 
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  identityType IdentityType @relation(fields: [identityTypeId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  identityType   IdentityType @relation(fields: [identityTypeId], references: [id], onDelete: Cascade)
 
   @@unique([userId, identityTypeId])
   @@index([userId])
@@ -135,7 +129,6 @@ model UserIdentity {
 // ========================================
 // USER PROFILE
 // ========================================
-
 model UserProfile {
   id          Int      @id @default(autoincrement())
   userId      Int      @unique
@@ -147,13 +140,12 @@ model UserProfile {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ========================================
 // SKILL CATEGORIES
 // ========================================
-
 model SkillCategory {
   id          Int      @id @default(autoincrement())
   name        String
@@ -164,24 +156,23 @@ model SkillCategory {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
 
-  skills Skill[]
+  skills      Skill[]
 }
 
 // ========================================
 // SKILLS
 // ========================================
-
 model Skill {
-  id          Int      @id @default(autoincrement())
+  id          Int             @id @default(autoincrement())
   categoryId  Int
   name        String
-  slug        String   @unique
+  slug        String          @unique
   description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now())
 
-  category    SkillCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category    SkillCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   curiosities UserCuriosity[]
   userSkills  UserSkill[]
   postSkills  PostSkill[]
@@ -192,15 +183,14 @@ model Skill {
 // ========================================
 // USER CURIOSITIES
 // ========================================
-
 model UserCuriosity {
   id        Int      @id @default(autoincrement())
   userId    Int
   skillId   Int
   createdAt DateTime @default(now())
 
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@unique([userId, skillId])
   @@index([userId])
@@ -210,7 +200,6 @@ model UserCuriosity {
 // ========================================
 // USER SKILLS
 // ========================================
-
 model UserSkill {
   id               Int                   @id @default(autoincrement())
   userId           Int
@@ -219,8 +208,8 @@ model UserSkill {
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @default(now())
 
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill            Skill                 @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@unique([userId, skillId, relationshipType])
   @@index([userId])
@@ -230,7 +219,6 @@ model UserSkill {
 // ========================================
 // POSTS
 // ========================================
-
 model Post {
   id          Int            @id @default(autoincrement())
   userId      Int
@@ -244,12 +232,12 @@ model Post {
   publishedAt DateTime?
   deletedAt   DateTime?
 
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  media     PostMedia[]
-  skills    PostSkill[]
-  reactions PostReaction[]
-  learning  PostLearning[]
-  comments  Comment[]
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media       PostMedia[]
+  skills      PostSkill[]
+  reactions   PostReaction[]
+  learning    PostLearning[]
+  comments    Comment[]
 
   @@index([userId, createdAt])
   @@index([status, publishedAt])
@@ -262,8 +250,8 @@ model PostSkill {
   relationshipType SkillRelationshipType
   createdAt        DateTime              @default(now())
 
-  post  Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
-  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  post             Post                  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  skill            Skill                 @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@unique([postId, skillId, relationshipType])
   @@index([postId])
@@ -273,7 +261,6 @@ model PostSkill {
 // ========================================
 // POST MEDIA
 // ========================================
-
 model PostMedia {
   id           Int       @id @default(autoincrement())
   postId       Int
@@ -285,7 +272,7 @@ model PostMedia {
   metadata     Json?
   createdAt    DateTime  @default(now())
 
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post         Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId, position])
 }
@@ -293,7 +280,6 @@ model PostMedia {
 // ========================================
 // NOTIFICATIONS
 // ========================================
-
 model Notification {
   id        Int              @id @default(autoincrement())
   userId    Int
@@ -310,7 +296,6 @@ model Notification {
 // ========================================
 // POST REACTIONS
 // ========================================
-
 model PostReaction {
   id           Int              @id @default(autoincrement())
   postId       Int
@@ -318,8 +303,8 @@ model PostReaction {
   reactionType PostReactionType
   createdAt    DateTime         @default(now())
 
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post         Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
   @@index([userId])
@@ -328,41 +313,37 @@ model PostReaction {
 // ========================================
 // POST LEARNING
 // ========================================
-
 model PostLearning {
   id        Int      @id @default(autoincrement())
   postId    Int
   userId    Int
   createdAt DateTime @default(now())
 
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
   @@index([userId])
 }
 
-
 // ========================================
 // COMMENTS
 // ========================================
-
 model Comment {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   postId    Int
   userId    Int
   content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now())
   deletedAt DateTime?
 
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([postId, createdAt])
   @@index([userId, createdAt])
 }
-
 
 model Connection {
   id          Int              @id @default(autoincrement())
@@ -372,21 +353,61 @@ model Connection {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @default(now())
 
-  requester User @relation(
-    "ConnectionRequester",
-    fields: [requesterId],
-    references: [id],
-    onDelete: Cascade
-  )
+  requester   User             @relation("ConnectionRequester", fields: [requesterId], references: [id], onDelete: Cascade)
 
-  receiver User @relation(
-    "ConnectionReceiver",
-    fields: [receiverId],
-    references: [id],
-    onDelete: Cascade
-  )
+  receiver    User             @relation("ConnectionReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
 
   @@unique([requesterId, receiverId])
   @@index([requesterId, status])
   @@index([receiverId, status])
+}
+
+// ========================================
+// CONVERSATION
+// ========================================
+model Conversation {
+  id           Int                       @id @default(autoincrement())
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @default(now())
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+// ========================================
+// CONVERSATION PARTICIPANT
+// ========================================
+model ConversationParticipant {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  userId         Int
+  joinedAt       DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+// ========================================
+// MESSAGE
+// ========================================
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  senderId       Int
+  content        String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
+  deletedAt      DateTime?
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
 }
