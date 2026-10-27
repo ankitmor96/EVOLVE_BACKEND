@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'378cec87c4c214ac705068ddeb841130f2c755aa083b7a68c5f2048959e295b0'>;
+  StorageHashBase<'5c2bee591c5513c8be88956314df8f1480d0620552dbe8bee196622038765312'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -308,7 +308,12 @@ export type FieldOutputTypes = {
       readonly isRead: CodecTypes['pg/bool@1']['output'];
       readonly message: CodecTypes['pg/text@1']['output'];
       readonly title: CodecTypes['pg/text@1']['output'];
-      readonly type: 'POST_CREATED' | 'CONNECTION_REQUEST' | 'CONNECTION_ACCEPTED';
+      readonly type:
+        | 'POST_CREATED'
+        | 'CONNECTION_REQUEST'
+        | 'CONNECTION_ACCEPTED'
+        | 'MESSAGE_RECEIVED'
+        | 'COMMENT_CREATED';
       readonly userId: CodecTypes['pg/int4@1']['output'];
     };
     readonly Post: {
@@ -480,7 +485,12 @@ export type FieldInputTypes = {
       readonly isRead: CodecTypes['pg/bool@1']['input'];
       readonly message: CodecTypes['pg/text@1']['input'];
       readonly title: CodecTypes['pg/text@1']['input'];
-      readonly type: 'POST_CREATED' | 'CONNECTION_REQUEST' | 'CONNECTION_ACCEPTED';
+      readonly type:
+        | 'POST_CREATED'
+        | 'CONNECTION_REQUEST'
+        | 'CONNECTION_ACCEPTED'
+        | 'MESSAGE_RECEIVED'
+        | 'COMMENT_CREATED';
       readonly userId: CodecTypes['pg/int4@1']['input'];
     };
     readonly Post: {
@@ -652,7 +662,12 @@ export type StorageColumnTypes = {
       readonly isRead: CodecTypes['pg/bool@1']['output'];
       readonly message: CodecTypes['pg/text@1']['output'];
       readonly title: CodecTypes['pg/text@1']['output'];
-      readonly type: 'POST_CREATED' | 'CONNECTION_REQUEST' | 'CONNECTION_ACCEPTED';
+      readonly type:
+        | 'POST_CREATED'
+        | 'CONNECTION_REQUEST'
+        | 'CONNECTION_ACCEPTED'
+        | 'MESSAGE_RECEIVED'
+        | 'COMMENT_CREATED';
       readonly userId: CodecTypes['pg/int4@1']['output'];
     };
     readonly Post: {
@@ -824,7 +839,12 @@ export type StorageColumnInputTypes = {
       readonly isRead: CodecTypes['pg/bool@1']['input'];
       readonly message: CodecTypes['pg/text@1']['input'];
       readonly title: CodecTypes['pg/text@1']['input'];
-      readonly type: 'POST_CREATED' | 'CONNECTION_REQUEST' | 'CONNECTION_ACCEPTED';
+      readonly type:
+        | 'POST_CREATED'
+        | 'CONNECTION_REQUEST'
+        | 'CONNECTION_ACCEPTED'
+        | 'MESSAGE_RECEIVED'
+        | 'COMMENT_CREATED';
       readonly userId: CodecTypes['pg/int4@1']['input'];
     };
     readonly Post: {
@@ -1014,7 +1034,12 @@ export namespace Models {
     isRead: CodecTypes['pg/bool@1']['output'];
     message: CodecTypes['pg/text@1']['output'];
     title: CodecTypes['pg/text@1']['output'];
-    type: 'POST_CREATED' | 'CONNECTION_REQUEST' | 'CONNECTION_ACCEPTED';
+    type:
+      | 'POST_CREATED'
+      | 'CONNECTION_REQUEST'
+      | 'CONNECTION_ACCEPTED'
+      | 'MESSAGE_RECEIVED'
+      | 'COMMENT_CREATED';
     userId: CodecTypes['pg/int4@1']['output'];
     readonly [RelationKeys]?: never;
   };
@@ -2737,6 +2762,8 @@ type ContractBase = Omit<
                 'POST_CREATED',
                 'CONNECTION_REQUEST',
                 'CONNECTION_ACCEPTED',
+                'MESSAGE_RECEIVED',
+                'COMMENT_CREATED',
               ];
             };
             readonly PostKind: {
@@ -4342,6 +4369,8 @@ type ContractBase = Omit<
               { readonly name: 'POST_CREATED'; readonly value: 'POST_CREATED' },
               { readonly name: 'CONNECTION_REQUEST'; readonly value: 'CONNECTION_REQUEST' },
               { readonly name: 'CONNECTION_ACCEPTED'; readonly value: 'CONNECTION_ACCEPTED' },
+              { readonly name: 'MESSAGE_RECEIVED'; readonly value: 'MESSAGE_RECEIVED' },
+              { readonly name: 'COMMENT_CREATED'; readonly value: 'COMMENT_CREATED' },
             ];
           };
           readonly PostKind: {

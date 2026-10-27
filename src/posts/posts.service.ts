@@ -13,6 +13,7 @@ import { Temporal } from '@js-temporal/polyfill';
 import { v2 as cloudinary } from 'cloudinary';
 import { PrismaService } from '../prisma/prisma.service';
 import { PostsGateway } from './posts.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type UploadedMediaFile = {
   buffer: Buffer;
@@ -33,6 +34,8 @@ export class PostsService {
     private readonly postsQueue: Queue,
 
     private readonly postsGateway: PostsGateway,
+
+    private readonly notificationsService: NotificationsService,
   ) { }
 
 
@@ -324,6 +327,11 @@ export class PostsService {
         media,
       });
 
+      await this.notificationsService.notifyAcceptedConnectionsAboutPost(
+        userId,
+        postId,
+      );
+
       return {
         success: true,
         message: 'Post created successfully with image',
@@ -392,6 +400,11 @@ export class PostsService {
         post,
         media,
       });
+
+      await this.notificationsService.notifyAcceptedConnectionsAboutPost(
+        userId,
+        postId,
+      );
 
 
       return {
@@ -655,6 +668,11 @@ export class PostsService {
         post,
         media,
       });
+
+      await this.notificationsService.notifyAcceptedConnectionsAboutPost(
+        userId,
+        postId,
+      );
 
       return {
         success: true,

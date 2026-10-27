@@ -141,6 +141,14 @@
               {
                 "name": "CONNECTION_ACCEPTED",
                 "value": "CONNECTION_ACCEPTED"
+              },
+              {
+                "name": "MESSAGE_RECEIVED",
+                "value": "MESSAGE_RECEIVED"
+              },
+              {
+                "name": "COMMENT_CREATED",
+                "value": "COMMENT_CREATED"
               }
             ]
           },
@@ -3244,8 +3252,8 @@
             "Notification": {
               "checks": [
                 {
-                  "expression": "\"type\" IN ('POST_CREATED', 'CONNECTION_REQUEST', 'CONNECTION_ACCEPTED')",
-                  "name": "Notification_type_check_26031f70",
+                  "expression": "\"type\" IN ('POST_CREATED', 'CONNECTION_REQUEST', 'CONNECTION_ACCEPTED', 'MESSAGE_RECEIVED', 'COMMENT_CREATED')",
+                  "name": "Notification_type_check_d18d54d0",
                   "prefix": "Notification_type_check"
                 }
               ],
@@ -4683,7 +4691,9 @@
               "values": [
                 "POST_CREATED",
                 "CONNECTION_REQUEST",
-                "CONNECTION_ACCEPTED"
+                "CONNECTION_ACCEPTED",
+                "MESSAGE_RECEIVED",
+                "COMMENT_CREATED"
               ]
             },
             "PostKind": {
@@ -4742,7 +4752,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "378cec87c4c214ac705068ddeb841130f2c755aa083b7a68c5f2048959e295b0"
+    "storageHash": "5c2bee591c5513c8be88956314df8f1480d0620552dbe8bee196622038765312"
   },
   "capabilities": {
     "postgres": {

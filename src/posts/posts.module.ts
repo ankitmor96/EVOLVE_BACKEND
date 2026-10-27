@@ -10,12 +10,15 @@ import { PostsGateway } from './posts.gateway';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+
 
 @Module({
   imports: [
     AuthModule,
     PrismaModule,
     CloudinaryModule,
+    NotificationsModule,
     BullModule.registerQueue({
       name: 'posts',
     }),

@@ -7,12 +7,14 @@ import {
 import { Temporal } from '@js-temporal/polyfill';
 import { PrismaService } from '../prisma/prisma.service';
 import { PostsGateway } from '../posts/posts.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class CommentsService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly postsGateway: PostsGateway,
+        private readonly notificationsService: NotificationsService,
     ) { }
 
     private validateId(id: number, fieldName: string): void {
@@ -49,6 +51,15 @@ export class CommentsService {
             userId,
             content: trimmedContent,
         });
+
+        // Notify the post owner, but not when they comment on their own post
+        if (Number(post.userId) !== userId) {
+            await this.notificationsService.createCommentNotification(
+                Number(post.userId),
+                userId,
+                postId,
+            );
+        }
 
         const profile = await this.prisma.client.orm.public.UserProfile
             .where({ userId })

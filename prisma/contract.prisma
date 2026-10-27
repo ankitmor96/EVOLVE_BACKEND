@@ -39,11 +39,15 @@ enum MediaType {
   DOCUMENT
 }
 
+
 enum NotificationType {
   POST_CREATED
   CONNECTION_REQUEST
   CONNECTION_ACCEPTED
+  MESSAGE_RECEIVED
+  COMMENT_CREATED
 }
+
 
 enum PostReactionType {
   APPRECIATE

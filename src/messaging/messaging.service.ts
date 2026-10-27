@@ -8,10 +8,14 @@ import {
 
 import { PrismaService } from '../prisma/prisma.service';
 import { Temporal } from '@js-temporal/polyfill';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class MessagingService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly notificationsService: NotificationsService,
+    ) { }
 
     private async getConnectionStatus(
         userA: number,
@@ -487,6 +491,23 @@ export class MessagingService {
             .update({
                 updatedAt: Temporal.Now.instant(),
             });
+
+
+        const participants =
+            await this.getConversationParticipants(conversationId);
+
+        const receiver = participants.find(
+            (participant) => Number(participant.userId) !== currentUserId,
+        );
+
+        if (receiver) {
+            await this.notificationsService.createMessageNotification(
+                Number(receiver.userId),
+                currentUserId,
+                conversationId,
+            );
+        }
+
 
         return {
             success: true,
