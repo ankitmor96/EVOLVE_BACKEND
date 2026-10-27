@@ -673,11 +673,31 @@ export class ProfileService {
         .where({ userId })
         .all();
 
+    const sentConnections =
+      await this.prisma.client.orm.public.Connection
+        .where({
+          requesterId: userId,
+          status: 'ACCEPTED',
+        })
+        .all();
+
+    const receivedConnections =
+      await this.prisma.client.orm.public.Connection
+        .where({
+          receiverId: userId,
+          status: 'ACCEPTED',
+        })
+        .all();
+
+    const connectionCount =
+      sentConnections.length + receivedConnections.length;
+
     return {
       profile,
       identities,
       curiosities,
       skills,
+      connectionCount,
     };
   }
 
