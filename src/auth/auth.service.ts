@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 
 import { RegisterDto } from './dto/register.dto';
@@ -502,4 +503,71 @@ export class AuthService {
       },
     };
   }
+
+
+  // DELETE ACCOUNT
+  async deleteAccount(userId: number) {
+    const user = await this.prisma.client.orm.public.User
+      .where({ id: userId })
+      .first();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Save the user's conversation IDs before deleting the account.
+    const participants =
+      await this.prisma.client.orm.public.ConversationParticipant
+        .where({ userId })
+        .all();
+
+    const conversationIds = [
+      ...new Set(
+        participants.map((participant) =>
+          Number(participant.conversationId),
+        ),
+      ),
+    ];
+
+    // Delete notifications received by this user.
+    await this.prisma.client.orm.public.Notification
+      .where({ userId })
+      .delete();
+
+    // Delete OTP records associated with this user's email.
+    await this.prisma.client.orm.public.EmailOtp
+      .where({ email: user.email })
+      .delete();
+
+    // Delete the user.
+
+    await this.prisma.client.orm.public.User
+      .where({ id: userId })
+      .delete();
+
+    // Remove conversations that no longer have any participants.
+    for (const conversationId of conversationIds) {
+      const remainingParticipants =
+        await this.prisma.client.orm.public.ConversationParticipant
+          .where({ conversationId })
+          .all();
+
+      if (remainingParticipants.length === 0) {
+        await this.prisma.client.orm.public.Message
+          .where({ conversationId })
+          .delete();
+
+        await this.prisma.client.orm.public.Conversation
+          .where({ id: conversationId })
+          .delete();
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Your account and associated data have been deleted',
+    };
+  }
+
+
 }

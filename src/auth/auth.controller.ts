@@ -9,6 +9,7 @@ import {
   UseFilters,
   UseGuards,
   UnauthorizedException,
+  Delete,
 } from '@nestjs/common';
 
 import type { Request, Response } from 'express';
@@ -24,6 +25,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthService } from './auth.service';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { GoogleOAuthFilter } from './filters/google-oauth.filter';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -203,4 +205,15 @@ export class AuthController {
       throw error;
     }
   }
+
+
+  // DELETE ACCOUNT
+  @Delete('delete-account')
+  @UseGuards(JwtAuthGuard)
+  deleteAccount(@Req() req: Request) {
+    const currentUserId = Number((req as any).user.userId);
+
+    return this.authService.deleteAccount(currentUserId);
+  }
+
 }
