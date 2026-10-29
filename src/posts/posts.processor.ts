@@ -29,7 +29,7 @@ export class PostsProcessor extends WorkerHost {
 
   private readonly batchSize = 10;
 
-  private readonly batchDelayMs = 4000;
+  private readonly batchDelayMs = 6000;
 
   private batchTimer: ReturnType<typeof setTimeout> | null = null;
 
