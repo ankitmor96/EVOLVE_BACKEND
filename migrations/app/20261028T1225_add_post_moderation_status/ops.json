@@ -1,0 +1,86 @@
+[
+  {
+    "id": "column.public.Post.moderation_status",
+    "label": "Add column \"moderation_status\" to \"Post\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "moderation_status",
+        "table": "Post"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"moderation_status\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Post",
+          "moderation_status"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"moderation_status\"",
+        "sql": "ALTER TABLE \"public\".\"Post\" ADD COLUMN \"moderation_status\" text DEFAULT 'PENDING' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"moderation_status\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Post",
+          "moderation_status"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.Post.Post_moderation_status_check_22ab0024",
+    "label": "Add check constraint \"Post_moderation_status_check_22ab0024\" on \"Post\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "Post_moderation_status_check_22ab0024",
+        "table": "Post"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Post_moderation_status_check_22ab0024\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Post_moderation_status_check_22ab0024",
+          "public",
+          "\"public\".\"Post\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"Post_moderation_status_check_22ab0024\"",
+        "sql": "ALTER TABLE \"public\".\"Post\" ADD CONSTRAINT \"Post_moderation_status_check_22ab0024\" CHECK (\"moderation_status\" IN ('PENDING', 'APPROVED', 'REJECTED', 'REVIEW'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Post_moderation_status_check_22ab0024\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Post_moderation_status_check_22ab0024",
+          "public",
+          "\"public\".\"Post\""
+        ]
+      }
+    ]
+  }
+]

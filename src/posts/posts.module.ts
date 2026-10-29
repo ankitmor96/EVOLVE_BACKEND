@@ -11,18 +11,20 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { ModerationModule } from '../moderation/moderation.module';
 
 
 @Module({
-  imports: [
-    AuthModule,
-    PrismaModule,
-    CloudinaryModule,
-    NotificationsModule,
-    BullModule.registerQueue({
-      name: 'posts',
-    }),
-  ],
+imports: [
+  AuthModule,
+  PrismaModule,
+  CloudinaryModule,
+  NotificationsModule,
+  ModerationModule,
+  BullModule.registerQueue({
+    name: 'posts',
+  }),
+],
   controllers: [PostsController],
   providers: [
     PostsService,

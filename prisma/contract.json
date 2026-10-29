@@ -127,6 +127,27 @@
               }
             ]
           },
+          "ModerationStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "PENDING",
+                "value": "PENDING"
+              },
+              {
+                "name": "APPROVED",
+                "value": "APPROVED"
+              },
+              {
+                "name": "REJECTED",
+                "value": "REJECTED"
+              },
+              {
+                "name": "REVIEW",
+                "value": "REVIEW"
+              }
+            ]
+          },
           "NotificationType": {
             "codecId": "pg/text@1",
             "members": [
@@ -1033,6 +1054,19 @@
                   "kind": "scalar"
                 }
               },
+              "moderation_status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "ModerationStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
               "postKind": {
                 "nullable": false,
                 "type": {
@@ -1213,6 +1247,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "moderation_status": {
+                  "column": "moderation_status"
                 },
                 "postKind": {
                   "column": "postKind"
@@ -3342,6 +3379,11 @@
             "Post": {
               "checks": [
                 {
+                  "expression": "\"moderation_status\" IN ('PENDING', 'APPROVED', 'REJECTED', 'REVIEW')",
+                  "name": "Post_moderation_status_check_22ab0024",
+                  "prefix": "Post_moderation_status_check"
+                },
+                {
                   "expression": "\"postKind\" IN ('GENERAL', 'QUESTION', 'PROJECT', 'TUTORIAL')",
                   "name": "Post_postKind_check_53244310",
                   "prefix": "Post_postKind_check"
@@ -3390,6 +3432,21 @@
                   },
                   "nativeType": "int4",
                   "nullable": false
+                },
+                "moderation_status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "PENDING"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "ModerationStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
                 },
                 "postKind": {
                   "codecId": "pg/text@1",
@@ -4686,6 +4743,15 @@
                 "DOCUMENT"
               ]
             },
+            "ModerationStatus": {
+              "kind": "valueSet",
+              "values": [
+                "PENDING",
+                "APPROVED",
+                "REJECTED",
+                "REVIEW"
+              ]
+            },
             "NotificationType": {
               "kind": "valueSet",
               "values": [
@@ -4752,7 +4818,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "5c2bee591c5513c8be88956314df8f1480d0620552dbe8bee196622038765312"
+    "storageHash": "7b1789015b91a7a866aa67d6d00c9c3b37c4f2a15729e824e3c67a86be246bbf"
   },
   "capabilities": {
     "postgres": {

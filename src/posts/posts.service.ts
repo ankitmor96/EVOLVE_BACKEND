@@ -79,6 +79,37 @@ export class PostsService {
     }
   }
 
+  // =====================================
+  // ADD MODERATION JOB TO QUEUE
+  // =====================================
+
+  async enqueueModerationJob(
+    postId: number,
+    userId: number,
+  ) {
+    console.log('Adding moderation job to queue:', {
+      postId,
+      userId,
+    });
+
+    return this.postsQueue.add(
+      'moderation-post-created',
+      {
+        postId,
+        userId,
+      },
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000,
+        },
+        removeOnComplete: 100,
+        removeOnFail: 500,
+      },
+    );
+  }
+
   private async getUserSkillCategories(userId: number) {
     const userSkills = await this.prisma.client.orm.public.UserSkill
       .where({ userId })
@@ -292,6 +323,7 @@ export class PostsService {
       caption: caption?.trim() || null,
       visibility: 'PUBLIC',
       status: 'PUBLISHED',
+      moderation_status: 'PENDING',
       publishedAt: Temporal.Now.instant(),
     });
 
@@ -320,6 +352,7 @@ export class PostsService {
       // Queue a background job after the post and media are saved.
 
       await this.enqueuePostJob(postId, userId);
+      await this.enqueueModerationJob(postId, userId);
 
       // Notify connected clients about the new post.
       this.postsGateway.emitPostCreated({
@@ -367,6 +400,7 @@ export class PostsService {
       caption: caption?.trim() || null,
       visibility: 'PUBLIC',
       status: 'PUBLISHED',
+      moderation_status: 'PENDING',
       publishedAt: Temporal.Now.instant(),
     });
 
@@ -394,6 +428,7 @@ export class PostsService {
 
 
       await this.enqueuePostJob(postId, userId);
+      await this.enqueueModerationJob(postId, userId);
 
       // Notify connected clients about the new video post.
       this.postsGateway.emitPostCreated({
@@ -627,6 +662,7 @@ export class PostsService {
       caption: caption?.trim() || originalname,
       visibility: 'PUBLIC',
       status: 'PUBLISHED',
+      moderation_status: 'PENDING',
       publishedAt: Temporal.Now.instant(),
     });
 
@@ -662,6 +698,7 @@ export class PostsService {
 
 
       await this.enqueuePostJob(postId, userId);
+      await this.enqueueModerationJob(postId, userId);
 
       // Notify connected clients about the new document post.
       this.postsGateway.emitPostCreated({
@@ -717,6 +754,7 @@ export class PostsService {
 
     let query = this.prisma.client.orm.public.Post
       .where((p) => p.status.eq('PUBLISHED'))
+      .where((p) => p.moderation_status.eq('APPROVED'))
       // .where((p) => p.visibility.eq('PUBLIC'))
       .where((p) => p.deletedAt.isNull())
       .where((p) => p.publishedAt.isNotNull())
@@ -749,8 +787,14 @@ export class PostsService {
     const allPosts = await query.limit(pageSize + 1).all();
 
     const visiblePosts = allPosts.filter((post) => {
+      // Owner can see their own posts regardless of moderation status.
       if (post.userId === userId) {
         return true;
+      }
+
+      // Other users can only see approved posts.
+      if (post.moderation_status !== 'APPROVED') {
+        return false;
       }
 
       if (post.visibility === 'PUBLIC') {

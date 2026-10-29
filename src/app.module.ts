@@ -22,6 +22,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { CommentsModule } from './comments/comments.module';
 import { ConnectionsModule } from './connections/connections.module';
 import { MessagingModule } from './messaging/messaging.module';
+import { ModerationModule } from './moderation/moderation.module';
 
 
 
@@ -90,6 +91,8 @@ import { MessagingModule } from './messaging/messaging.module';
     ConnectionsModule,
 
     MessagingModule,
+
+    ModerationModule,
   ],
 
 

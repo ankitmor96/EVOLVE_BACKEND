@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'5c2bee591c5513c8be88956314df8f1480d0620552dbe8bee196622038765312'>;
+  StorageHashBase<'7b1789015b91a7a866aa67d6d00c9c3b37c4f2a15729e824e3c67a86be246bbf'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -321,6 +321,7 @@ export type FieldOutputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly deletedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly moderation_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
       readonly postKind: 'GENERAL' | 'QUESTION' | 'PROJECT' | 'TUTORIAL';
       readonly postType: 'TEXT' | 'IMAGE' | 'VIDEO' | 'MIXED' | 'POLL';
       readonly publishedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
@@ -498,6 +499,7 @@ export type FieldInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly deletedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly moderation_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
       readonly postKind: 'GENERAL' | 'QUESTION' | 'PROJECT' | 'TUTORIAL';
       readonly postType: 'TEXT' | 'IMAGE' | 'VIDEO' | 'MIXED' | 'POLL';
       readonly publishedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
@@ -675,6 +677,7 @@ export type StorageColumnTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly deletedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly moderation_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
       readonly postKind: 'GENERAL' | 'QUESTION' | 'PROJECT' | 'TUTORIAL';
       readonly postType: 'TEXT' | 'IMAGE' | 'VIDEO' | 'MIXED' | 'POLL';
       readonly publishedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
@@ -852,6 +855,7 @@ export type StorageColumnInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly deletedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly moderation_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
       readonly postKind: 'GENERAL' | 'QUESTION' | 'PROJECT' | 'TUTORIAL';
       readonly postType: 'TEXT' | 'IMAGE' | 'VIDEO' | 'MIXED' | 'POLL';
       readonly publishedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
@@ -1048,6 +1052,7 @@ export namespace Models {
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     deletedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
     id: CodecTypes['pg/int4@1']['output'];
+    moderation_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
     postKind: 'GENERAL' | 'QUESTION' | 'PROJECT' | 'TUTORIAL';
     postType: 'TEXT' | 'IMAGE' | 'VIDEO' | 'MIXED' | 'POLL';
     publishedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
@@ -1830,6 +1835,15 @@ type ContractBase = Omit<
                   readonly default: {
                     readonly kind: 'function';
                     readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly moderation_status: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'PENDING'>;
                   };
                 };
                 readonly postKind: {
@@ -2756,6 +2770,10 @@ type ContractBase = Omit<
               readonly kind: 'valueSet';
               readonly values: readonly ['IMAGE', 'VIDEO', 'AUDIO', 'DOCUMENT'];
             };
+            readonly ModerationStatus: {
+              readonly kind: 'valueSet';
+              readonly values: readonly ['PENDING', 'APPROVED', 'REJECTED', 'REVIEW'];
+            };
             readonly NotificationType: {
               readonly kind: 'valueSet';
               readonly values: readonly [
@@ -3366,6 +3384,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
+              readonly moderation_status: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly postKind: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -3475,6 +3497,7 @@ type ContractBase = Omit<
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly deletedAt: { readonly column: 'deletedAt' };
                 readonly id: { readonly column: 'id' };
+                readonly moderation_status: { readonly column: 'moderation_status' };
                 readonly postKind: { readonly column: 'postKind' };
                 readonly postType: { readonly column: 'postType' };
                 readonly publishedAt: { readonly column: 'publishedAt' };
@@ -4361,6 +4384,15 @@ type ContractBase = Omit<
               { readonly name: 'VIDEO'; readonly value: 'VIDEO' },
               { readonly name: 'AUDIO'; readonly value: 'AUDIO' },
               { readonly name: 'DOCUMENT'; readonly value: 'DOCUMENT' },
+            ];
+          };
+          readonly ModerationStatus: {
+            readonly codecId: 'pg/text@1';
+            readonly members: readonly [
+              { readonly name: 'PENDING'; readonly value: 'PENDING' },
+              { readonly name: 'APPROVED'; readonly value: 'APPROVED' },
+              { readonly name: 'REJECTED'; readonly value: 'REJECTED' },
+              { readonly name: 'REVIEW'; readonly value: 'REVIEW' },
             ];
           };
           readonly NotificationType: {
