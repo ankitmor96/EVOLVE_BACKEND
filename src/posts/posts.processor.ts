@@ -1,4 +1,3 @@
-
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import Redis from 'ioredis';
 import { Job } from 'bullmq';
@@ -24,8 +23,7 @@ export class PostsProcessor extends WorkerHost {
 
   private readonly batchKey = 'moderation:posts:batch';
 
-  private readonly processingBatchKey =
-    'moderation:posts:processing';
+  private readonly processingBatchKey = 'moderation:posts:processing';
 
   private readonly batchSize = 10;
 
@@ -51,10 +49,7 @@ export class PostsProcessor extends WorkerHost {
   private async addToModerationBatch(
     payload: ModerationPayload,
   ): Promise<void> {
-    await this.redis.rpush(
-      this.batchKey,
-      JSON.stringify(payload),
-    );
+    await this.redis.rpush(this.batchKey, JSON.stringify(payload));
 
     const currentSize = await this.redis.llen(this.batchKey);
 
@@ -127,8 +122,7 @@ export class PostsProcessor extends WorkerHost {
         break;
       }
 
-      const processingKey =
-        `${this.processingBatchKey}:${randomUUID()}`;
+      const processingKey = `${this.processingBatchKey}:${randomUUID()}`;
 
       const isTimerFlush = pendingCount < this.batchSize;
 
@@ -141,11 +135,10 @@ export class PostsProcessor extends WorkerHost {
         isTimerFlush ? 'timer' : 'size',
       );
 
-      const batchItems = Array.isArray(result)
-        ? result.map(String)
-        : [];
+      const batchItems = Array.isArray(result) ? result.map(String) : [];
 
       if (batchItems.length === 0) {
+        await this.redis.del(processingKey);
         break;
       }
 
@@ -153,9 +146,21 @@ export class PostsProcessor extends WorkerHost {
         (item) => JSON.parse(item) as ModerationPayload,
       );
 
-      const response = await this.moderationService.sendBatch(batch);
+      try {
+        const response = await this.moderationService.sendBatch(batch);
 
-      console.log('Moderation API response:', response);
+        console.log('Moderation API response:', response);
+
+        await this.redis.del(processingKey);
+      } catch (error) {
+        // Sending failed: put the posts back in the queue so they are not lost.
+        // Do NOT re-throw: BullMQ would retry the job and add the same post twice.
+        console.error('Moderation sendBatch failed, re-queueing posts:', error);
+
+        await this.redis.rpush(this.batchKey, ...batchItems);
+        await this.redis.del(processingKey);
+        break; // the timer below retries after batchDelayMs
+      }
 
       // Do not claim fewer than 10 remaining posts immediately.
       const remainingCount = await this.redis.llen(this.batchKey);
@@ -182,9 +187,7 @@ export class PostsProcessor extends WorkerHost {
           .first();
 
         if (!post) {
-          throw new Error(
-            `Post ${postId} not found for user ${userId}`,
-          );
+          throw new Error(`Post ${postId} not found for user ${userId}`);
         }
 
         await this.prisma.client.orm.public.Notification.create({
@@ -205,9 +208,7 @@ export class PostsProcessor extends WorkerHost {
           .first();
 
         if (!post) {
-          throw new Error(
-            `Post ${postId} not found for user ${userId}`,
-          );
+          throw new Error(`Post ${postId} not found for user ${userId}`);
         }
 
         const media = await this.prisma.client.orm.public.PostMedia
