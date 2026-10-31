@@ -1,0 +1,203 @@
+[
+  {
+    "id": "table.ModerationResult",
+    "label": "Create table \"ModerationResult\"",
+    "summary": "Creates table \"ModerationResult\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "ModerationResult"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"ModerationResult\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ModerationResult\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"ModerationResult\"",
+        "sql": "CREATE TABLE \"public\".\"ModerationResult\" (\n  \"categories\" json,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"mediaUrl\" text NOT NULL,\n  \"moderation_status\" text NOT NULL,\n  \"postId\" int4 NOT NULL,\n  \"postType\" text NOT NULL,\n  \"reasons\" json,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"ModerationResult_moderation_status_check_22ab0024\" CHECK (\"moderation_status\" IN ('PENDING', 'APPROVED', 'REJECTED', 'REVIEW')),\n  CONSTRAINT \"ModerationResult_postType_check_07bbca23\" CHECK (\"postType\" IN ('TEXT', 'IMAGE', 'VIDEO', 'MIXED', 'POLL'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"ModerationResult\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ModerationResult\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.ModerationResult.ModerationResult_postId_key",
+    "label": "Add unique constraint on \"ModerationResult\" (postId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "ModerationResult_postId_key",
+        "table": "ModerationResult"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"ModerationResult_postId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ModerationResult_postId_key",
+          "public",
+          "\"public\".\"ModerationResult\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"ModerationResult_postId_key\"",
+        "sql": "ALTER TABLE \"public\".\"ModerationResult\" ADD CONSTRAINT \"ModerationResult_postId_key\" UNIQUE (\"postId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"ModerationResult_postId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ModerationResult_postId_key",
+          "public",
+          "\"public\".\"ModerationResult\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ModerationResult.ModerationResult_moderation_status_idx_82c92531",
+    "label": "Create index \"ModerationResult_moderation_status_idx_82c92531\" on \"ModerationResult\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ModerationResult_moderation_status_idx_82c92531",
+        "table": "ModerationResult"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ModerationResult_moderation_status_idx_82c92531\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ModerationResult_moderation_status_idx_82c92531\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ModerationResult_moderation_status_idx_82c92531\"",
+        "sql": "CREATE INDEX \"ModerationResult_moderation_status_idx_82c92531\" ON \"public\".\"ModerationResult\" (\"moderation_status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ModerationResult_moderation_status_idx_82c92531\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ModerationResult_moderation_status_idx_82c92531\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ModerationResult.ModerationResult_userId_idx_a489d58a",
+    "label": "Create index \"ModerationResult_userId_idx_a489d58a\" on \"ModerationResult\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ModerationResult_userId_idx_a489d58a",
+        "table": "ModerationResult"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ModerationResult_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ModerationResult_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ModerationResult_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"ModerationResult_userId_idx_a489d58a\" ON \"public\".\"ModerationResult\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ModerationResult_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ModerationResult_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.ModerationResult.ModerationResult_postId_fkey",
+    "label": "Add foreign key \"ModerationResult_postId_fkey\" on \"ModerationResult\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "ModerationResult_postId_fkey",
+        "table": "ModerationResult"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"ModerationResult_postId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ModerationResult_postId_fkey",
+          "public",
+          "\"public\".\"ModerationResult\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"ModerationResult_postId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"ModerationResult\"\nADD CONSTRAINT \"ModerationResult_postId_fkey\"\nFOREIGN KEY (\"postId\")\nREFERENCES \"public\".\"Post\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"ModerationResult_postId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ModerationResult_postId_fkey",
+          "public",
+          "\"public\".\"ModerationResult\""
+        ]
+      }
+    ]
+  }
+]

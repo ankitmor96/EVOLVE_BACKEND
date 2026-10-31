@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'7b1789015b91a7a866aa67d6d00c9c3b37c4f2a15729e824e3c67a86be246bbf'>;
+  StorageHashBase<'27c096708602b4d9c830ecb89d4697f16220f9fe1bccb92b91f69f517359c096'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -302,6 +302,18 @@ export type FieldOutputTypes = {
       readonly senderId: CodecTypes['pg/int4@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
+    readonly ModerationResult: {
+      readonly categories: CodecTypes['pg/json@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly mediaUrl: CodecTypes['pg/text@1']['output'];
+      readonly moderation_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
+      readonly postId: CodecTypes['pg/int4@1']['output'];
+      readonly postType: 'TEXT' | 'IMAGE' | 'VIDEO' | 'MIXED' | 'POLL';
+      readonly reasons: CodecTypes['pg/json@1']['output'] | null;
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+    };
     readonly Notification: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/int4@1']['output'];
@@ -479,6 +491,18 @@ export type FieldInputTypes = {
       readonly isRead: CodecTypes['pg/bool@1']['input'];
       readonly senderId: CodecTypes['pg/int4@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+    };
+    readonly ModerationResult: {
+      readonly categories: CodecTypes['pg/json@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly mediaUrl: CodecTypes['pg/text@1']['input'];
+      readonly moderation_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
+      readonly postId: CodecTypes['pg/int4@1']['input'];
+      readonly postType: 'TEXT' | 'IMAGE' | 'VIDEO' | 'MIXED' | 'POLL';
+      readonly reasons: CodecTypes['pg/json@1']['input'] | null;
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
     };
     readonly Notification: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -658,6 +682,18 @@ export type StorageColumnTypes = {
       readonly senderId: CodecTypes['pg/int4@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
+    readonly ModerationResult: {
+      readonly categories: CodecTypes['pg/json@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly mediaUrl: CodecTypes['pg/text@1']['output'];
+      readonly moderation_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
+      readonly postId: CodecTypes['pg/int4@1']['output'];
+      readonly postType: 'TEXT' | 'IMAGE' | 'VIDEO' | 'MIXED' | 'POLL';
+      readonly reasons: CodecTypes['pg/json@1']['output'] | null;
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+    };
     readonly Notification: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/int4@1']['output'];
@@ -835,6 +871,18 @@ export type StorageColumnInputTypes = {
       readonly isRead: CodecTypes['pg/bool@1']['input'];
       readonly senderId: CodecTypes['pg/int4@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+    };
+    readonly ModerationResult: {
+      readonly categories: CodecTypes['pg/json@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly mediaUrl: CodecTypes['pg/text@1']['input'];
+      readonly moderation_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
+      readonly postId: CodecTypes['pg/int4@1']['input'];
+      readonly postType: 'TEXT' | 'IMAGE' | 'VIDEO' | 'MIXED' | 'POLL';
+      readonly reasons: CodecTypes['pg/json@1']['input'] | null;
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
     };
     readonly Notification: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -1032,6 +1080,20 @@ export namespace Models {
     sender: public_User;
     readonly [RelationKeys]?: 'conversation' | 'sender';
   };
+  export type public_ModerationResult = {
+    categories: CodecTypes['pg/json@1']['output'] | null;
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    id: CodecTypes['pg/int4@1']['output'];
+    mediaUrl: CodecTypes['pg/text@1']['output'];
+    moderation_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
+    postId: CodecTypes['pg/int4@1']['output'];
+    postType: 'TEXT' | 'IMAGE' | 'VIDEO' | 'MIXED' | 'POLL';
+    reasons: CodecTypes['pg/json@1']['output'] | null;
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    userId: CodecTypes['pg/int4@1']['output'];
+    post: public_Post;
+    readonly [RelationKeys]?: 'post';
+  };
   export type public_Notification = {
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     id: CodecTypes['pg/int4@1']['output'];
@@ -1063,10 +1125,12 @@ export namespace Models {
     comments: public_Comment[];
     learning: public_PostLearning[];
     media: public_PostMedia[];
+    moderationResult: public_ModerationResult | null;
     reactions: public_PostReaction[];
     skills: public_PostSkill[];
     user: public_User;
-    readonly [RelationKeys]?: 'comments' | 'learning' | 'media' | 'reactions' | 'skills' | 'user';
+    readonly [RelationKeys]?:
+      'comments' | 'learning' | 'media' | 'moderationResult' | 'reactions' | 'skills' | 'user';
   };
   export type public_PostLearning = {
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -1226,6 +1290,7 @@ export declare const models: {
     EmailOtp: Models.public_EmailOtp;
     IdentityType: Models.public_IdentityType;
     Message: Models.public_Message;
+    ModerationResult: Models.public_ModerationResult;
     Notification: Models.public_Notification;
     Post: Models.public_Post;
     PostLearning: Models.public_PostLearning;
@@ -1740,6 +1805,96 @@ type ContractBase = Omit<
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
                     readonly tableName: 'User';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
+            readonly ModerationResult: {
+              columns: {
+                readonly categories: {
+                  readonly nativeType: 'json';
+                  readonly codecId: 'pg/json@1';
+                  readonly nullable: true;
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly mediaUrl: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly moderation_status: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly postId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly postType: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly reasons: {
+                  readonly nativeType: 'json';
+                  readonly codecId: 'pg/json@1';
+                  readonly nullable: true;
+                };
+                readonly updatedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly userId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['postId'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'ModerationResult_moderation_status_idx_82c92531';
+                  readonly prefix: 'ModerationResult_moderation_status_idx';
+                  readonly columns: readonly ['moderation_status'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'ModerationResult_userId_idx_a489d58a';
+                  readonly prefix: 'ModerationResult_userId_idx';
+                  readonly columns: readonly ['userId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ModerationResult';
+                    readonly columns: readonly ['postId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Post';
                     readonly columns: readonly ['id'];
                   };
                 },
@@ -2838,6 +2993,10 @@ type ContractBase = Omit<
       readonly model: 'IdentityType';
     };
     readonly Message: { readonly namespace: 'public' & NamespaceId; readonly model: 'Message' };
+    readonly ModerationResult: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'ModerationResult';
+    };
     readonly Notification: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'Notification';
@@ -3311,6 +3470,83 @@ type ContractBase = Omit<
               };
             };
           };
+          readonly ModerationResult: {
+            readonly fields: {
+              readonly categories: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/json@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly mediaUrl: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly moderation_status: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly postId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly postType: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly reasons: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/json@1' };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly userId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+            };
+            readonly relations: {
+              readonly post: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'Post' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['postId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'ModerationResult';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly categories: { readonly column: 'categories' };
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly id: { readonly column: 'id' };
+                readonly mediaUrl: { readonly column: 'mediaUrl' };
+                readonly moderation_status: { readonly column: 'moderation_status' };
+                readonly postId: { readonly column: 'postId' };
+                readonly postType: { readonly column: 'postType' };
+                readonly reasons: { readonly column: 'reasons' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
+                readonly userId: { readonly column: 'userId' };
+              };
+            };
+          };
           readonly Notification: {
             readonly fields: {
               readonly createdAt: {
@@ -3452,6 +3688,18 @@ type ContractBase = Omit<
                   readonly model: 'PostMedia';
                 };
                 readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['postId'];
+                };
+              };
+              readonly moderationResult: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ModerationResult';
+                };
+                readonly cardinality: '1:1';
+                readonly nullable: true;
                 readonly on: {
                   readonly localFields: readonly ['id'];
                   readonly targetFields: readonly ['postId'];

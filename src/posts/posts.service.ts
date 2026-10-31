@@ -732,12 +732,12 @@ export class PostsService {
   async getFeed(userId: number, cursor?: number) {
     const pageSize = 10;
 
-
-    const connections = await this.prisma.client.orm.public.Connection
-      .where((connection) =>
-        connection.status.eq('ACCEPTED'),
-      )
-      .all();
+    const connections =
+      await this.prisma.client.orm.public.Connection
+        .where((connection) =>
+          connection.status.eq('ACCEPTED'),
+        )
+        .all();
 
     const connectedUserIds = connections
       .filter(
@@ -751,11 +751,10 @@ export class PostsService {
           : connection.requesterId,
       );
 
-
+    // Fetch published, non-deleted posts.
+    // Do not filter APPROVED here because owners must see their own posts.
     let query = this.prisma.client.orm.public.Post
       .where((p) => p.status.eq('PUBLISHED'))
-      .where((p) => p.moderation_status.eq('APPROVED'))
-      // .where((p) => p.visibility.eq('PUBLIC'))
       .where((p) => p.deletedAt.isNull())
       .where((p) => p.publishedAt.isNotNull())
       .orderBy([
@@ -769,9 +768,10 @@ export class PostsService {
         throw new BadRequestException('Invalid feed cursor');
       }
 
-      const cursorPost = await this.prisma.client.orm.public.Post
-        .where((p) => p.id.eq(cursor))
-        .first();
+      const cursorPost =
+        await this.prisma.client.orm.public.Post
+          .where((p) => p.id.eq(cursor))
+          .first();
 
       if (!cursorPost) {
         throw new NotFoundException('Feed cursor post not found');
@@ -786,6 +786,7 @@ export class PostsService {
     // Fetch posts
     const allPosts = await query.limit(pageSize + 1).all();
 
+    // Apply moderation and visibility rules
     const visiblePosts = allPosts.filter((post) => {
       // Owner can see their own posts regardless of moderation status.
       if (post.userId === userId) {
