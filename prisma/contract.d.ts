@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'27c096708602b4d9c830ecb89d4697f16220f9fe1bccb92b91f69f517359c096'>;
+  StorageHashBase<'b2e2608da1801eb7229d60dc6de12a94cd310de67275ae937fe12ddeb586e29b'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -416,6 +416,19 @@ export type FieldOutputTypes = {
       readonly isPrimary: CodecTypes['pg/bool@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'];
     };
+    readonly UserPostExploration: {
+      readonly contentType: 'VIDEO' | 'TEXT' | 'IMAGE' | 'LONG_FORM';
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly explorationCount: CodecTypes['pg/int4@1']['output'];
+      readonly firstExploredAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly lastExploredAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly maxCompletionPercentage: CodecTypes['pg/numeric@1']['output'];
+      readonly postId: CodecTypes['pg/int4@1']['output'];
+      readonly totalConsumptionSeconds: CodecTypes['pg/int4@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+    };
     readonly UserProfile: {
       readonly ageRange: CodecTypes['pg/text@1']['output'];
       readonly avatarUrl: CodecTypes['pg/text@1']['output'] | null;
@@ -604,6 +617,19 @@ export type FieldInputTypes = {
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly identityTypeId: CodecTypes['pg/int4@1']['input'];
       readonly isPrimary: CodecTypes['pg/bool@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
+    };
+    readonly UserPostExploration: {
+      readonly contentType: 'VIDEO' | 'TEXT' | 'IMAGE' | 'LONG_FORM';
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly explorationCount: CodecTypes['pg/int4@1']['input'];
+      readonly firstExploredAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly lastExploredAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly maxCompletionPercentage: CodecTypes['pg/numeric@1']['input'];
+      readonly postId: CodecTypes['pg/int4@1']['input'];
+      readonly totalConsumptionSeconds: CodecTypes['pg/int4@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
     };
     readonly UserProfile: {
@@ -796,6 +822,19 @@ export type StorageColumnTypes = {
       readonly isPrimary: CodecTypes['pg/bool@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'];
     };
+    readonly UserPostExploration: {
+      readonly contentType: 'VIDEO' | 'TEXT' | 'IMAGE' | 'LONG_FORM';
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly explorationCount: CodecTypes['pg/int4@1']['output'];
+      readonly firstExploredAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly lastExploredAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly maxCompletionPercentage: CodecTypes['pg/numeric@1']['output'];
+      readonly postId: CodecTypes['pg/int4@1']['output'];
+      readonly totalConsumptionSeconds: CodecTypes['pg/int4@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+    };
     readonly UserProfile: {
       readonly ageRange: CodecTypes['pg/text@1']['output'];
       readonly avatarUrl: CodecTypes['pg/text@1']['output'] | null;
@@ -986,6 +1025,19 @@ export type StorageColumnInputTypes = {
       readonly isPrimary: CodecTypes['pg/bool@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
     };
+    readonly UserPostExploration: {
+      readonly contentType: 'VIDEO' | 'TEXT' | 'IMAGE' | 'LONG_FORM';
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly explorationCount: CodecTypes['pg/int4@1']['input'];
+      readonly firstExploredAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly lastExploredAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly maxCompletionPercentage: CodecTypes['pg/numeric@1']['input'];
+      readonly postId: CodecTypes['pg/int4@1']['input'];
+      readonly totalConsumptionSeconds: CodecTypes['pg/int4@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
+    };
     readonly UserProfile: {
       readonly ageRange: CodecTypes['pg/text@1']['input'];
       readonly avatarUrl: CodecTypes['pg/text@1']['input'] | null;
@@ -1126,11 +1178,19 @@ export namespace Models {
     learning: public_PostLearning[];
     media: public_PostMedia[];
     moderationResult: public_ModerationResult | null;
+    postExplorations: public_UserPostExploration[];
     reactions: public_PostReaction[];
     skills: public_PostSkill[];
     user: public_User;
     readonly [RelationKeys]?:
-      'comments' | 'learning' | 'media' | 'moderationResult' | 'reactions' | 'skills' | 'user';
+      | 'comments'
+      | 'learning'
+      | 'media'
+      | 'moderationResult'
+      | 'postExplorations'
+      | 'reactions'
+      | 'skills'
+      | 'user';
   };
   export type public_PostLearning = {
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -1214,6 +1274,7 @@ export namespace Models {
     conversationsAsParticipant: public_ConversationParticipant[];
     curiosities: public_UserCuriosity[];
     identities: public_UserIdentity[];
+    postExplorations: public_UserPostExploration[];
     postLearning: public_PostLearning[];
     postReactions: public_PostReaction[];
     posts: public_Post[];
@@ -1227,6 +1288,7 @@ export namespace Models {
       | 'conversationsAsParticipant'
       | 'curiosities'
       | 'identities'
+      | 'postExplorations'
       | 'postLearning'
       | 'postReactions'
       | 'posts'
@@ -1254,6 +1316,22 @@ export namespace Models {
     identityType: public_IdentityType;
     user: public_User;
     readonly [RelationKeys]?: 'identityType' | 'user';
+  };
+  export type public_UserPostExploration = {
+    contentType: 'VIDEO' | 'TEXT' | 'IMAGE' | 'LONG_FORM';
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    explorationCount: CodecTypes['pg/int4@1']['output'];
+    firstExploredAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    id: CodecTypes['pg/int4@1']['output'];
+    lastExploredAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    maxCompletionPercentage: CodecTypes['pg/numeric@1']['output'];
+    postId: CodecTypes['pg/int4@1']['output'];
+    totalConsumptionSeconds: CodecTypes['pg/int4@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    userId: CodecTypes['pg/int4@1']['output'];
+    post: public_Post;
+    user: public_User;
+    readonly [RelationKeys]?: 'post' | 'user';
   };
   export type public_UserProfile = {
     ageRange: CodecTypes['pg/text@1']['output'];
@@ -1302,6 +1380,7 @@ export declare const models: {
     User: Models.public_User;
     UserCuriosity: Models.public_UserCuriosity;
     UserIdentity: Models.public_UserIdentity;
+    UserPostExploration: Models.public_UserPostExploration;
     UserProfile: Models.public_UserProfile;
     UserSkill: Models.public_UserSkill;
   };
@@ -2756,6 +2835,139 @@ type ContractBase = Omit<
                 },
               ];
             };
+            readonly UserPostExploration: {
+              columns: {
+                readonly contentType: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly explorationCount: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
+                  };
+                };
+                readonly firstExploredAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly lastExploredAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly maxCompletionPercentage: {
+                  readonly nativeType: 'numeric';
+                  readonly codecId: 'pg/numeric@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/numeric@1', '0'>;
+                  };
+                };
+                readonly postId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly totalConsumptionSeconds: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
+                  };
+                };
+                readonly updatedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly userId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['userId', 'postId'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'UserPostExploration_firstExploredAt_idx_4a0c2b9f';
+                  readonly prefix: 'UserPostExploration_firstExploredAt_idx';
+                  readonly columns: readonly ['firstExploredAt'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'UserPostExploration_postId_idx_a7a72715';
+                  readonly prefix: 'UserPostExploration_postId_idx';
+                  readonly columns: readonly ['postId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'UserPostExploration_userId_firstExploredAt_idx_1d9311f7';
+                  readonly prefix: 'UserPostExploration_userId_firstExploredAt_idx';
+                  readonly columns: readonly ['userId', 'firstExploredAt'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'UserPostExploration_userId_idx_a489d58a';
+                  readonly prefix: 'UserPostExploration_userId_idx';
+                  readonly columns: readonly ['userId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'UserPostExploration';
+                    readonly columns: readonly ['userId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'User';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'UserPostExploration';
+                    readonly columns: readonly ['postId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Post';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
             readonly UserProfile: {
               columns: {
                 readonly ageRange: {
@@ -2921,6 +3133,10 @@ type ContractBase = Omit<
               readonly kind: 'valueSet';
               readonly values: readonly ['PENDING', 'ACCEPTED', 'REJECTED'];
             };
+            readonly ExplorationContentType: {
+              readonly kind: 'valueSet';
+              readonly values: readonly ['VIDEO', 'TEXT', 'IMAGE', 'LONG_FORM'];
+            };
             readonly MediaType: {
               readonly kind: 'valueSet';
               readonly values: readonly ['IMAGE', 'VIDEO', 'AUDIO', 'DOCUMENT'];
@@ -3025,6 +3241,10 @@ type ContractBase = Omit<
     readonly UserIdentity: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'UserIdentity';
+    };
+    readonly UserPostExploration: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'UserPostExploration';
     };
     readonly UserProfile: {
       readonly namespace: 'public' & NamespaceId;
@@ -3705,6 +3925,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['postId'];
                 };
               };
+              readonly postExplorations: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'UserPostExploration';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['postId'];
+                };
+              };
               readonly reactions: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -4255,6 +4486,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['userId'];
                 };
               };
+              readonly postExplorations: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'UserPostExploration';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
+                };
+              };
               readonly postLearning: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -4474,6 +4716,103 @@ type ContractBase = Omit<
               };
             };
           };
+          readonly UserPostExploration: {
+            readonly fields: {
+              readonly contentType: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly explorationCount: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly firstExploredAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly lastExploredAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly maxCompletionPercentage: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/numeric@1' };
+              };
+              readonly postId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly totalConsumptionSeconds: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly userId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+            };
+            readonly relations: {
+              readonly post: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'Post' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['postId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly user: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'UserPostExploration';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly contentType: { readonly column: 'contentType' };
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly explorationCount: { readonly column: 'explorationCount' };
+                readonly firstExploredAt: { readonly column: 'firstExploredAt' };
+                readonly id: { readonly column: 'id' };
+                readonly lastExploredAt: { readonly column: 'lastExploredAt' };
+                readonly maxCompletionPercentage: { readonly column: 'maxCompletionPercentage' };
+                readonly postId: { readonly column: 'postId' };
+                readonly totalConsumptionSeconds: { readonly column: 'totalConsumptionSeconds' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
+                readonly userId: { readonly column: 'userId' };
+              };
+            };
+          };
           readonly UserProfile: {
             readonly fields: {
               readonly ageRange: {
@@ -4623,6 +4962,15 @@ type ContractBase = Omit<
               { readonly name: 'PENDING'; readonly value: 'PENDING' },
               { readonly name: 'ACCEPTED'; readonly value: 'ACCEPTED' },
               { readonly name: 'REJECTED'; readonly value: 'REJECTED' },
+            ];
+          };
+          readonly ExplorationContentType: {
+            readonly codecId: 'pg/text@1';
+            readonly members: readonly [
+              { readonly name: 'VIDEO'; readonly value: 'VIDEO' },
+              { readonly name: 'TEXT'; readonly value: 'TEXT' },
+              { readonly name: 'IMAGE'; readonly value: 'IMAGE' },
+              { readonly name: 'LONG_FORM'; readonly value: 'LONG_FORM' },
             ];
           };
           readonly MediaType: {

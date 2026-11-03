@@ -1,0 +1,732 @@
+
+import {
+    Injectable,
+    Inject,
+    OnModuleDestroy,
+    BadRequestException,
+    NotFoundException,
+    ForbiddenException,
+    ConflictException,
+} from '@nestjs/common';
+
+import Redis from 'ioredis';
+import { randomUUID } from 'node:crypto';
+import { Temporal } from '@js-temporal/polyfill';
+
+import { PrismaService } from '../prisma/prisma.service';
+
+type ContentType = 'VIDEO' | 'TEXT' | 'IMAGE' | 'LONG_FORM';
+
+interface LearningSession {
+    sessionId: string;
+    userId: number;
+    postId: number;
+    contentType: ContentType;
+    thresholdSeconds: number;
+    activeSeconds: number;
+    persistedSeconds: number;
+    maxCompletionPercentage: number;
+    counted: boolean;
+    ended: boolean;
+    startedAt: number;
+    lastProgressAt: number;
+}
+
+@Injectable()
+export class LearningService implements OnModuleDestroy {
+    private readonly SESSION_TTL = 2 * 60 * 60;
+    private readonly MAX_PROGRESS_SECONDS = 10;
+
+    private readonly THRESHOLDS: Record<ContentType, number> = {
+        VIDEO: 5,
+        TEXT: 3,
+        IMAGE: 3,
+        LONG_FORM: 10,
+    };
+
+    constructor(
+        private readonly prisma: PrismaService,
+
+        @Inject('LEARNING_REDIS')
+        private readonly redis: Redis,
+    ) { }
+
+    async onModuleDestroy() {
+        if (this.redis.status !== 'end') {
+            await this.redis.quit();
+        }
+    }
+
+    // =========================================
+    // CONTENT TYPE DETECTION
+    // =========================================
+
+    private async getContentType(post: any): Promise<ContentType> {
+        const media = await this.prisma.client.orm.public.PostMedia
+            .where({
+                postId: post.id,
+            })
+            .all();
+
+        const hasDocument = media.some(
+            (item: any) => item.mediaType === 'DOCUMENT',
+        );
+
+        if (post.postType === 'VIDEO') {
+            return 'VIDEO';
+        }
+
+        if (post.postType === 'IMAGE') {
+            return 'IMAGE';
+        }
+
+        if (post.postType === 'TEXT' && hasDocument) {
+            return 'LONG_FORM';
+        }
+
+        if (post.postType === 'TEXT') {
+            return 'TEXT';
+        }
+
+        throw new BadRequestException(
+            'This post type is not supported for exploration tracking',
+        );
+    }
+
+    // =========================================
+    // POST ACCESS VALIDATION
+    // =========================================
+
+    private async validatePostAccess(
+        userId: number,
+        postId: number,
+    ) {
+        const post = await this.prisma.client.orm.public.Post
+            .where({
+                id: postId,
+                deletedAt: null,
+            })
+            .first();
+
+        if (!post) {
+            throw new NotFoundException('Post not found');
+        }
+
+        if (
+            post.status !== 'PUBLISHED' ||
+            !post.publishedAt
+        ) {
+            throw new BadRequestException(
+                'Post is not published',
+            );
+        }
+
+        // Post owner can explore own post.
+        if (Number(post.userId) === userId) {
+            return post;
+        }
+
+        // Other users can only explore approved posts.
+        // Enable this check when moderation approval is required.
+        /*
+        if (post.moderation_status !== 'APPROVED') {
+            throw new ForbiddenException(
+                'This post is not available',
+            );
+        }
+        */
+
+        if (post.visibility === 'PUBLIC') {
+            return post;
+        }
+
+        if (post.visibility === 'CONNECTIONS') {
+            const connections =
+                await this.prisma.client.orm.public.Connection
+                    .where((connection: any) =>
+                        connection.status.eq('ACCEPTED'),
+                    )
+                    .all();
+
+            const isConnected = connections.some(
+                (connection: any) => {
+                    const first =
+                        Number(connection.requesterId) === userId &&
+                        Number(connection.receiverId) === Number(post.userId);
+
+                    const second =
+                        Number(connection.receiverId) === userId &&
+                        Number(connection.requesterId) === Number(post.userId);
+
+                    return first || second;
+                },
+            );
+
+            if (!isConnected) {
+                throw new ForbiddenException(
+                    'You are not connected with this user',
+                );
+            }
+
+            return post;
+        }
+
+        throw new ForbiddenException(
+            'You do not have permission to explore this post',
+        );
+    }
+
+    // =========================================
+    // START TRACKING
+    // POST /v1/learning/track/start
+    // =========================================
+
+    async startTracking(
+        userId: number,
+        postId: number,
+    ) {
+        if (
+            !Number.isInteger(postId) ||
+            postId <= 0
+        ) {
+            throw new BadRequestException('Invalid postId');
+        }
+
+        const post = await this.validatePostAccess(
+            userId,
+            postId,
+        );
+
+        const contentType = await this.getContentType(post);
+
+        const sessionId = randomUUID();
+
+        // Keep milliseconds as number for Redis calculations.
+        const now = Date.now();
+
+        const session: LearningSession = {
+            sessionId,
+            userId,
+            postId,
+            contentType,
+
+            thresholdSeconds:
+                this.THRESHOLDS[contentType],
+
+            activeSeconds: 0,
+            persistedSeconds: 0,
+            maxCompletionPercentage: 0,
+
+            counted: false,
+            ended: false,
+
+            startedAt: now,
+            lastProgressAt: now,
+        };
+
+        await this.redis.set(
+            `learning:session:${sessionId}`,
+            JSON.stringify(session),
+            'EX',
+            this.SESSION_TTL,
+        );
+
+        return {
+            success: true,
+            message: 'Learning tracking started',
+            sessionId,
+            postId,
+            contentType,
+            thresholdSeconds: session.thresholdSeconds,
+        };
+    }
+
+    // =========================================
+    // REDIS SESSION HELPER
+    // =========================================
+
+    private async getSession(
+        sessionId: string,
+        userId: number,
+    ): Promise<LearningSession> {
+        if (
+            typeof sessionId !== 'string' ||
+            sessionId.length > 100
+        ) {
+            throw new BadRequestException(
+                'Invalid sessionId',
+            );
+        }
+
+        const sessionData = await this.redis.get(
+            `learning:session:${sessionId}`,
+        );
+
+        if (!sessionData) {
+            throw new NotFoundException(
+                'Learning session not found or expired',
+            );
+        }
+
+        const session: LearningSession =
+            JSON.parse(sessionData);
+
+        if (session.userId !== userId) {
+            throw new ForbiddenException(
+                'This session does not belong to you',
+            );
+        }
+
+        if (session.ended) {
+            throw new BadRequestException(
+                'Learning session already ended',
+            );
+        }
+
+        return session;
+    }
+
+    // =========================================
+    // PROGRESS TRACKING
+    // POST /v1/learning/track/progress
+    // =========================================
+
+    async trackProgress(
+        userId: number,
+        dto: {
+            sessionId: string;
+            progressId: string;
+            activeSeconds: number;
+            completionPercentage: number;
+            isActive: boolean;
+        },
+    ) {
+        const {
+            sessionId,
+            progressId,
+            activeSeconds,
+            completionPercentage,
+            isActive,
+        } = dto;
+
+        if (
+            typeof progressId !== 'string' ||
+            progressId.length < 10 ||
+            progressId.length > 100
+        ) {
+            throw new BadRequestException(
+                'Invalid progressId',
+            );
+        }
+
+        if (
+            !Number.isInteger(activeSeconds) ||
+            activeSeconds < 0 ||
+            activeSeconds > this.MAX_PROGRESS_SECONDS
+        ) {
+            throw new BadRequestException(
+                'activeSeconds must be between 0 and 10',
+            );
+        }
+
+        if (
+            typeof completionPercentage !== 'number' ||
+            !Number.isFinite(completionPercentage) ||
+            completionPercentage < 0 ||
+            completionPercentage > 100
+        ) {
+            throw new BadRequestException(
+                'completionPercentage must be between 0 and 100',
+            );
+        }
+
+        if (typeof isActive !== 'boolean') {
+            throw new BadRequestException(
+                'isActive must be boolean',
+            );
+        }
+
+        const session = await this.getSession(
+            sessionId,
+            userId,
+        );
+
+        // Revalidate post access during tracking.
+        await this.validatePostAccess(
+            userId,
+            session.postId,
+        );
+
+        // Prevent duplicate progress request.
+        const progressKey =
+            `learning:progress:${sessionId}`;
+
+        const alreadyProcessed = await this.redis.sismember(
+            progressKey,
+            progressId,
+        );
+
+        if (alreadyProcessed) {
+            return {
+                success: true,
+                duplicate: true,
+                message: 'Progress already processed',
+                qualified: session.counted,
+            };
+        }
+
+        // Keep milliseconds as number for calculations.
+        const now = Date.now();
+
+        const serverElapsed = Math.max(
+            0,
+            Math.floor(
+                (now - session.lastProgressAt) / 1000,
+            ),
+        );
+
+        // Client cannot report more time than server elapsed.
+        const validSeconds = isActive
+            ? Math.min(
+                activeSeconds,
+                serverElapsed,
+                this.MAX_PROGRESS_SECONDS,
+            )
+            : 0;
+
+        session.lastProgressAt = now;
+        session.activeSeconds += validSeconds;
+
+        session.maxCompletionPercentage = Math.max(
+            session.maxCompletionPercentage,
+            completionPercentage,
+        );
+
+        const newSeconds =
+            session.activeSeconds -
+            session.persistedSeconds;
+
+        let qualified = session.counted;
+
+        if (
+            !session.counted &&
+            session.activeSeconds >= session.thresholdSeconds
+        ) {
+            await this.saveExploration(
+                session,
+                newSeconds,
+                true,
+            );
+
+            session.counted = true;
+            session.persistedSeconds = session.activeSeconds;
+            qualified = true;
+        } else if (
+            session.counted &&
+            newSeconds > 0
+        ) {
+            await this.saveExploration(
+                session,
+                newSeconds,
+                false,
+            );
+
+            session.persistedSeconds = session.activeSeconds;
+        }
+
+        await this.redis.multi()
+            .sadd(progressKey, progressId)
+            .expire(progressKey, this.SESSION_TTL)
+            .set(
+                `learning:session:${sessionId}`,
+                JSON.stringify(session),
+                'EX',
+                this.SESSION_TTL,
+            )
+            .exec();
+
+        return {
+            success: true,
+            duplicate: false,
+            sessionId,
+            validSeconds,
+            totalSessionSeconds: session.activeSeconds,
+            thresholdSeconds: session.thresholdSeconds,
+            qualified,
+            remainingSeconds: Math.max(
+                0,
+                session.thresholdSeconds -
+                session.activeSeconds,
+            ),
+            explorationCounted: qualified,
+        };
+    }
+
+    // =========================================
+    // SAVE EXPLORATION IN DATABASE
+    // =========================================
+
+    private async saveExploration(
+        session: LearningSession,
+        secondsToAdd: number,
+        newVisit: boolean,
+    ) {
+        const userId = session.userId;
+        const postId = session.postId;
+
+        const lockKey =
+            `learning:lock:${userId}:${postId}`;
+
+        const lockToken = randomUUID();
+
+        const lockAcquired = await this.redis.set(
+            lockKey,
+            lockToken,
+            'PX',
+            10000,
+            'NX',
+        );
+
+        if (lockAcquired !== 'OK') {
+            throw new ConflictException(
+                'Exploration is currently being updated. Retry shortly.',
+            );
+        }
+
+        try {
+            const existing =
+                await this.prisma.client.orm.public.UserPostExploration
+                    .where({
+                        userId,
+                        postId,
+                    })
+                    .first();
+
+            // PostgreSQL DateTime fields require Temporal.Instant.
+            const now = Temporal.Now.instant();
+
+            if (!existing) {
+                await this.prisma.client.orm.public.UserPostExploration.create({
+                    userId,
+                    postId,
+                    contentType: session.contentType,
+                    totalConsumptionSeconds: secondsToAdd,
+
+                    maxCompletionPercentage:
+                        session.maxCompletionPercentage,
+
+                    explorationCount: 1,
+
+                    firstExploredAt: now,
+                    lastExploredAt: now,
+                    createdAt: now,
+                    updatedAt: now,
+                });
+            } else {
+                await this.prisma.client.orm.public.UserPostExploration
+                    .where({
+                        userId,
+                        postId,
+                    })
+                    .update({
+                        totalConsumptionSeconds:
+                            Number(existing.totalConsumptionSeconds) +
+                            secondsToAdd,
+
+                        maxCompletionPercentage: Math.max(
+                            Number(existing.maxCompletionPercentage),
+                            session.maxCompletionPercentage,
+                        ),
+
+                        explorationCount:
+                            Number(existing.explorationCount) +
+                            (newVisit ? 1 : 0),
+
+                        lastExploredAt: newVisit
+                            ? now
+                            : existing.lastExploredAt,
+
+                        updatedAt: now,
+                    });
+            }
+        } finally {
+            // Release only the lock owned by this request.
+            await this.redis.eval(
+                `
+                if redis.call("get", KEYS[1]) == ARGV[1] then
+                    return redis.call("del", KEYS[1])
+                else
+                    return 0
+                end
+                `,
+                1,
+                lockKey,
+                lockToken,
+            );
+        }
+    }
+
+    // =========================================
+    // END TRACKING
+    // POST /v1/learning/track/end
+    // =========================================
+
+    async endTracking(
+        userId: number,
+        sessionId: string,
+    ) {
+        const session = await this.getSession(
+            sessionId,
+            userId,
+        );
+
+        session.ended = true;
+
+        await this.redis.set(
+            `learning:session:${sessionId}`,
+            JSON.stringify(session),
+            'EX',
+            this.SESSION_TTL,
+        );
+
+        return {
+            success: true,
+            message: 'Learning tracking ended',
+            sessionId,
+            totalActiveSeconds: session.activeSeconds,
+            explored: session.counted,
+        };
+    }
+
+
+    // =========================================
+    // OVERVIEW
+    // GET /v1/learning/overview
+    // =========================================
+
+    async getOverview(
+        userId: number,
+        period: string = 'month',
+    ) {
+        if (
+            period !== 'month' &&
+            period !== 'all'
+        ) {
+            throw new BadRequestException(
+                'period must be month or all',
+            );
+        }
+
+        const records =
+            await this.prisma.client.orm.public.UserPostExploration
+                .where({
+                    userId,
+                })
+                .all();
+
+        const allTimeCount = records.length;
+
+        if (period === 'all') {
+            return {
+                success: true,
+
+                posts_explored: {
+                    value: allTimeCount,
+                    previous_period_value: null,
+                    change_percentage: null,
+                },
+
+                period: 'all',
+            };
+        }
+
+        const now = new Date();
+
+        const currentYear = now.getUTCFullYear();
+        const currentMonth = now.getUTCMonth();
+
+        const currentStart = new Date(
+            Date.UTC(
+                currentYear,
+                currentMonth,
+                1,
+            ),
+        );
+
+        const nextStart = new Date(
+            Date.UTC(
+                currentYear,
+                currentMonth + 1,
+                1,
+            ),
+        );
+
+        const previousStart = new Date(
+            Date.UTC(
+                currentYear,
+                currentMonth - 1,
+                1,
+            ),
+        );
+
+        // Current month count
+        const currentCount = records.filter(
+            (record: any) => {
+                const date = new Date(
+                    record.firstExploredAt.epochMilliseconds,
+                );
+
+                return (
+                    date >= currentStart &&
+                    date < nextStart
+                );
+            },
+        ).length;
+
+        // Previous month count
+        const previousCount = records.filter(
+            (record: any) => {
+                const date = new Date(
+                    record.firstExploredAt.epochMilliseconds,
+                );
+
+                return (
+                    date >= previousStart &&
+                    date < currentStart
+                );
+            },
+        ).length;
+
+        const changePercentage =
+            previousCount === 0
+                ? null
+                : Number(
+                    (
+                        (
+                            (currentCount - previousCount) /
+                            previousCount
+                        ) * 100
+                    ).toFixed(2),
+                );
+
+        return {
+            success: true,
+
+            posts_explored: {
+                value: currentCount,
+                previous_period_value: previousCount,
+                change_percentage: changePercentage,
+            },
+
+            all_time_posts_explored: allTimeCount,
+
+            period: {
+                type: 'month',
+                start: currentStart,
+                end: nextStart,
+                timezone: 'UTC',
+            },
+        };
+    }
+
+}

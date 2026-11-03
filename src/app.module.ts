@@ -23,6 +23,7 @@ import { CommentsModule } from './comments/comments.module';
 import { ConnectionsModule } from './connections/connections.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { ModerationModule } from './moderation/moderation.module';
+import { LearningModule } from './learning/learning.module';
 
 
 
@@ -93,6 +94,8 @@ import { ModerationModule } from './moderation/moderation.module';
     MessagingModule,
 
     ModerationModule,
+
+    LearningModule,
   ],
 
 

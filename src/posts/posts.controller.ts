@@ -267,6 +267,18 @@ export class PostsController {
         return this.postsService.getMyPostsEngagementCounts(userId);
     }
 
+    @Get('my-posts/learned-count')
+    @UseGuards(JwtAuthGuard)
+    async getMyPostsLearnedCount(@Req() req: any) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException('Invalid authenticated user');
+        }
+
+        return this.postsService.getMyPostsLearnedCount(userId);
+    }
+
 
     @Put(':postId/reactions/:reactionType')
     @UseGuards(JwtAuthGuard)

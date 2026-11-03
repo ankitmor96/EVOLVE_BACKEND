@@ -1027,6 +1027,36 @@ export class PostsService {
     };
   }
 
+  async getMyPostsLearnedCount(userId: number) {
+    const myPosts = await this.prisma.client.orm.public.Post
+      .where((post) => post.userId.eq(userId))
+      .where((post) => post.deletedAt.isNull())
+      .all();
+
+    const postIds = myPosts.map((post) => post.id);
+
+    if (postIds.length === 0) {
+      return {
+        success: true,
+        data: {
+          learnedCount: 0,
+        },
+      };
+    }
+
+    const learningRecords =
+      await this.prisma.client.orm.public.PostLearning
+        .where((learning) => learning.postId.in(postIds))
+        .all();
+
+    return {
+      success: true,
+      data: {
+        learnedCount: learningRecords.length,
+      },
+    };
+  }
+
   async setPostReaction(
     postId: number,
     userId: number,

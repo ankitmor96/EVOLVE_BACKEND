@@ -80,6 +80,10 @@
       "model": "UserIdentity",
       "namespace": "public"
     },
+    "UserPostExploration": {
+      "model": "UserPostExploration",
+      "namespace": "public"
+    },
     "UserProfile": {
       "model": "UserProfile",
       "namespace": "public"
@@ -107,6 +111,27 @@
               {
                 "name": "REJECTED",
                 "value": "REJECTED"
+              }
+            ]
+          },
+          "ExplorationContentType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "VIDEO",
+                "value": "VIDEO"
+              },
+              {
+                "name": "TEXT",
+                "value": "TEXT"
+              },
+              {
+                "name": "IMAGE",
+                "value": "IMAGE"
+              },
+              {
+                "name": "LONG_FORM",
+                "value": "LONG_FORM"
               }
             ]
           },
@@ -1347,6 +1372,21 @@
                   "namespace": "public"
                 }
               },
+              "postExplorations": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "postId"
+                  ]
+                },
+                "to": {
+                  "model": "UserPostExploration",
+                  "namespace": "public"
+                }
+              },
               "reactions": {
                 "cardinality": "1:N",
                 "on": {
@@ -2225,6 +2265,21 @@
                   "namespace": "public"
                 }
               },
+              "postExplorations": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "UserPostExploration",
+                  "namespace": "public"
+                }
+              },
               "postLearning": {
                 "cardinality": "1:N",
                 "on": {
@@ -2554,6 +2609,166 @@
               },
               "namespaceId": "public",
               "table": "UserIdentity"
+            }
+          },
+          "UserPostExploration": {
+            "fields": {
+              "contentType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "ExplorationContentType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "explorationCount": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "firstExploredAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "lastExploredAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "maxCompletionPercentage": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "postId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "totalConsumptionSeconds": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "post": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "postId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Post",
+                  "namespace": "public"
+                }
+              },
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "contentType": {
+                  "column": "contentType"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "explorationCount": {
+                  "column": "explorationCount"
+                },
+                "firstExploredAt": {
+                  "column": "firstExploredAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "lastExploredAt": {
+                  "column": "lastExploredAt"
+                },
+                "maxCompletionPercentage": {
+                  "column": "maxCompletionPercentage"
+                },
+                "postId": {
+                  "column": "postId"
+                },
+                "totalConsumptionSeconds": {
+                  "column": "totalConsumptionSeconds"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "UserPostExploration"
             }
           },
           "UserProfile": {
@@ -4798,6 +5013,194 @@
                 }
               ]
             },
+            "UserPostExploration": {
+              "checks": [
+                {
+                  "expression": "\"contentType\" IN ('VIDEO', 'TEXT', 'IMAGE', 'LONG_FORM')",
+                  "name": "UserPostExploration_contentType_check_166440cd",
+                  "prefix": "UserPostExploration_contentType_check"
+                }
+              ],
+              "columns": {
+                "contentType": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "ExplorationContentType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "explorationCount": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "firstExploredAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "lastExploredAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "maxCompletionPercentage": {
+                  "codecId": "pg/numeric@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "0"
+                  },
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "postId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "totalConsumptionSeconds": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "UserPostExploration"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "User"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "postId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "UserPostExploration"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Post"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "firstExploredAt"
+                  ],
+                  "name": "UserPostExploration_firstExploredAt_idx_4a0c2b9f",
+                  "prefix": "UserPostExploration_firstExploredAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "postId"
+                  ],
+                  "name": "UserPostExploration_postId_idx_a7a72715",
+                  "prefix": "UserPostExploration_postId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId",
+                    "firstExploredAt"
+                  ],
+                  "name": "UserPostExploration_userId_firstExploredAt_idx_1d9311f7",
+                  "prefix": "UserPostExploration_userId_firstExploredAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "UserPostExploration_userId_idx_a489d58a",
+                  "prefix": "UserPostExploration_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "userId",
+                    "postId"
+                  ]
+                }
+              ]
+            },
             "UserProfile": {
               "columns": {
                 "ageRange": {
@@ -5033,6 +5436,15 @@
                 "REJECTED"
               ]
             },
+            "ExplorationContentType": {
+              "kind": "valueSet",
+              "values": [
+                "VIDEO",
+                "TEXT",
+                "IMAGE",
+                "LONG_FORM"
+              ]
+            },
             "MediaType": {
               "kind": "valueSet",
               "values": [
@@ -5117,7 +5529,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "27c096708602b4d9c830ecb89d4697f16220f9fe1bccb92b91f69f517359c096"
+    "storageHash": "b2e2608da1801eb7229d60dc6de12a94cd310de67275ae937fe12ddeb586e29b"
   },
   "capabilities": {
     "postgres": {

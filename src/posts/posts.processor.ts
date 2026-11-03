@@ -2,6 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import Redis from 'ioredis';
 import { Job } from 'bullmq';
 import { randomUUID } from 'crypto';
+
 import { PrismaService } from '../prisma/prisma.service';
 import { ModerationService } from '../moderation/moderation.service';
 
@@ -11,6 +12,7 @@ interface PostCreatedJob {
 }
 
 interface ModerationPayload {
+  moderationId: number;
   userId: number;
   postId: number;
   postType: string;
@@ -23,7 +25,8 @@ export class PostsProcessor extends WorkerHost {
 
   private readonly batchKey = 'moderation:posts:batch';
 
-  private readonly processingBatchKey = 'moderation:posts:processing';
+  private readonly processingBatchKey =
+    'moderation:posts:processing';
 
   private readonly batchSize = 10;
 
@@ -46,12 +49,67 @@ export class PostsProcessor extends WorkerHost {
     });
   }
 
+  // ==========================================
+  // GET OR CREATE MODERATION RECORD
+  // ==========================================
+
+  private async getOrCreateModerationId(
+    postId: number,
+    userId: number,
+    postType: string,
+    mediaURL: string,
+  ): Promise<number> {
+    const existingResult =
+      await this.prisma.client.orm.public.ModerationResult
+        .where({ postId })
+        .first();
+
+    if (existingResult) {
+      if (existingResult.userId !== userId) {
+        throw new Error(
+          `Moderation record owner mismatch for post ${postId}`,
+        );
+      }
+
+      return Number(existingResult.id);
+    }
+
+    const moderationResult =
+      await this.prisma.client.orm.public.ModerationResult
+        .create({
+          postId,
+          userId,
+          postType,
+          mediaUrl: mediaURL,
+          moderation_status: 'PENDING',
+          categories: [],
+          reasons: [],
+        });
+
+    console.log('Moderation record created:', {
+      moderationId: moderationResult.id,
+      postId,
+      userId,
+    });
+
+    return Number(moderationResult.id);
+  }
+
+  // ==========================================
+  // ADD TO MODERATION BATCH
+  // ==========================================
+
   private async addToModerationBatch(
     payload: ModerationPayload,
   ): Promise<void> {
-    await this.redis.rpush(this.batchKey, JSON.stringify(payload));
+    await this.redis.rpush(
+      this.batchKey,
+      JSON.stringify(payload),
+    );
 
-    const currentSize = await this.redis.llen(this.batchKey);
+    const currentSize = await this.redis.llen(
+      this.batchKey,
+    );
 
     if (currentSize >= this.batchSize) {
       this.clearBatchTimer();
@@ -62,6 +120,10 @@ export class PostsProcessor extends WorkerHost {
     this.scheduleBatchFlush();
   }
 
+  // ==========================================
+  // SCHEDULE BATCH FLUSH
+  // ==========================================
+
   private scheduleBatchFlush(): void {
     if (this.batchTimer) {
       return;
@@ -70,11 +132,20 @@ export class PostsProcessor extends WorkerHost {
     this.batchTimer = setTimeout(() => {
       this.batchTimer = null;
 
-      void this.flushModerationBatch().catch((error: unknown) => {
-        console.error('Moderation batch flush failed:', error);
-      });
+      void this.flushModerationBatch().catch(
+        (error: unknown) => {
+          console.error(
+            'Moderation batch flush failed:',
+            error,
+          );
+        },
+      );
     }, this.batchDelayMs);
   }
+
+  // ==========================================
+  // CLEAR BATCH TIMER
+  // ==========================================
 
   private clearBatchTimer(): void {
     if (this.batchTimer) {
@@ -82,6 +153,10 @@ export class PostsProcessor extends WorkerHost {
       this.batchTimer = null;
     }
   }
+
+  // ==========================================
+  // FLUSH MODERATION BATCH
+  // ==========================================
 
   private async flushModerationBatch(): Promise<void> {
     if (this.flushPromise) {
@@ -96,6 +171,10 @@ export class PostsProcessor extends WorkerHost {
       this.flushPromise = null;
     }
   }
+
+  // ==========================================
+  // CLAIM AND SEND BATCHES
+  // ==========================================
 
   private async claimAvailableBatches(): Promise<void> {
     const script = `
@@ -116,15 +195,19 @@ export class PostsProcessor extends WorkerHost {
     `;
 
     while (true) {
-      const pendingCount = await this.redis.llen(this.batchKey);
+      const pendingCount = await this.redis.llen(
+        this.batchKey,
+      );
 
       if (pendingCount === 0) {
         break;
       }
 
-      const processingKey = `${this.processingBatchKey}:${randomUUID()}`;
+      const processingKey =
+        `${this.processingBatchKey}:${randomUUID()}`;
 
-      const isTimerFlush = pendingCount < this.batchSize;
+      const isTimerFlush =
+        pendingCount < this.batchSize;
 
       const result = await this.redis.eval(
         script,
@@ -135,103 +218,169 @@ export class PostsProcessor extends WorkerHost {
         isTimerFlush ? 'timer' : 'size',
       );
 
-      const batchItems = Array.isArray(result) ? result.map(String) : [];
+      const batchItems = Array.isArray(result)
+        ? result.map(String)
+        : [];
 
       if (batchItems.length === 0) {
         await this.redis.del(processingKey);
         break;
       }
 
-      const batch: ModerationPayload[] = batchItems.map(
-        (item) => JSON.parse(item) as ModerationPayload,
-      );
+      const batch: ModerationPayload[] =
+        batchItems.map(
+          (item) =>
+            JSON.parse(item) as ModerationPayload,
+        );
 
       try {
-        const response = await this.moderationService.sendBatch(batch);
+        const response =
+          await this.moderationService.sendBatch(batch);
 
-        console.log('Moderation API response:', response);
+        console.log(
+          'Moderation API response:',
+          response,
+        );
 
         await this.redis.del(processingKey);
       } catch (error) {
-        // Sending failed: put the posts back in the queue so they are not lost.
-        // Do NOT re-throw: BullMQ would retry the job and add the same post twice.
-        console.error('Moderation sendBatch failed, re-queueing posts:', error);
+        console.error(
+          'Moderation sendBatch failed, re-queueing posts:',
+          error,
+        );
 
-        await this.redis.rpush(this.batchKey, ...batchItems);
+        await this.redis.rpush(
+          this.batchKey,
+          ...batchItems,
+        );
+
         await this.redis.del(processingKey);
-        break; // the timer below retries after batchDelayMs
+        break;
       }
 
-      // Do not claim fewer than 10 remaining posts immediately.
-      const remainingCount = await this.redis.llen(this.batchKey);
+      const remainingCount = await this.redis.llen(
+        this.batchKey,
+      );
 
       if (remainingCount < this.batchSize) {
         break;
       }
     }
 
-    const remainingCount = await this.redis.llen(this.batchKey);
+    const remainingCount = await this.redis.llen(
+      this.batchKey,
+    );
 
     if (remainingCount > 0) {
       this.scheduleBatchFlush();
     }
   }
 
+  // ==========================================
+  // PROCESS BULLMQ JOBS
+  // ==========================================
+
   async process(job: Job<PostCreatedJob>): Promise<void> {
     switch (job.name) {
+      // ======================================
+      // POST CREATED
+      // ======================================
+
       case 'post-created': {
         const { postId, userId } = job.data;
 
-        const post = await this.prisma.client.orm.public.Post
-          .where({ id: postId, userId })
-          .first();
+        const post =
+          await this.prisma.client.orm.public.Post
+            .where({ id: postId, userId })
+            .first();
 
         if (!post) {
-          throw new Error(`Post ${postId} not found for user ${userId}`);
+          throw new Error(
+            `Post ${postId} not found for user ${userId}`,
+          );
         }
 
-        await this.prisma.client.orm.public.Notification.create({
-          userId,
-          type: 'POST_CREATED',
-          title: 'Post created successfully',
-          message: `Your post #${postId} has been created successfully.`,
-        });
+        await this.prisma.client.orm.public.Notification
+          .create({
+            userId,
+            type: 'POST_CREATED',
+            title: 'Post created successfully',
+            message:
+              `Your post #${postId} has been created successfully.`,
+          });
 
         break;
       }
 
+      // ======================================
+      // MODERATION POST CREATED
+      // ======================================
+
       case 'moderation-post-created': {
         const { postId, userId } = job.data;
 
-        const post = await this.prisma.client.orm.public.Post
-          .where({ id: postId, userId })
-          .first();
+        const post =
+          await this.prisma.client.orm.public.Post
+            .where({ id: postId, userId })
+            .first();
 
         if (!post) {
-          throw new Error(`Post ${postId} not found for user ${userId}`);
+          throw new Error(
+            `Post ${postId} not found for user ${userId}`,
+          );
         }
 
-        const media = await this.prisma.client.orm.public.PostMedia
-          .where((item) => item.postId.eq(postId))
-          .orderBy((item) => item.position.asc())
-          .first();
+        const media =
+          await this.prisma.client.orm.public.PostMedia
+            .where((item) => item.postId.eq(postId))
+            .orderBy((item) => item.position.asc())
+            .first();
 
         if (!media) {
-          throw new Error(`Media not found for post ${postId}`);
+          throw new Error(
+            `Media not found for post ${postId}`,
+          );
         }
 
+        const postType = String(post.postType);
+        const mediaURL = String(media.mediaUrl);
+
+        // Get moderationId from database.
+        const moderationId =
+          await this.getOrCreateModerationId(
+            postId,
+            userId,
+            postType,
+            mediaURL,
+          );
+
+        // Add all five fields to Redis batch.
         await this.addToModerationBatch({
+          moderationId,
           userId,
           postId,
-          postType: String(post.postType),
-          mediaURL: String(media.mediaUrl),
+          postType,
+          mediaURL,
         });
+
+        console.log(
+          'Post added to moderation batch:',
+          {
+            moderationId,
+            userId,
+            postId,
+            postType,
+            mediaURL,
+          },
+        );
 
         break;
       }
 
       default:
-        console.warn(`Unknown posts job: ${job.name}`);
+        console.warn(
+          `Unknown posts job: ${job.name}`,
+        );
     }
   }
 }

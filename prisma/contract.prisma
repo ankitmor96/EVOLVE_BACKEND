@@ -67,6 +67,13 @@ enum ConnectionStatus {
   REJECTED
 }
 
+enum ExplorationContentType {
+  VIDEO
+  TEXT
+  IMAGE
+  LONG_FORM
+}
+
 // ========================================
 // USER
 // ========================================
@@ -95,6 +102,7 @@ model User {
 
   conversationsAsParticipant ConversationParticipant[]
   sentMessages               Message[]
+  postExplorations           UserPostExploration[]
 }
 
 // ========================================
@@ -251,6 +259,7 @@ model Post {
   reactions   PostReaction[]
   learning    PostLearning[]
   comments    Comment[]
+  postExplorations UserPostExploration[]
 
   @@index([userId, createdAt])
   @@index([status, publishedAt])
@@ -442,3 +451,30 @@ model ModerationResult {
   @@index([userId])
   @@index([moderation_status])
 }
+
+
+model UserPostExploration {
+  id                       Int                    @id @default(autoincrement())
+  userId                   Int
+  postId                   Int
+  contentType              ExplorationContentType
+
+  totalConsumptionSeconds  Int                    @default(0)
+  maxCompletionPercentage  Decimal                @default(0)
+  explorationCount         Int                    @default(0)
+
+  firstExploredAt          DateTime               @default(now())
+  lastExploredAt           DateTime               @default(now())
+
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @default(now())
+
+  user                     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post                     Post                   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([firstExploredAt])
+  @@index([userId, firstExploredAt])
+}
+
