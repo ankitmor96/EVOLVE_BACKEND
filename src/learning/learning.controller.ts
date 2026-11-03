@@ -149,4 +149,28 @@ export class LearningController {
             period,
         );
     }
+
+    @Get('content-breakdown')
+    async getContentBreakdown(
+        @Req() req: any,
+        @Query('period') period: string = 'month',
+    ) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException('Invalid authenticated user');
+        }
+
+        if (
+            period !== 'day' &&
+            period !== 'month' &&
+            period !== 'all'
+        ) {
+            throw new BadRequestException(
+                'period must be day, month or all',
+            );
+        }
+
+        return this.learningService.getContentBreakdown(userId, period);
+    }
 }

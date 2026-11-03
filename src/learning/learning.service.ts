@@ -729,4 +729,129 @@ export class LearningService implements OnModuleDestroy {
         };
     }
 
+    async getContentBreakdown(
+        userId: number,
+        period: 'day' | 'month' | 'all' = 'day',
+    ) {
+        const records =
+            await this.prisma.client.orm.public.UserPostExploration
+                .where({
+                    userId,
+                })
+                .all();
+
+        let filteredRecords = records;
+
+        // =========================================
+        // PERIOD FILTER
+        // =========================================
+
+        if (period === 'day' || period === 'month') {
+            const now = new Date();
+
+            let startDate: Date;
+            let endDate: Date;
+
+            if (period === 'day') {
+                startDate = new Date(
+                    Date.UTC(
+                        now.getUTCFullYear(),
+                        now.getUTCMonth(),
+                        now.getUTCDate(),
+                    ),
+                );
+
+                endDate = new Date(
+                    Date.UTC(
+                        now.getUTCFullYear(),
+                        now.getUTCMonth(),
+                        now.getUTCDate() + 1,
+                    ),
+                );
+            } else {
+                startDate = new Date(
+                    Date.UTC(
+                        now.getUTCFullYear(),
+                        now.getUTCMonth(),
+                        1,
+                    ),
+                );
+
+                endDate = new Date(
+                    Date.UTC(
+                        now.getUTCFullYear(),
+                        now.getUTCMonth() + 1,
+                        1,
+                    ),
+                );
+            }
+
+            filteredRecords = records.filter((record: any) => {
+                const exploredDate = new Date(
+                    record.firstExploredAt.epochMilliseconds,
+                );
+
+                return (
+                    exploredDate >= startDate &&
+                    exploredDate < endDate
+                );
+            });
+        }
+
+        // =========================================
+        // CONTENT COUNTS
+        // =========================================
+
+        const counts = {
+            IMAGE: 0,
+            VIDEO: 0,
+            DOCUMENT: 0,
+            TEXT: 0,
+        };
+
+        for (const record of filteredRecords) {
+            const contentType = record.contentType;
+
+            if (contentType === 'LONG_FORM') {
+                counts.DOCUMENT++;
+            } else if (
+                contentType === 'IMAGE' ||
+                contentType === 'VIDEO' ||
+                contentType === 'TEXT'
+            ) {
+                counts[contentType]++;
+            }
+        }
+
+        // =========================================
+        // PERCENTAGE CALCULATION
+        // =========================================
+
+        const totalPostsExplored = filteredRecords.length;
+
+        const contentBreakdown = Object.entries(counts).map(
+            ([type, count]) => ({
+                type,
+                count,
+                percentage:
+                    totalPostsExplored === 0
+                        ? 0
+                        : Number(
+                            ((count / totalPostsExplored) * 100).toFixed(2),
+                        ),
+            }),
+        );
+
+        // =========================================
+        // RESPONSE
+        // =========================================
+
+        return {
+            success: true,
+            total_posts_explored: totalPostsExplored,
+            content_breakdown: contentBreakdown,
+            period,
+        };
+    }
+
 }
