@@ -173,4 +173,29 @@ export class LearningController {
 
         return this.learningService.getContentBreakdown(userId, period);
     }
+
+    // =========================================
+    // LEARNING STREAK
+    // GET /api/v1/learning/streak
+    // =========================================
+
+    @Get('streak')
+    async getLearningStreak(
+        @Req() req: any,
+    ) {
+        const userId = Number(req.user?.userId);
+
+        if (
+            !Number.isInteger(userId) ||
+            userId <= 0
+        ) {
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
+        }
+
+        return this.learningService.getLearningStreak(
+            userId,
+        );
+    }
 }

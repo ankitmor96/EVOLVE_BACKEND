@@ -854,4 +854,85 @@ export class LearningService implements OnModuleDestroy {
         };
     }
 
+    // =========================================
+    // LEARNING STREAK
+    // =========================================
+
+    async getLearningStreak(userId: number) {
+
+        const records =
+            await this.prisma.client.orm.public.PostLearning
+                .where({
+                    userId,
+                })
+                .all();
+
+        // Get unique learning dates (UTC)
+        const learningDates = [
+            ...new Set(
+                records.map((record: any) =>
+                    new Date(
+                        record.createdAt.epochMilliseconds,
+                    ).toISOString().slice(0, 10),
+                ),
+            ),
+        ].sort().reverse();
+
+        const today = new Date().toISOString().slice(0, 10);
+
+        const yesterdayDate = new Date();
+        yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+
+        const yesterday = yesterdayDate.toISOString().slice(0, 10);
+
+        // No learning records
+        if (learningDates.length === 0) {
+            return {
+                success: true,
+                currentStreak: 0,
+                lastLearnedDate: null,
+            };
+        }
+
+        const latestDate = learningDates[0];
+
+        // Streak is active only if learned today or yesterday
+        if (
+            latestDate !== today &&
+            latestDate !== yesterday
+        ) {
+            return {
+                success: true,
+                currentStreak: 0,
+                lastLearnedDate: latestDate,
+            };
+        }
+
+        let currentStreak = 0;
+
+        let expectedDate = new Date(`${latestDate}T00:00:00.000Z`);
+
+        for (const date of learningDates) {
+
+            const expectedDateString =
+                expectedDate.toISOString().slice(0, 10);
+
+            if (date !== expectedDateString) {
+                break;
+            }
+
+            currentStreak++;
+
+            expectedDate.setUTCDate(
+                expectedDate.getUTCDate() - 1,
+            );
+        }
+
+        return {
+            success: true,
+            currentStreak,
+            lastLearnedDate: latestDate,
+        };
+    }
+
 }
