@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'b2e2608da1801eb7229d60dc6de12a94cd310de67275ae937fe12ddeb586e29b'>;
+  StorageHashBase<'b86b4e58845b82c28782e02920e90baa0375c52e32aa1bb4ce6fa3f162049ebe'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -370,7 +370,6 @@ export type FieldOutputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/int4@1']['output'];
       readonly postId: CodecTypes['pg/int4@1']['output'];
-      readonly relationshipType: 'CAN_DO' | 'LEARNING' | 'WANT_TO_IMPROVE';
       readonly skillId: CodecTypes['pg/int4@1']['output'];
     };
     readonly Skill: {
@@ -573,7 +572,6 @@ export type FieldInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly postId: CodecTypes['pg/int4@1']['input'];
-      readonly relationshipType: 'CAN_DO' | 'LEARNING' | 'WANT_TO_IMPROVE';
       readonly skillId: CodecTypes['pg/int4@1']['input'];
     };
     readonly Skill: {
@@ -776,7 +774,6 @@ export type StorageColumnTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/int4@1']['output'];
       readonly postId: CodecTypes['pg/int4@1']['output'];
-      readonly relationshipType: 'CAN_DO' | 'LEARNING' | 'WANT_TO_IMPROVE';
       readonly skillId: CodecTypes['pg/int4@1']['output'];
     };
     readonly Skill: {
@@ -979,7 +976,6 @@ export type StorageColumnInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly postId: CodecTypes['pg/int4@1']['input'];
-      readonly relationshipType: 'CAN_DO' | 'LEARNING' | 'WANT_TO_IMPROVE';
       readonly skillId: CodecTypes['pg/int4@1']['input'];
     };
     readonly Skill: {
@@ -1228,7 +1224,6 @@ export namespace Models {
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     id: CodecTypes['pg/int4@1']['output'];
     postId: CodecTypes['pg/int4@1']['output'];
-    relationshipType: 'CAN_DO' | 'LEARNING' | 'WANT_TO_IMPROVE';
     skillId: CodecTypes['pg/int4@1']['output'];
     post: public_Post;
     skill: public_Skill;
@@ -2427,11 +2422,6 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/int4@1';
                   readonly nullable: false;
                 };
-                readonly relationshipType: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: false;
-                };
                 readonly skillId: {
                   readonly nativeType: 'int4';
                   readonly codecId: 'pg/int4@1';
@@ -2439,9 +2429,7 @@ type ContractBase = Omit<
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
-              uniques: readonly [
-                { readonly columns: readonly ['postId', 'skillId', 'relationshipType'] },
-              ];
+              uniques: readonly [{ readonly columns: readonly ['postId', 'skillId'] }];
               indexes: readonly [
                 {
                   readonly name: 'PostSkill_postId_idx_a7a72715';
@@ -4184,10 +4172,6 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
-              readonly relationshipType: {
-                readonly nullable: false;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
               readonly skillId: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
@@ -4223,7 +4207,6 @@ type ContractBase = Omit<
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly id: { readonly column: 'id' };
                 readonly postId: { readonly column: 'postId' };
-                readonly relationshipType: { readonly column: 'relationshipType' };
                 readonly skillId: { readonly column: 'skillId' };
               };
             };

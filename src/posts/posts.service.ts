@@ -140,20 +140,43 @@ export class PostsService {
     return categories;
   }
 
-  private async savePostSkills(postId: number, userId: number) {
-    const userSkills = await this.prisma.client.orm.public.UserSkill
-      .where({ userId })
+  private async savePostSkills(
+    postId: number,
+    skillIds: number[],
+  ) {
+    const uniqueSkillIds = [...new Set(skillIds)];
+
+    if (uniqueSkillIds.length === 0) {
+      return [];
+    }
+
+    // Verify that all selected skills exist
+    const skills = await this.prisma.client.orm.public.Skill
+      .where((skill) => skill.id.in(uniqueSkillIds))
       .all();
 
-    for (const userSkill of userSkills) {
+    if (skills.length !== uniqueSkillIds.length) {
+      throw new BadRequestException(
+        'One or more selected skills are invalid',
+      );
+    }
+
+    // Save only selected skills for this post
+    for (const skillId of uniqueSkillIds) {
       await this.prisma.client.orm.public.PostSkill.create({
         postId,
-        skillId: userSkill.skillId,
-        relationshipType: userSkill.relationshipType,
+        skillId,
       });
     }
 
-    return this.getUserSkillCategories(userId);
+    // Get categories of selected skills only
+    const categoryIds = [
+      ...new Set(skills.map((skill) => skill.categoryId)),
+    ];
+
+    return this.prisma.client.orm.public.SkillCategory
+      .where((category) => category.id.in(categoryIds))
+      .all();
   }
 
   // =====================================
@@ -313,6 +336,7 @@ export class PostsService {
     userId: number,
     caption: string,
     file: UploadedMediaFile | undefined,
+    skillIds: number[] = [],
   ) {
     this.validateImage(file);
 
@@ -335,7 +359,7 @@ export class PostsService {
       );
     }
 
-    const skillCategories = await this.savePostSkills(postId, userId);
+    const skillCategories = await this.savePostSkills(postId, skillIds);
 
     try {
       const mediaUrl = await this.uploadImageToCloudinary(
@@ -390,6 +414,7 @@ export class PostsService {
     userId: number,
     caption: string,
     file: UploadedMediaFile | undefined,
+    skillIds: number[] = [],
   ) {
     this.validateVideo(file);
 
@@ -412,7 +437,7 @@ export class PostsService {
       );
     }
 
-    const skillCategories = await this.savePostSkills(postId, userId);
+    const skillCategories = await this.savePostSkills(postId, skillIds);
 
     try {
       const mediaUrl = await this.uploadVideoToCloudinary(
@@ -642,14 +667,13 @@ export class PostsService {
   async createPostWithDocument(
     userId: number,
     caption: string,
-    file:
-      | {
-        buffer: Buffer;
-        mimetype: string;
-        size: number;
-        originalname?: string;
-      }
-      | undefined,
+    file: {
+      buffer: Buffer;
+      mimetype: string;
+      size: number;
+      originalname?: string;
+    } | undefined,
+    skillIds: number[] = [],
   ) {
     this.validateDocument(file);
 
@@ -674,7 +698,7 @@ export class PostsService {
       );
     }
 
-    const skillCategories = await this.savePostSkills(postId, userId);
+    const skillCategories = await this.savePostSkills(postId, skillIds);
 
     try {
       const mediaUrl = await this.uploadDocumentToCloudinary(

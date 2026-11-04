@@ -1808,19 +1808,6 @@
                   "kind": "scalar"
                 }
               },
-              "relationshipType": {
-                "nullable": false,
-                "type": {
-                  "codecId": "pg/text@1",
-                  "kind": "scalar"
-                },
-                "valueSet": {
-                  "entityKind": "enum",
-                  "entityName": "SkillRelationshipType",
-                  "namespaceId": "public",
-                  "plane": "domain"
-                }
-              },
               "skillId": {
                 "nullable": false,
                 "type": {
@@ -1873,9 +1860,6 @@
                 },
                 "postId": {
                   "column": "postId"
-                },
-                "relationshipType": {
-                  "column": "relationshipType"
                 },
                 "skillId": {
                   "column": "skillId"
@@ -4431,13 +4415,6 @@
               ]
             },
             "PostSkill": {
-              "checks": [
-                {
-                  "expression": "\"relationshipType\" IN ('CAN_DO', 'LEARNING', 'WANT_TO_IMPROVE')",
-                  "name": "PostSkill_relationshipType_check_d13d0d3b",
-                  "prefix": "PostSkill_relationshipType_check"
-                }
-              ],
               "columns": {
                 "createdAt": {
                   "codecId": "pg/timestamptz-temporal@1",
@@ -4461,17 +4438,6 @@
                   "codecId": "pg/int4@1",
                   "nativeType": "int4",
                   "nullable": false
-                },
-                "relationshipType": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": false,
-                  "valueSet": {
-                    "entityKind": "valueSet",
-                    "entityName": "SkillRelationshipType",
-                    "namespaceId": "public",
-                    "plane": "storage"
-                  }
                 },
                 "skillId": {
                   "codecId": "pg/int4@1",
@@ -4542,8 +4508,7 @@
                 {
                   "columns": [
                     "postId",
-                    "skillId",
-                    "relationshipType"
+                    "skillId"
                   ]
                 }
               ]
@@ -5529,7 +5494,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "b2e2608da1801eb7229d60dc6de12a94cd310de67275ae937fe12ddeb586e29b"
+    "storageHash": "b86b4e58845b82c28782e02920e90baa0375c52e32aa1bb4ce6fa3f162049ebe"
   },
   "capabilities": {
     "postgres": {

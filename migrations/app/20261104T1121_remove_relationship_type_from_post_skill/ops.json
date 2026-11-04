@@ -1,0 +1,170 @@
+[
+  {
+    "id": "dropCheckConstraint.PostSkill.PostSkill_relationshipType_check_d13d0d3b",
+    "label": "Drop check constraint \"PostSkill_relationshipType_check_d13d0d3b\" on \"PostSkill\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "PostSkill_relationshipType_check_d13d0d3b",
+        "table": "PostSkill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PostSkill_relationshipType_check_d13d0d3b\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostSkill_relationshipType_check_d13d0d3b",
+          "public",
+          "\"public\".\"PostSkill\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop check constraint \"PostSkill_relationshipType_check_d13d0d3b\"",
+        "sql": "ALTER TABLE \"public\".\"PostSkill\" DROP CONSTRAINT \"PostSkill_relationshipType_check_d13d0d3b\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"PostSkill_relationshipType_check_d13d0d3b\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostSkill_relationshipType_check_d13d0d3b",
+          "public",
+          "\"public\".\"PostSkill\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropConstraint.PostSkill.PostSkill_postId_skillId_relationshipType_key",
+    "label": "Drop constraint \"PostSkill_postId_skillId_relationshipType_key\" on \"PostSkill\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "PostSkill_postId_skillId_relationshipType_key",
+        "table": "PostSkill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PostSkill_postId_skillId_relationshipType_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostSkill_postId_skillId_relationshipType_key",
+          "public",
+          "\"public\".\"PostSkill\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop constraint \"PostSkill_postId_skillId_relationshipType_key\"",
+        "sql": "ALTER TABLE \"public\".\"PostSkill\" DROP CONSTRAINT \"PostSkill_postId_skillId_relationshipType_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"PostSkill_postId_skillId_relationshipType_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostSkill_postId_skillId_relationshipType_key",
+          "public",
+          "\"public\".\"PostSkill\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropColumn.PostSkill.relationshipType",
+    "label": "Drop column \"relationshipType\" from \"PostSkill\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "relationshipType",
+        "table": "PostSkill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"relationshipType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "PostSkill",
+          "relationshipType"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"relationshipType\"",
+        "sql": "ALTER TABLE \"public\".\"PostSkill\" DROP COLUMN \"relationshipType\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"relationshipType\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "PostSkill",
+          "relationshipType"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.PostSkill.PostSkill_postId_skillId_key",
+    "label": "Add unique constraint on \"PostSkill\" (postId, skillId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "PostSkill_postId_skillId_key",
+        "table": "PostSkill"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PostSkill_postId_skillId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostSkill_postId_skillId_key",
+          "public",
+          "\"public\".\"PostSkill\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"PostSkill_postId_skillId_key\"",
+        "sql": "ALTER TABLE \"public\".\"PostSkill\" ADD CONSTRAINT \"PostSkill_postId_skillId_key\" UNIQUE (\"postId\", \"skillId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"PostSkill_postId_skillId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostSkill_postId_skillId_key",
+          "public",
+          "\"public\".\"PostSkill\""
+        ]
+      }
+    ]
+  }
+]

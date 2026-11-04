@@ -265,20 +265,21 @@ model Post {
   @@index([status, publishedAt])
 }
 
+
 model PostSkill {
-  id               Int                   @id @default(autoincrement())
-  postId           Int
-  skillId          Int
-  relationshipType SkillRelationshipType
-  createdAt        DateTime              @default(now())
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  skillId   Int
+  createdAt DateTime @default(now())
 
-  post             Post                  @relation(fields: [postId], references: [id], onDelete: Cascade)
-  skill            Skill                 @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
-  @@unique([postId, skillId, relationshipType])
+  @@unique([postId, skillId])
   @@index([postId])
   @@index([skillId])
 }
+
 
 // ========================================
 // POST MEDIA

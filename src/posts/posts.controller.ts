@@ -1,4 +1,3 @@
-
 import {
     Controller,
     Post,
@@ -31,6 +30,41 @@ export class PostsController {
     ) { }
 
     // =====================================
+    // PARSE SKILL IDS
+    // =====================================
+
+    private parseSkillIds(skillIds?: string): number[] {
+        if (!skillIds || skillIds.trim() === '') {
+            return [];
+        }
+
+        let parsedSkillIds: unknown;
+
+        try {
+            parsedSkillIds = JSON.parse(skillIds);
+        } catch {
+            throw new BadRequestException(
+                'skillIds must be a valid JSON array',
+            );
+        }
+
+        if (
+            !Array.isArray(parsedSkillIds) ||
+            !parsedSkillIds.every(
+                (id) =>
+                    Number.isInteger(Number(id)) &&
+                    Number(id) > 0,
+            )
+        ) {
+            throw new BadRequestException(
+                'skillIds must contain positive integer IDs',
+            );
+        }
+
+        return [...new Set(parsedSkillIds.map(Number))];
+    }
+
+    // =====================================
     // CREATE POST WITH IMAGE
     // =====================================
 
@@ -46,6 +80,7 @@ export class PostsController {
     )
     async createPost(
         @Body('caption') caption: string,
+        @Body('skillIds') skillIds: string,
         @UploadedFile() file: Express.Multer.File,
         @Req() req: any,
     ) {
@@ -61,6 +96,7 @@ export class PostsController {
             Number(userId),
             caption,
             file,
+            this.parseSkillIds(skillIds),
         );
     }
 
@@ -80,6 +116,7 @@ export class PostsController {
     )
     async createPostWithVideo(
         @Body('caption') caption: string,
+        @Body('skillIds') skillIds: string,
         @UploadedFile() file: Express.Multer.File,
         @Req() req: any,
     ) {
@@ -95,6 +132,7 @@ export class PostsController {
             Number(userId),
             caption,
             file,
+            this.parseSkillIds(skillIds),
         );
     }
 
@@ -132,7 +170,6 @@ export class PostsController {
         );
     }
 
-
     // =====================================
     // CREATE POST WITH DOCUMENT
     // =====================================
@@ -143,12 +180,13 @@ export class PostsController {
         FileInterceptor('document', {
             storage: memoryStorage(),
             limits: {
-                fileSize: 10 * 1024 * 1024, // 10 MB
+                fileSize: 10 * 1024 * 1024,
             },
         }),
     )
     async createPostWithDocument(
         @Body('caption') caption: string,
+        @Body('skillIds') skillIds: string,
         @UploadedFile() file: Express.Multer.File,
         @Req() req: any,
     ) {
@@ -164,13 +202,13 @@ export class PostsController {
             Number(userId),
             caption,
             file,
+            this.parseSkillIds(skillIds),
         );
     }
 
     // =====================================
     // GET FEED WITH CURSOR PAGINATION
     // =====================================
-
 
     @Get('feed')
     @UseGuards(JwtAuthGuard)
@@ -201,59 +239,90 @@ export class PostsController {
         return this.postsService.getFeed(userId, cursorId);
     }
 
+    // =====================================
+    // GET MY IMAGE POSTS
+    // =====================================
 
-    // GET LOGGED-IN USER'S IMAGE POSTS
     @UseGuards(JwtAuthGuard)
     @Get('my-posts/images')
     async getMyImagePosts(@Req() req: any) {
         const userId = Number(req.user?.userId);
 
         if (!Number.isInteger(userId) || userId <= 0) {
-            throw new UnauthorizedException('Invalid authenticated user');
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
         }
 
-        return this.postsService.getMyPostsByMediaType(userId, 'IMAGE');
+        return this.postsService.getMyPostsByMediaType(
+            userId,
+            'IMAGE',
+        );
     }
 
-    // GET LOGGED-IN USER'S VIDEO POSTS
+    // =====================================
+    // GET MY VIDEO POSTS
+    // =====================================
+
     @UseGuards(JwtAuthGuard)
     @Get('my-posts/videos')
     async getMyVideoPosts(@Req() req: any) {
         const userId = Number(req.user?.userId);
 
         if (!Number.isInteger(userId) || userId <= 0) {
-            throw new UnauthorizedException('Invalid authenticated user');
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
         }
 
-        return this.postsService.getMyPostsByMediaType(userId, 'VIDEO');
+        return this.postsService.getMyPostsByMediaType(
+            userId,
+            'VIDEO',
+        );
     }
 
-    // GET LOGGED-IN USER'S DOCUMENT POSTS
+    // =====================================
+    // GET MY DOCUMENT POSTS
+    // =====================================
+
     @UseGuards(JwtAuthGuard)
     @Get('my-posts/documents')
     async getMyDocumentPosts(@Req() req: any) {
         const userId = Number(req.user?.userId);
 
         if (!Number.isInteger(userId) || userId <= 0) {
-            throw new UnauthorizedException('Invalid authenticated user');
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
         }
 
-        return this.postsService.getMyPostsByMediaType(userId, 'DOCUMENT');
+        return this.postsService.getMyPostsByMediaType(
+            userId,
+            'DOCUMENT',
+        );
     }
 
-    // GET LOGGED-IN USER'S POST COUNTS
+    // =====================================
+    // GET MY POST COUNTS
+    // =====================================
+
     @UseGuards(JwtAuthGuard)
     @Get('my-posts/counts')
     async getMyPostsCounts(@Req() req: any) {
         const userId = Number(req.user?.userId);
 
         if (!Number.isInteger(userId) || userId <= 0) {
-            throw new UnauthorizedException('Invalid authenticated user');
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
         }
 
         return this.postsService.getMyPostsCounts(userId);
     }
 
+    // =====================================
+    // GET MY POST ENGAGEMENT COUNTS
+    // =====================================
 
     @Get('my-posts/engagement-counts')
     @UseGuards(JwtAuthGuard)
@@ -261,11 +330,17 @@ export class PostsController {
         const userId = Number(req.user?.userId);
 
         if (!Number.isInteger(userId) || userId <= 0) {
-            throw new UnauthorizedException('Invalid authenticated user');
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
         }
 
         return this.postsService.getMyPostsEngagementCounts(userId);
     }
+
+    // =====================================
+    // GET MY LEARNED COUNT
+    // =====================================
 
     @Get('my-posts/learned-count')
     @UseGuards(JwtAuthGuard)
@@ -273,12 +348,17 @@ export class PostsController {
         const userId = Number(req.user?.userId);
 
         if (!Number.isInteger(userId) || userId <= 0) {
-            throw new UnauthorizedException('Invalid authenticated user');
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
         }
 
         return this.postsService.getMyPostsLearnedCount(userId);
     }
 
+    // =====================================
+    // SET POST REACTION
+    // =====================================
 
     @Put(':postId/reactions/:reactionType')
     @UseGuards(JwtAuthGuard)
@@ -296,7 +376,9 @@ export class PostsController {
         const userId = Number(req.user?.userId);
 
         if (!Number.isInteger(userId) || userId <= 0) {
-            throw new UnauthorizedException('Invalid authenticated user');
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
         }
 
         return this.postsService.setPostReaction(
@@ -305,6 +387,10 @@ export class PostsController {
             reactionType as 'APPRECIATE' | 'HELPFUL',
         );
     }
+
+    // =====================================
+    // REMOVE POST REACTION
+    // =====================================
 
     @Delete(':postId/reactions/:reactionType')
     @UseGuards(JwtAuthGuard)
@@ -322,7 +408,9 @@ export class PostsController {
         const userId = Number(req.user?.userId);
 
         if (!Number.isInteger(userId) || userId <= 0) {
-            throw new UnauthorizedException('Invalid authenticated user');
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
         }
 
         return this.postsService.removePostReaction(
@@ -331,6 +419,10 @@ export class PostsController {
             reactionType as 'APPRECIATE' | 'HELPFUL',
         );
     }
+
+    // =====================================
+    // GET POST REACTIONS
+    // =====================================
 
     @Get(':postId/reactions')
     @UseGuards(JwtAuthGuard)
@@ -341,7 +433,9 @@ export class PostsController {
         const userId = Number(req.user?.userId);
 
         if (!Number.isInteger(userId) || userId <= 0) {
-            throw new UnauthorizedException('Invalid authenticated user');
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
         }
 
         return this.postsService.getPostReactions(
@@ -349,6 +443,10 @@ export class PostsController {
             userId,
         );
     }
+
+    // =====================================
+    // MARK POST AS LEARNED
+    // =====================================
 
     @Put(':postId/learned')
     @UseGuards(JwtAuthGuard)
@@ -359,7 +457,9 @@ export class PostsController {
         const userId = Number(req.user?.userId);
 
         if (!Number.isInteger(userId) || userId <= 0) {
-            throw new UnauthorizedException('Invalid authenticated user');
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
         }
 
         return this.postsService.markPostLearned(
@@ -367,6 +467,10 @@ export class PostsController {
             userId,
         );
     }
+
+    // =====================================
+    // UNMARK POST AS LEARNED
+    // =====================================
 
     @Delete(':postId/learned')
     @UseGuards(JwtAuthGuard)
@@ -377,7 +481,9 @@ export class PostsController {
         const userId = Number(req.user?.userId);
 
         if (!Number.isInteger(userId) || userId <= 0) {
-            throw new UnauthorizedException('Invalid authenticated user');
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
         }
 
         return this.postsService.unmarkPostLearned(
@@ -386,6 +492,9 @@ export class PostsController {
         );
     }
 
+    // =====================================
+    // DELETE POST
+    // =====================================
 
     @Delete(':postId')
     @UseGuards(JwtAuthGuard)
@@ -396,10 +505,14 @@ export class PostsController {
         const userId = Number(req.user?.userId);
 
         if (!Number.isInteger(userId) || userId <= 0) {
-            throw new UnauthorizedException('Invalid authenticated user');
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
         }
 
-        return this.postsService.deletePost(postId, userId);
+        return this.postsService.deletePost(
+            postId,
+            userId,
+        );
     }
-
 }
