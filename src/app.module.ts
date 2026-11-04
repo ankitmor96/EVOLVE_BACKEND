@@ -24,6 +24,7 @@ import { ConnectionsModule } from './connections/connections.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { LearningModule } from './learning/learning.module';
+import { DatabaseModerationModule } from './database-moderation/database-moderation.module';
 
 
 
@@ -96,6 +97,8 @@ import { LearningModule } from './learning/learning.module';
     ModerationModule,
 
     LearningModule,
+
+    DatabaseModerationModule,
   ],
 
 

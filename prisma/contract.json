@@ -1223,6 +1223,13 @@
                   "kind": "scalar"
                 }
               },
+              "moderationRetryCount": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "moderation_status": {
                 "nullable": false,
                 "type": {
@@ -1234,6 +1241,13 @@
                   "entityName": "ModerationStatus",
                   "namespaceId": "public",
                   "plane": "domain"
+                }
+              },
+              "nextModerationRetryAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
                 }
               },
               "postKind": {
@@ -1448,8 +1462,14 @@
                 "id": {
                   "column": "id"
                 },
+                "moderationRetryCount": {
+                  "column": "moderationRetryCount"
+                },
                 "moderation_status": {
                   "column": "moderation_status"
+                },
+                "nextModerationRetryAt": {
+                  "column": "nextModerationRetryAt"
                 },
                 "postKind": {
                   "column": "postKind"
@@ -3931,6 +3951,15 @@
                   "nativeType": "int4",
                   "nullable": false
                 },
+                "moderationRetryCount": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
                 "moderation_status": {
                   "codecId": "pg/text@1",
                   "default": {
@@ -3945,6 +3974,11 @@
                     "namespaceId": "public",
                     "plane": "storage"
                   }
+                },
+                "nextModerationRetryAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
                 },
                 "postKind": {
                   "codecId": "pg/text@1",
@@ -5494,7 +5528,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "b86b4e58845b82c28782e02920e90baa0375c52e32aa1bb4ce6fa3f162049ebe"
+    "storageHash": "320e9fc433d007e5717bc0e4f554f4681ad54734a5e0b168763d3253cee2833c"
   },
   "capabilities": {
     "postgres": {

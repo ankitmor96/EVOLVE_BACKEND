@@ -1,0 +1,86 @@
+[
+  {
+    "id": "column.public.Post.moderationRetryCount",
+    "label": "Add column \"moderationRetryCount\" to \"Post\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "moderationRetryCount",
+        "table": "Post"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"moderationRetryCount\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Post",
+          "moderationRetryCount"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"moderationRetryCount\"",
+        "sql": "ALTER TABLE \"public\".\"Post\" ADD COLUMN \"moderationRetryCount\" int4 DEFAULT 0 NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"moderationRetryCount\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Post",
+          "moderationRetryCount"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.Post.nextModerationRetryAt",
+    "label": "Add column \"nextModerationRetryAt\" to \"Post\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "nextModerationRetryAt",
+        "table": "Post"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"nextModerationRetryAt\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Post",
+          "nextModerationRetryAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"nextModerationRetryAt\"",
+        "sql": "ALTER TABLE \"public\".\"Post\" ADD COLUMN \"nextModerationRetryAt\" timestamptz"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"nextModerationRetryAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Post",
+          "nextModerationRetryAt"
+        ]
+      }
+    ]
+  }
+]
