@@ -445,6 +445,29 @@ export class PostsController {
     }
 
     // =====================================
+    // GET POST LEARNING DETAILS
+    // =====================================
+
+    @Get(':postId/learned')
+    @UseGuards(JwtAuthGuard)
+    async getPostLearning(
+        @Param('postId', ParseIntPipe) postId: number,
+        @Req() req: any,
+    ) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
+        }
+
+        return this.postsService.getPostLearning(
+            postId,
+            userId,
+        );
+    }
+    // =====================================
     // MARK POST AS LEARNED
     // =====================================
 

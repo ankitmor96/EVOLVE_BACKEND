@@ -103,6 +103,7 @@ model User {
   conversationsAsParticipant ConversationParticipant[]
   sentMessages               Message[]
   postExplorations           UserPostExploration[]
+  skillPoints                UserSkillPoint[]
 }
 
 // ========================================
@@ -195,6 +196,7 @@ model Skill {
   curiosities UserCuriosity[]
   userSkills  UserSkill[]
   postSkills  PostSkill[]
+  userSkillPoints UserSkillPoint[]
 
   @@index([categoryId])
 }
@@ -479,5 +481,21 @@ model UserPostExploration {
   @@index([userId])
   @@index([firstExploredAt])
   @@index([userId, firstExploredAt])
+}
+
+model UserSkillPoint {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  skillId   Int
+  points    Decimal  @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([skillId])
 }
 

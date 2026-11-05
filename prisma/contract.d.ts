@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'320e9fc433d007e5717bc0e4f554f4681ad54734a5e0b168763d3253cee2833c'>;
+  StorageHashBase<'0b58a3ff60da679871331f9e880332ee1cf99cd7cae9e7d87e3f4540d0ae16b2'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -449,6 +449,14 @@ export type FieldOutputTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'];
     };
+    readonly UserSkillPoint: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly points: CodecTypes['pg/numeric@1']['output'];
+      readonly skillId: CodecTypes['pg/int4@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+    };
   };
 };
 export type FieldInputTypes = {
@@ -649,6 +657,14 @@ export type FieldInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly relationshipType: 'CAN_DO' | 'LEARNING' | 'WANT_TO_IMPROVE';
+      readonly skillId: CodecTypes['pg/int4@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
+    };
+    readonly UserSkillPoint: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly points: CodecTypes['pg/numeric@1']['input'];
       readonly skillId: CodecTypes['pg/int4@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
@@ -857,6 +873,14 @@ export type StorageColumnTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'];
     };
+    readonly UserSkillPoint: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly points: CodecTypes['pg/numeric@1']['output'];
+      readonly skillId: CodecTypes['pg/int4@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+    };
   };
 };
 export type StorageColumnInputTypes = {
@@ -1061,6 +1085,14 @@ export type StorageColumnInputTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
     };
+    readonly UserSkillPoint: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly points: CodecTypes['pg/numeric@1']['input'];
+      readonly skillId: CodecTypes['pg/int4@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
+    };
   };
 };
 
@@ -1251,8 +1283,10 @@ export namespace Models {
     category: public_SkillCategory;
     curiosities: public_UserCuriosity[];
     postSkills: public_PostSkill[];
+    userSkillPoints: public_UserSkillPoint[];
     userSkills: public_UserSkill[];
-    readonly [RelationKeys]?: 'category' | 'curiosities' | 'postSkills' | 'userSkills';
+    readonly [RelationKeys]?:
+      'category' | 'curiosities' | 'postSkills' | 'userSkillPoints' | 'userSkills';
   };
   export type public_SkillCategory = {
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -1287,6 +1321,7 @@ export namespace Models {
     receivedConnections: public_Connection[];
     sentConnections: public_Connection[];
     sentMessages: public_Message[];
+    skillPoints: public_UserSkillPoint[];
     skills: public_UserSkill[];
     readonly [RelationKeys]?:
       | 'comments'
@@ -1301,6 +1336,7 @@ export namespace Models {
       | 'receivedConnections'
       | 'sentConnections'
       | 'sentMessages'
+      | 'skillPoints'
       | 'skills';
   };
   export type public_UserCuriosity = {
@@ -1362,6 +1398,17 @@ export namespace Models {
     user: public_User;
     readonly [RelationKeys]?: 'skill' | 'user';
   };
+  export type public_UserSkillPoint = {
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    id: CodecTypes['pg/int4@1']['output'];
+    points: CodecTypes['pg/numeric@1']['output'];
+    skillId: CodecTypes['pg/int4@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    userId: CodecTypes['pg/int4@1']['output'];
+    skill: public_Skill;
+    user: public_User;
+    readonly [RelationKeys]?: 'skill' | 'user';
+  };
 }
 
 export declare const models: {
@@ -1388,6 +1435,7 @@ export declare const models: {
     UserPostExploration: Models.public_UserPostExploration;
     UserProfile: Models.public_UserProfile;
     UserSkill: Models.public_UserSkill;
+    UserSkillPoint: Models.public_UserSkillPoint;
   };
 };
 
@@ -3139,6 +3187,92 @@ type ContractBase = Omit<
                 },
               ];
             };
+            readonly UserSkillPoint: {
+              columns: {
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly points: {
+                  readonly nativeType: 'numeric';
+                  readonly codecId: 'pg/numeric@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/numeric@1', '0'>;
+                  };
+                };
+                readonly skillId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly updatedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly userId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['userId', 'skillId'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'UserSkillPoint_skillId_idx_6e19993d';
+                  readonly prefix: 'UserSkillPoint_skillId_idx';
+                  readonly columns: readonly ['skillId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'UserSkillPoint_userId_idx_a489d58a';
+                  readonly prefix: 'UserSkillPoint_userId_idx';
+                  readonly columns: readonly ['userId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'UserSkillPoint';
+                    readonly columns: readonly ['userId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'User';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'UserSkillPoint';
+                    readonly columns: readonly ['skillId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Skill';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
           };
           readonly valueSet: {
             readonly ConnectionStatus: {
@@ -3263,6 +3397,10 @@ type ContractBase = Omit<
       readonly model: 'UserProfile';
     };
     readonly UserSkill: { readonly namespace: 'public' & NamespaceId; readonly model: 'UserSkill' };
+    readonly UserSkillPoint: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'UserSkillPoint';
+    };
   };
   readonly domain: {
     readonly namespaces: {
@@ -4324,6 +4462,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['skillId'];
                 };
               };
+              readonly userSkillPoints: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'UserSkillPoint';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['skillId'];
+                };
+              };
               readonly userSkills: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -4590,6 +4739,17 @@ type ContractBase = Omit<
                 readonly on: {
                   readonly localFields: readonly ['id'];
                   readonly targetFields: readonly ['senderId'];
+                };
+              };
+              readonly skillPoints: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'UserSkillPoint';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
                 };
               };
               readonly skills: {
@@ -4968,6 +5128,75 @@ type ContractBase = Omit<
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly id: { readonly column: 'id' };
                 readonly relationshipType: { readonly column: 'relationshipType' };
+                readonly skillId: { readonly column: 'skillId' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
+                readonly userId: { readonly column: 'userId' };
+              };
+            };
+          };
+          readonly UserSkillPoint: {
+            readonly fields: {
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly points: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/numeric@1' };
+              };
+              readonly skillId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly userId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+            };
+            readonly relations: {
+              readonly skill: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Skill';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['skillId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly user: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'UserSkillPoint';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly id: { readonly column: 'id' };
+                readonly points: { readonly column: 'points' };
                 readonly skillId: { readonly column: 'skillId' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
                 readonly userId: { readonly column: 'userId' };

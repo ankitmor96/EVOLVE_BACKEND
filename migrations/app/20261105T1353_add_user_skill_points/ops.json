@@ -1,0 +1,245 @@
+[
+  {
+    "id": "table.UserSkillPoint",
+    "label": "Create table \"UserSkillPoint\"",
+    "summary": "Creates table \"UserSkillPoint\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "UserSkillPoint"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"UserSkillPoint\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserSkillPoint\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"UserSkillPoint\"",
+        "sql": "CREATE TABLE \"public\".\"UserSkillPoint\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"points\" numeric DEFAULT '0'::numeric NOT NULL,\n  \"skillId\" int4 NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"UserSkillPoint\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserSkillPoint\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.UserSkillPoint.UserSkillPoint_userId_skillId_key",
+    "label": "Add unique constraint on \"UserSkillPoint\" (userId, skillId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "UserSkillPoint_userId_skillId_key",
+        "table": "UserSkillPoint"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"UserSkillPoint_userId_skillId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserSkillPoint_userId_skillId_key",
+          "public",
+          "\"public\".\"UserSkillPoint\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"UserSkillPoint_userId_skillId_key\"",
+        "sql": "ALTER TABLE \"public\".\"UserSkillPoint\" ADD CONSTRAINT \"UserSkillPoint_userId_skillId_key\" UNIQUE (\"userId\", \"skillId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"UserSkillPoint_userId_skillId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserSkillPoint_userId_skillId_key",
+          "public",
+          "\"public\".\"UserSkillPoint\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.UserSkillPoint.UserSkillPoint_skillId_idx_6e19993d",
+    "label": "Create index \"UserSkillPoint_skillId_idx_6e19993d\" on \"UserSkillPoint\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "UserSkillPoint_skillId_idx_6e19993d",
+        "table": "UserSkillPoint"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"UserSkillPoint_skillId_idx_6e19993d\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserSkillPoint_skillId_idx_6e19993d\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"UserSkillPoint_skillId_idx_6e19993d\"",
+        "sql": "CREATE INDEX \"UserSkillPoint_skillId_idx_6e19993d\" ON \"public\".\"UserSkillPoint\" (\"skillId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"UserSkillPoint_skillId_idx_6e19993d\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserSkillPoint_skillId_idx_6e19993d\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.UserSkillPoint.UserSkillPoint_userId_idx_a489d58a",
+    "label": "Create index \"UserSkillPoint_userId_idx_a489d58a\" on \"UserSkillPoint\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "UserSkillPoint_userId_idx_a489d58a",
+        "table": "UserSkillPoint"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"UserSkillPoint_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserSkillPoint_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"UserSkillPoint_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"UserSkillPoint_userId_idx_a489d58a\" ON \"public\".\"UserSkillPoint\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"UserSkillPoint_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"UserSkillPoint_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.UserSkillPoint.UserSkillPoint_userId_fkey",
+    "label": "Add foreign key \"UserSkillPoint_userId_fkey\" on \"UserSkillPoint\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "UserSkillPoint_userId_fkey",
+        "table": "UserSkillPoint"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"UserSkillPoint_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserSkillPoint_userId_fkey",
+          "public",
+          "\"public\".\"UserSkillPoint\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"UserSkillPoint_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"UserSkillPoint\"\nADD CONSTRAINT \"UserSkillPoint_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"UserSkillPoint_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserSkillPoint_userId_fkey",
+          "public",
+          "\"public\".\"UserSkillPoint\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.UserSkillPoint.UserSkillPoint_skillId_fkey",
+    "label": "Add foreign key \"UserSkillPoint_skillId_fkey\" on \"UserSkillPoint\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "UserSkillPoint_skillId_fkey",
+        "table": "UserSkillPoint"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"UserSkillPoint_skillId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserSkillPoint_skillId_fkey",
+          "public",
+          "\"public\".\"UserSkillPoint\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"UserSkillPoint_skillId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"UserSkillPoint\"\nADD CONSTRAINT \"UserSkillPoint_skillId_fkey\"\nFOREIGN KEY (\"skillId\")\nREFERENCES \"public\".\"Skill\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"UserSkillPoint_skillId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "UserSkillPoint_skillId_fkey",
+          "public",
+          "\"public\".\"UserSkillPoint\""
+        ]
+      }
+    ]
+  }
+]

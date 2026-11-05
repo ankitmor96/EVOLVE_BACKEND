@@ -1242,6 +1242,44 @@ export class PostsService {
     };
   }
 
+  // =====================================
+  // GET POST LEARNING DETAILS
+  // =====================================
+
+  async getPostLearning(
+    postId: number,
+    userId: number,
+  ) {
+    const post = await this.prisma.client.orm.public.Post
+      .where({
+        id: postId,
+        deletedAt: null,
+      })
+      .first();
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const learningRecords =
+      await this.prisma.client.orm.public.PostLearning
+        .where({
+          postId,
+        })
+        .all();
+
+    const myLearning = learningRecords.find(
+      (learning) => learning.userId === userId,
+    );
+
+    return {
+      success: true,
+      postId,
+      learningCount: learningRecords.length,
+      isLearned: !!myLearning,
+    };
+  }
+
   async markPostLearned(
     postId: number,
     userId: number,
