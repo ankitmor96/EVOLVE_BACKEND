@@ -231,6 +231,13 @@ export class SkillService {
                 })
                 .first();
 
+        console.log('PATCH USER SKILL INPUT:', {
+            userId,
+            userSkillId,
+        });
+
+        console.log('FOUND USER SKILL:', userSkill);
+
         if (!userSkill) {
             throw new Error('User skill not found');
         }
