@@ -150,18 +150,19 @@ export class PostsService {
       return [];
     }
 
-    // Verify that all selected skills exist
+    // Fetch selected skills
     const skills = await this.prisma.client.orm.public.Skill
       .where((skill) => skill.id.in(uniqueSkillIds))
       .all();
 
+    // Validate selected skill IDs
     if (skills.length !== uniqueSkillIds.length) {
       throw new BadRequestException(
         'One or more selected skills are invalid',
       );
     }
 
-    // Save only selected skills for this post
+    // Save selected skills with post ID
     for (const skillId of uniqueSkillIds) {
       await this.prisma.client.orm.public.PostSkill.create({
         postId,
@@ -169,14 +170,11 @@ export class PostsService {
       });
     }
 
-    // Get categories of selected skills only
-    const categoryIds = [
-      ...new Set(skills.map((skill) => skill.categoryId)),
-    ];
-
-    return this.prisma.client.orm.public.SkillCategory
-      .where((category) => category.id.in(categoryIds))
-      .all();
+    // Return actual selected skills, not categories
+    return skills.map((skill) => ({
+      id: skill.id,
+      name: skill.name,
+    }));
   }
 
   // =====================================
@@ -359,7 +357,7 @@ export class PostsService {
       );
     }
 
-    const skillCategories = await this.savePostSkills(postId, skillIds);
+    const skills = await this.savePostSkills(postId, skillIds);
 
     try {
       const mediaUrl = await this.uploadImageToCloudinary(
@@ -394,7 +392,7 @@ export class PostsService {
         message: 'Post created successfully with image',
         post,
         media,
-        skillCategories,
+        skills,
       };
 
     } catch (error) {
@@ -437,7 +435,7 @@ export class PostsService {
       );
     }
 
-    const skillCategories = await this.savePostSkills(postId, skillIds);
+    const skills = await this.savePostSkills(postId, skillIds);
 
     try {
       const mediaUrl = await this.uploadVideoToCloudinary(
@@ -472,7 +470,7 @@ export class PostsService {
         message: 'Post created successfully with video',
         post,
         media,
-        skillCategories,
+        skills,
       };
 
     } catch (error) {
@@ -698,7 +696,7 @@ export class PostsService {
       );
     }
 
-    const skillCategories = await this.savePostSkills(postId, skillIds);
+    const skills = await this.savePostSkills(postId, skillIds);
 
     try {
       const mediaUrl = await this.uploadDocumentToCloudinary(
@@ -740,7 +738,7 @@ export class PostsService {
         message: 'Document post created successfully',
         post,
         media,
-        skillCategories,
+        skills,
       };
 
     } catch (error) {

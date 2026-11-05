@@ -855,6 +855,262 @@ export class LearningService implements OnModuleDestroy {
     }
 
     // =========================================
+    // SKILL INTEREST DISTRIBUTION
+    // GET /v1/learning/skill-interest-distribution
+    // =========================================
+
+    async getSkillInterestDistribution(
+        userId: number,
+        period: 'day' | 'month' | 'all' = 'all',
+    ) {
+        // =========================================
+        // FETCH USER EXPLORED POSTS
+        // =========================================
+
+        const explorationRecords =
+            await this.prisma.client.orm.public.UserPostExploration
+                .where({
+                    userId,
+                })
+                .all();
+
+        let filteredRecords = explorationRecords;
+
+        // =========================================
+        // PERIOD FILTER
+        // =========================================
+
+        if (period === 'day' || period === 'month') {
+            const now = new Date();
+
+            let startDate: Date;
+            let endDate: Date;
+
+            if (period === 'day') {
+                startDate = new Date(
+                    Date.UTC(
+                        now.getUTCFullYear(),
+                        now.getUTCMonth(),
+                        now.getUTCDate(),
+                    ),
+                );
+
+                endDate = new Date(
+                    Date.UTC(
+                        now.getUTCFullYear(),
+                        now.getUTCMonth(),
+                        now.getUTCDate() + 1,
+                    ),
+                );
+            } else {
+                startDate = new Date(
+                    Date.UTC(
+                        now.getUTCFullYear(),
+                        now.getUTCMonth(),
+                        1,
+                    ),
+                );
+
+                endDate = new Date(
+                    Date.UTC(
+                        now.getUTCFullYear(),
+                        now.getUTCMonth() + 1,
+                        1,
+                    ),
+                );
+            }
+
+            filteredRecords = explorationRecords.filter(
+                (record: any) => {
+                    const exploredDate = new Date(
+                        record.firstExploredAt.epochMilliseconds,
+                    );
+
+                    return (
+                        exploredDate >= startDate &&
+                        exploredDate < endDate
+                    );
+                },
+            );
+        }
+
+        // =========================================
+        // UNIQUE EXPLORED POSTS
+        // =========================================
+
+        const exploredPostIds = [
+            ...new Set(
+                filteredRecords.map(
+                    (record: any) => Number(record.postId),
+                ),
+            ),
+        ];
+
+        const totalPostsExplored = exploredPostIds.length;
+
+        if (totalPostsExplored === 0) {
+            return {
+                success: true,
+                total_posts_explored: 0,
+                highlighted_skill: null,
+                skill_distribution: [],
+                period,
+            };
+        }
+
+        // =========================================
+        // FETCH POST SKILLS
+        // =========================================
+
+        const postSkills =
+            await this.prisma.client.orm.public.PostSkill
+                .where((item: any) =>
+                    item.postId.in(exploredPostIds),
+                )
+                .all();
+
+        // =========================================
+        // FETCH SKILL DETAILS
+        // =========================================
+
+        const skillIds = [
+            ...new Set(
+                postSkills.map(
+                    (item: any) => Number(item.skillId),
+                ),
+            ),
+        ];
+
+        const skills = skillIds.length > 0
+            ? await this.prisma.client.orm.public.Skill
+                .where((skill: any) =>
+                    skill.id.in(skillIds),
+                )
+                .all()
+            : [];
+
+        // =========================================
+        // COUNT POSTS PER SKILL
+        // =========================================
+
+        const skillPostMap = new Map<number, Set<number>>();
+
+        for (const item of postSkills) {
+            const skillId = Number(item.skillId);
+            const postId = Number(item.postId);
+
+            if (!skillPostMap.has(skillId)) {
+                skillPostMap.set(
+                    skillId,
+                    new Set<number>(),
+                );
+            }
+
+            skillPostMap.get(skillId)!.add(postId);
+        }
+
+        // =========================================
+        // SKILL DISTRIBUTION
+        // =========================================
+
+        const skillDistribution = skills.map(
+            (skill: any) => {
+                const postCount =
+                    skillPostMap.get(Number(skill.id))?.size ?? 0;
+
+                return {
+                    skillId: skill.id,
+                    skillName: skill.name,
+                    count: postCount,
+
+                    percentage: Number(
+                        (
+                            (postCount / totalPostsExplored) *
+                            100
+                        ).toFixed(2),
+                    ),
+                };
+            },
+        );
+
+        // =========================================
+        // OTHER POSTS
+        // Posts without any skill
+        // =========================================
+
+        const postsWithSkills = new Set(
+            postSkills.map(
+                (item: any) => Number(item.postId),
+            ),
+        );
+
+        const otherCount = exploredPostIds.filter(
+            (postId) => !postsWithSkills.has(postId),
+        ).length;
+
+        const otherPercentage = Number(
+            (
+                (otherCount / totalPostsExplored) *
+                100
+            ).toFixed(2),
+        );
+
+        // =========================================
+        // ADD OTHER
+        // =========================================
+
+        skillDistribution.push({
+            skillId: null,
+            skillName: 'Other',
+            count: otherCount,
+            percentage: otherPercentage,
+        });
+
+        // =========================================
+        // SORT BY PERCENTAGE
+        // =========================================
+
+        skillDistribution.sort(
+            (a: any, b: any) =>
+                b.percentage - a.percentage,
+        );
+
+        // =========================================
+        // HIGHLIGHTED SKILL
+        // =========================================
+
+        const highlightedSkill =
+            skillDistribution.find(
+                (item: any) =>
+                    item.skillName !== 'Other' &&
+                    item.count > 0,
+            ) ?? null;
+
+        // =========================================
+        // RESPONSE
+        // =========================================
+
+        return {
+            success: true,
+
+            total_posts_explored: totalPostsExplored,
+
+            highlighted_skill: highlightedSkill
+                ? {
+                    skillId: highlightedSkill.skillId,
+                    skillName: highlightedSkill.skillName,
+                    count: highlightedSkill.count,
+                    percentage: highlightedSkill.percentage,
+                }
+                : null,
+
+            skill_distribution: skillDistribution,
+
+            period,
+        };
+    }
+
+    // =========================================
     // LEARNING STREAK
     // =========================================
 

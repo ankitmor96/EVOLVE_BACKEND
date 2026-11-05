@@ -150,15 +150,26 @@ export class LearningController {
         );
     }
 
+    // =========================================
+    // CONTENT BREAKDOWN
+    // GET /api/v1/learning/content-breakdown
+    // =========================================
+
     @Get('content-breakdown')
     async getContentBreakdown(
         @Req() req: any,
         @Query('period') period: string = 'month',
     ) {
+
         const userId = Number(req.user?.userId);
 
-        if (!Number.isInteger(userId) || userId <= 0) {
-            throw new UnauthorizedException('Invalid authenticated user');
+        if (
+            !Number.isInteger(userId) ||
+            userId <= 0
+        ) {
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
         }
 
         if (
@@ -171,7 +182,48 @@ export class LearningController {
             );
         }
 
-        return this.learningService.getContentBreakdown(userId, period);
+        return this.learningService.getContentBreakdown(
+            userId,
+            period,
+        );
+    }
+
+    // =========================================
+    // SKILL INTEREST DISTRIBUTION
+    // GET /api/v1/learning/skill-interest-distribution
+    // =========================================
+
+    @Get('skill-interest-distribution')
+    async getSkillInterestDistribution(
+        @Req() req: any,
+        @Query('period') period: string = 'all',
+    ) {
+
+        const userId = Number(req.user?.userId);
+
+        if (
+            !Number.isInteger(userId) ||
+            userId <= 0
+        ) {
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
+        }
+
+        if (
+            period !== 'day' &&
+            period !== 'month' &&
+            period !== 'all'
+        ) {
+            throw new BadRequestException(
+                'period must be day, month or all',
+            );
+        }
+
+        return this.learningService.getSkillInterestDistribution(
+            userId,
+            period as 'day' | 'month' | 'all',
+        );
     }
 
     // =========================================
@@ -183,6 +235,7 @@ export class LearningController {
     async getLearningStreak(
         @Req() req: any,
     ) {
+
         const userId = Number(req.user?.userId);
 
         if (
