@@ -463,6 +463,90 @@ export class LearningService implements OnModuleDestroy {
     }
 
     // =========================================
+    // AWARD SKILL POINTS
+    // =========================================
+
+    private async awardSkillPoints(
+        userId: number,
+        postId: number,
+    ) {
+        // 1. Get user's onboarding skills
+        const userSkills =
+            await this.prisma.client.orm.public.UserSkill
+                .where({ userId })
+                .all();
+
+        if (userSkills.length === 0) {
+            return;
+        }
+
+        // 2. Get skills attached to this post
+        const postSkills =
+            await this.prisma.client.orm.public.PostSkill
+                .where({ postId })
+                .all();
+
+        if (postSkills.length === 0) {
+            return;
+        }
+
+        // 3. Find matching onboarding skills
+        const postSkillIds = new Set(
+            postSkills.map((item: any) =>
+                Number(item.skillId),
+            ),
+        );
+
+        const matchingSkillIds = [
+            ...new Set(
+                userSkills
+                    .map((item: any) => Number(item.skillId))
+                    .filter((skillId: number) =>
+                        postSkillIds.has(skillId),
+                    ),
+            ),
+        ];
+
+        if (matchingSkillIds.length === 0) {
+            return;
+        }
+
+        // 4. Add 0.5 points to every matching skill
+        const now = Temporal.Now.instant();
+
+        for (const skillId of matchingSkillIds) {
+            const existingPoint =
+                await this.prisma.client.orm.public.UserSkillPoint
+                    .where({
+                        userId,
+                        skillId,
+                    })
+                    .first();
+
+            if (!existingPoint) {
+                await this.prisma.client.orm.public.UserSkillPoint.create({
+                    userId,
+                    skillId,
+                    points: 0.5,
+                    createdAt: now,
+                    updatedAt: now,
+                });
+            } else {
+                await this.prisma.client.orm.public.UserSkillPoint
+                    .where({
+                        userId,
+                        skillId,
+                    })
+                    .update({
+                        points:
+                            Number(existingPoint.points) + 0.5,
+                        updatedAt: now,
+                    });
+            }
+        }
+    }
+
+    // =========================================
     // SAVE EXPLORATION IN DATABASE
     // =========================================
 
@@ -506,6 +590,7 @@ export class LearningService implements OnModuleDestroy {
             const now = Temporal.Now.instant();
 
             if (!existing) {
+                // First unique exploration record
                 await this.prisma.client.orm.public.UserPostExploration.create({
                     userId,
                     postId,
@@ -522,6 +607,13 @@ export class LearningService implements OnModuleDestroy {
                     createdAt: now,
                     updatedAt: now,
                 });
+
+                // Award points only for the first unique exploration
+                await this.awardSkillPoints(
+                    userId,
+                    postId,
+                );
+
             } else {
                 await this.prisma.client.orm.public.UserPostExploration
                     .where({
