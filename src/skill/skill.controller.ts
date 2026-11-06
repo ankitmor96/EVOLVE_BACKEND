@@ -103,13 +103,13 @@ export class SkillController {
     @Delete('curiosity/:id')
     async deleteUserCuriosity(
         @Req() req: any,
-        @Param('id') id: string,
+        @Param('id', ParseIntPipe) skillId: number,
     ) {
         const userId = req.user.userId;
 
         return this.skillService.deleteUserCuriosity(
             userId,
-            Number(id),
+            skillId,
         );
     }
 

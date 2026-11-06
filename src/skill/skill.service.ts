@@ -102,29 +102,66 @@ export class SkillService {
         userId: number,
         dto: UpdateUserCuriosityDto,
     ) {
-
-        // Delete existing curiosity selections
-        await this.prisma.client.orm.public.UserCuriosity
-            .where({
-                userId,
-            })
-            .delete();
-
-        const curiosities = [];
-
-        // Create new curiosity selections
-        for (const skillId of dto.skillIds) {
-
-            const curiosity =
-                await this.prisma.client.orm.public.UserCuriosity.create({
-                    userId,
-                    skillId,
-                });
-
-            curiosities.push(curiosity);
+        if (!Array.isArray(dto.skillIds)) {
+            throw new Error('skillIds must be an array');
         }
 
-        return curiosities;
+        // Remove duplicate skill IDs
+        const requestedSkillIds = [
+            ...new Set(dto.skillIds.map(Number)),
+        ];
+
+        // Get existing curiosity records
+        const existingCuriosities =
+            await this.prisma.client.orm.public.UserCuriosity
+                .where({ userId })
+                .all();
+
+        const existingSkillIds = existingCuriosities.map(
+            (item) => item.skillId,
+        );
+
+        // Find records which user has removed
+        const recordsToDelete = existingCuriosities.filter(
+            (item) => !requestedSkillIds.includes(Number(item.skillId)),
+        );
+
+        // Delete removed records individually
+        for (const item of recordsToDelete) {
+            await this.prisma.client.orm.public.UserCuriosity
+                .where({
+                    id: item.id,
+                    userId,
+                })
+                .delete();
+        }
+
+        // Create only newly selected skills
+        const createdCuriosities = [];
+
+        for (const skillId of requestedSkillIds) {
+            if (!existingSkillIds.includes(skillId)) {
+                const curiosity =
+                    await this.prisma.client.orm.public.UserCuriosity.create({
+                        userId,
+                        skillId,
+                    });
+
+                createdCuriosities.push(curiosity);
+            }
+        }
+
+        // Return latest data
+        const updatedCuriosities =
+            await this.prisma.client.orm.public.UserCuriosity
+                .where({ userId })
+                .all();
+
+        return {
+            success: true,
+            message: 'User curiosity updated successfully',
+            data: updatedCuriosities,
+        };
     }
 
     // =====================================
@@ -133,29 +170,40 @@ export class SkillService {
 
     async deleteUserCuriosity(
         userId: number,
-        curiosityId: number,
+        skillId: number,
     ) {
-
+        // Find curiosity using userId + skillId
         const curiosity =
             await this.prisma.client.orm.public.UserCuriosity
                 .where({
-                    id: curiosityId,
                     userId,
+                    skillId,
                 })
                 .first();
 
+        // If already deleted, return success
         if (!curiosity) {
-            throw new Error('User curiosity not found');
+            return {
+                success: true,
+                message: 'Curiosity already removed',
+                skillId,
+            };
         }
 
-        return this.prisma.client.orm.public.UserCuriosity
+        // Delete actual UserCuriosity record internally
+        await this.prisma.client.orm.public.UserCuriosity
             .where({
-                id: curiosityId,
+                id: curiosity.id,
                 userId,
             })
             .delete();
-    }
 
+        return {
+            success: true,
+            message: 'Curiosity deleted successfully',
+            skillId,
+        };
+    }
     // =====================================
     // CREATE USER SKILLS
     // =====================================
