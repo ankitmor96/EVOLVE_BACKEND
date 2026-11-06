@@ -751,19 +751,23 @@ export class PostsService {
   }
 
 
-  // =====================================
-  // GET PERSONALIZED FEED SKILL IDS
-  // =====================================
-
   private async getPersonalizedFeedSkillIds(
     userId: number,
   ): Promise<{
     skillIds: number[];
     feedMode: 'INITIAL' | 'EXPANDED';
     highlightedSkill: string | null;
+    skillDistribution: {
+      skillId: number;
+      skillName: string;
+      categoryId: number;
+      points: number;
+      percentage: number;
+      postQuota: number;
+      categorySkillIds: number[];
+    }[];
   }> {
-
-    // 1. Count unique explored posts
+    // 1. Count unique explorations
     const explorations =
       await this.prisma.client.orm.public.UserPostExploration
         .where({ userId })
@@ -773,7 +777,7 @@ export class PostsService {
       explorations.map((item: any) => Number(item.postId)),
     );
 
-    // 2. Fetch user's onboarding skills
+    // 2. Get onboarding skills
     const userSkills =
       await this.prisma.client.orm.public.UserSkill
         .where({
@@ -784,127 +788,187 @@ export class PostsService {
         })
         .all();
 
-    // 3. Fetch only active skills
+    // 3. Get active skills
     const activeSkills =
       await this.prisma.client.orm.public.Skill
-        .where({
-          isActive: true,
-        })
+        .where({ isActive: true })
         .all();
 
     const activeSkillIds = new Set(
       activeSkills.map((skill: any) => Number(skill.id)),
     );
 
-    // 4. Keep only active onboarding skills
+    // 4. Keep active onboarding skills
     const onboardingSkillIds = [
       ...new Set(
         userSkills
           .map((item: any) => Number(item.skillId))
-          .filter((skillId: number) => activeSkillIds.has(skillId)),
+          .filter((id: number) => activeSkillIds.has(id)),
       ),
     ];
 
-    // 5. Before 10 unique explorations: initial feed
+    // 5. Before 10 unique explorations: old feed logic
     if (uniqueExploredPosts.size < 10) {
       return {
         skillIds: onboardingSkillIds,
         feedMode: 'INITIAL',
         highlightedSkill: null,
+        skillDistribution: [],
       };
     }
 
-    // 6. After 10 explorations: fetch skill points
+    // 6. Get skill points
     const skillPoints =
       await this.prisma.client.orm.public.UserSkillPoint
         .where({ userId })
         .all();
 
-    // Keep points only for active onboarding skills
-    const onboardingSkillPoints = skillPoints.filter(
-      (item: any) =>
-        onboardingSkillIds.includes(Number(item.skillId)),
+    const pointMap = new Map<number, number>();
+
+    for (const item of skillPoints) {
+      const skillId = Number(item.skillId);
+
+      if (onboardingSkillIds.includes(skillId)) {
+        pointMap.set(skillId, Number(item.points));
+      }
+    }
+
+    // Include onboarding skills even if their points are zero
+    const skillPointData = onboardingSkillIds.map((skillId) => {
+      const skill = activeSkills.find(
+        (item: any) => Number(item.id) === skillId,
+      );
+
+      return {
+        skillId,
+        skillName: String(skill?.name ?? ''),
+        categoryId: Number(skill?.categoryId),
+        points: pointMap.get(skillId) ?? 0,
+      };
+    });
+
+    const totalPoints = skillPointData.reduce(
+      (total, item) => total + item.points,
+      0,
     );
 
-    if (onboardingSkillPoints.length === 0) {
+    // 7. If there are no points, use initial feed
+    if (totalPoints <= 0) {
       return {
         skillIds: onboardingSkillIds,
         feedMode: 'INITIAL',
         highlightedSkill: null,
+        skillDistribution: [],
       };
     }
 
-    // 7. Find highest scoring skill
-    const highestSkillPoint = [...onboardingSkillPoints].sort(
-      (a: any, b: any) => {
-        const difference =
-          Number(b.points) - Number(a.points);
+    // 8. Calculate percentage
+    const distribution = skillPointData
+      .map((item) => ({
+        ...item,
+        percentage: (item.points / totalPoints) * 100,
+      }))
+      .sort((a, b) => {
+        const difference = b.points - a.points;
 
         return difference !== 0
           ? difference
-          : Number(a.skillId) - Number(b.skillId);
-      },
-    )[0];
+          : a.skillId - b.skillId;
+      });
 
-    // 8. Fetch winning skill (active only)
-    const winningSkill =
-      await this.prisma.client.orm.public.Skill
-        .where({
-          id: Number(highestSkillPoint.skillId),
-          isActive: true,
-        })
-        .first();
+    // 9. Calculate post quota out of 10 using largest remainder
+    const quotaData = distribution.map((item) => {
+      const exactQuota = (item.percentage / 100) * 10;
 
-    if (!winningSkill) {
       return {
-        skillIds: onboardingSkillIds,
-        feedMode: 'INITIAL',
-        highlightedSkill: null,
+        ...item,
+        postQuota: Math.floor(exactQuota),
+        remainder: exactQuota - Math.floor(exactQuota),
       };
+    });
+
+    let remainingPosts =
+      10 -
+      quotaData.reduce(
+        (total, item) => total + item.postQuota,
+        0,
+      );
+
+    const remainderOrder = [...quotaData].sort(
+      (a, b) => {
+        const difference = b.remainder - a.remainder;
+
+        return difference !== 0
+          ? difference
+          : b.points - a.points;
+      },
+    );
+
+    for (let i = 0; i < remainingPosts; i++) {
+      const selected = remainderOrder[i];
+
+      if (selected) {
+        selected.postQuota += 1;
+      }
     }
 
-    // 9. Find all active skills in winning skill's category
-    const categorySkills =
-      await this.prisma.client.orm.public.Skill
-        .where({
-          categoryId: winningSkill.categoryId,
-          isActive: true,
-        })
-        .all();
+    // 10. Prepare category skill IDs for every onboarding skill
+    const skillDistribution = quotaData.map((item) => {
+      const categorySkillIds = activeSkills
+        .filter(
+          (skill: any) =>
+            Number(skill.categoryId) === item.categoryId,
+        )
+        .map((skill: any) => Number(skill.id));
 
-    // 10. Create expanded skill IDs
-    const expandedSkillIds = [
-      ...new Set([
-        Number(winningSkill.id),
-        ...categorySkills.map(
-          (skill: any) => Number(skill.id),
+      return {
+        skillId: item.skillId,
+        skillName: item.skillName,
+        categoryId: item.categoryId,
+        points: item.points,
+        percentage: Number(item.percentage.toFixed(2)),
+        postQuota: item.postQuota,
+        categorySkillIds: [
+          ...new Set([
+            item.skillId,
+            ...categorySkillIds,
+          ]),
+        ],
+      };
+    });
+
+    // 11. All skill and category IDs
+    const allSkillIds = [
+      ...new Set(
+        skillDistribution.flatMap(
+          (item) => item.categorySkillIds,
         ),
-      ]),
+      ),
     ];
 
     return {
-      skillIds: expandedSkillIds,
+      skillIds: allSkillIds,
       feedMode: 'EXPANDED',
-      highlightedSkill: String(winningSkill.name),
+      highlightedSkill:
+        skillDistribution[0]?.skillName ?? null,
+      skillDistribution,
     };
   }
-
 
 
   async getFeed(userId: number, cursor?: number) {
     const pageSize = 10;
 
     // =====================================
-    // PERSONALIZED FEED FILTER
+    // 1. PERSONALIZED FEED CONFIGURATION
     // =====================================
 
     const personalizedFeed =
       await this.getPersonalizedFeedSkillIds(userId);
 
-    let personalizedPostIds: number[] = [];
+    const personalizedPostIds: number[] = [];
 
     if (personalizedFeed.skillIds.length > 0) {
-
       const matchingPostSkills =
         await this.prisma.client.orm.public.PostSkill
           .where((item: any) =>
@@ -912,14 +976,18 @@ export class PostsService {
           )
           .all();
 
-      personalizedPostIds = [
+      personalizedPostIds.push(
         ...new Set(
           matchingPostSkills.map(
             (item: any) => Number(item.postId),
           ),
         ),
-      ];
+      );
     }
+
+    // =====================================
+    // 2. CONNECTIONS
+    // =====================================
 
     const connections =
       await this.prisma.client.orm.public.Connection
@@ -940,52 +1008,37 @@ export class PostsService {
           : connection.requesterId,
       );
 
-    // Fetch published, non-deleted posts.
-    // Do not filter APPROVED here because owners must see their own posts.
-    let query = this.prisma.client.orm.public.Post
-      .where((p) => p.status.eq('PUBLISHED'))
-      .where((p) => p.deletedAt.isNull())
-      .where((p) => p.publishedAt.isNotNull())
-      .where((p: any) =>
-        p.id.in(personalizedPostIds),
-      )
-      .orderBy([
-        (p) => p.createdAt.desc(),
-        (p) => p.id.desc(),
-      ]);
+    // =====================================
+    // 3. FETCH POSTS
+    // =====================================
 
-    // Validate cursor and prepare pagination
-    if (cursor !== undefined) {
-      if (!Number.isInteger(cursor) || cursor <= 0) {
-        throw new BadRequestException('Invalid feed cursor');
-      }
+    const allPosts =
+      personalizedPostIds.length > 0
+        ? await this.prisma.client.orm.public.Post
+          .where((p) => p.status.eq('PUBLISHED'))
+          .where((p) => p.deletedAt.isNull())
+          .where((p) => p.publishedAt.isNotNull())
+          .where((p: any) =>
+            p.id.in(personalizedPostIds),
+          )
+          .orderBy([
+            (p) => p.createdAt.desc(),
+            (p) => p.id.desc(),
+          ])
+          .all()
+        : [];
 
-      const cursorPost =
-        await this.prisma.client.orm.public.Post
-          .where((p) => p.id.eq(cursor))
-          .first();
+    // =====================================
+    // 4. MODERATION AND VISIBILITY FILTER
+    // =====================================
 
-      if (!cursorPost) {
-        throw new NotFoundException('Feed cursor post not found');
-      }
-
-      query = query.cursor({
-        createdAt: cursorPost.createdAt,
-        id: cursorPost.id,
-      });
-    }
-
-    // Fetch posts
-    const allPosts = await query.limit(pageSize + 1).all();
-
-    // Apply moderation and visibility rules
     const visiblePosts = allPosts.filter((post) => {
-      // Owner can see their own posts regardless of moderation status.
+      // Owner can see own posts
       if (post.userId === userId) {
         return true;
       }
 
-      // Other users can only see approved posts.
+      // Other users can only see approved posts
       if (post.moderation_status !== 'APPROVED') {
         return false;
       }
@@ -1001,59 +1054,237 @@ export class PostsService {
       return false;
     });
 
-    const posts = visiblePosts.slice(0, pageSize + 1);
+    // =====================================
+    // 5. INITIAL OR EXPANDED FEED
+    // =====================================
+
+    let orderedPosts: typeof visiblePosts = [];
+
+    if (personalizedFeed.feedMode === 'INITIAL') {
+      // Old INITIAL feed behavior remains unchanged
+      orderedPosts = visiblePosts;
+    } else {
+      // =====================================
+      // EXPANDED FEED: PERCENTAGE DISTRIBUTION
+      // =====================================
+
+      const postSkills =
+        visiblePosts.length > 0
+          ? await this.prisma.client.orm.public.PostSkill
+            .where((item: any) =>
+              item.postId.in(
+                visiblePosts.map((post) => post.id),
+              ),
+            )
+            .all()
+          : [];
+
+      const usedPostIds = new Set<number>();
+
+      // Create skill-wise post buckets
+      const buckets = personalizedFeed.skillDistribution.map(
+        (distribution) => {
+          const categorySkillIds = new Set(
+            distribution.categorySkillIds,
+          );
+
+          const bucketPosts = visiblePosts.filter((post) => {
+            const matchingSkills = postSkills.filter(
+              (item: any) =>
+                Number(item.postId) === Number(post.id),
+            );
+
+            return matchingSkills.some(
+              (item: any) =>
+                categorySkillIds.has(Number(item.skillId)),
+            );
+          });
+
+          return {
+            skillId: distribution.skillId,
+            skillName: distribution.skillName,
+            points: distribution.points,
+            postQuota: distribution.postQuota,
+            posts: bucketPosts,
+          };
+        },
+      );
+
+      // =====================================
+      // BUILD WEIGHTED FEED
+      // =====================================
+
+      const postIndexes = buckets.map(() => 0);
+
+      const finalFeed: typeof visiblePosts = [];
+
+      const getNextPost = (bucketIndex: number) => {
+        const bucket = buckets[bucketIndex];
+
+        while (postIndexes[bucketIndex] < bucket.posts.length) {
+          const post =
+            bucket.posts[postIndexes[bucketIndex]];
+
+          postIndexes[bucketIndex]++;
+
+          const postId = Number(post.id);
+
+          if (!usedPostIds.has(postId)) {
+            usedPostIds.add(postId);
+            return post;
+          }
+        }
+
+        return null;
+      };
+
+      // Create feed in batches of 10
+      while (true) {
+        const beforeCount = finalFeed.length;
+
+        // First apply calculated quota
+        for (let i = 0; i < buckets.length; i++) {
+          const bucket = buckets[i];
+
+          for (let j = 0; j < bucket.postQuota; j++) {
+            const post = getNextPost(i);
+
+            if (post) {
+              finalFeed.push(post);
+            }
+          }
+        }
+
+        // Fill remaining slots if some buckets have fewer posts
+        while (finalFeed.length - beforeCount < pageSize) {
+          let selectedPost: (typeof visiblePosts)[number] | null =
+            null;
+
+          // Try higher-point skills first
+          for (let i = 0; i < buckets.length; i++) {
+            selectedPost = getNextPost(i);
+
+            if (selectedPost) {
+              break;
+            }
+          }
+
+          if (!selectedPost) {
+            break;
+          }
+
+          finalFeed.push(selectedPost);
+        }
+
+        // Stop if no new post was added
+        if (finalFeed.length === beforeCount) {
+          break;
+        }
+      }
+
+      orderedPosts = finalFeed;
+    }
+
+    // =====================================
+    // 6. CURSOR PAGINATION
+    // =====================================
+
+    if (cursor !== undefined) {
+      if (!Number.isInteger(cursor) || cursor <= 0) {
+        throw new BadRequestException('Invalid feed cursor');
+      }
+
+      const cursorIndex = orderedPosts.findIndex(
+        (post) => Number(post.id) === cursor,
+      );
+
+      if (cursorIndex === -1) {
+        throw new NotFoundException(
+          'Feed cursor post not found',
+        );
+      }
+
+      orderedPosts = orderedPosts.slice(cursorIndex + 1);
+    }
+
+    const posts = orderedPosts.slice(0, pageSize + 1);
 
     const hasMore = posts.length > pageSize;
+
     const items = posts.slice(0, pageSize);
 
     const postIds = items.map((post) => post.id);
 
-    // Fetch users for feed posts
-    const userIds = [...new Set(items.map((post) => post.userId))];
+    // =====================================
+    // 7. FETCH USERS
+    // =====================================
 
-    const users = userIds.length > 0
-      ? await this.prisma.client.orm.public.User
-        .where((user) => user.id.in(userIds))
-        .all()
-      : [];
+    const userIds = [
+      ...new Set(items.map((post) => post.userId)),
+    ];
 
-    const userProfiles = userIds.length > 0
-      ? await this.prisma.client.orm.public.UserProfile
-        .where((profile) => profile.userId.in(userIds))
-        .all()
-      : [];
+    const users =
+      userIds.length > 0
+        ? await this.prisma.client.orm.public.User
+          .where((user) => user.id.in(userIds))
+          .all()
+        : [];
 
-    console.log('Feed userIds:', userIds);
-    console.log('Fetched userProfiles:', userProfiles);
+    const userProfiles =
+      userIds.length > 0
+        ? await this.prisma.client.orm.public.UserProfile
+          .where((profile) =>
+            profile.userId.in(userIds),
+          )
+          .all()
+        : [];
 
-    // Fetch media
-    const media = postIds.length > 0
-      ? await this.prisma.client.orm.public.PostMedia
-        .where((item) => item.postId.in(postIds))
-        .orderBy((item) => item.position.asc())
-        .all()
-      : [];
+    // =====================================
+    // 8. FETCH MEDIA
+    // =====================================
 
-    // Fetch skills for feed posts
-    const postSkills = postIds.length > 0
-      ? await this.prisma.client.orm.public.PostSkill
-        .where((item: any) => item.postId.in(postIds))
-        .all()
-      : [];
+    const media =
+      postIds.length > 0
+        ? await this.prisma.client.orm.public.PostMedia
+          .where((item) => item.postId.in(postIds))
+          .orderBy((item) => item.position.asc())
+          .all()
+        : [];
+
+    // =====================================
+    // 9. FETCH POST SKILLS
+    // =====================================
+
+    const postSkills =
+      postIds.length > 0
+        ? await this.prisma.client.orm.public.PostSkill
+          .where((item: any) =>
+            item.postId.in(postIds),
+          )
+          .all()
+        : [];
 
     const skillIds = [
       ...new Set(
-        postSkills.map((item: any) => Number(item.skillId)),
+        postSkills.map(
+          (item: any) => Number(item.skillId),
+        ),
       ),
     ];
 
-    const skills = skillIds.length > 0
-      ? await this.prisma.client.orm.public.Skill
-        .where((skill: any) => skill.id.in(skillIds))
-        .all()
-      : [];
+    const skills =
+      skillIds.length > 0
+        ? await this.prisma.client.orm.public.Skill
+          .where((skill: any) =>
+            skill.id.in(skillIds),
+          )
+          .all()
+        : [];
 
-    // Attach media and counts
+    // =====================================
+    // 10. ATTACH MEDIA AND COUNTS
+    // =====================================
+
     const itemsWithMedia = await Promise.all(
       items.map(async (post) => {
         const reactions =
@@ -1068,14 +1299,17 @@ export class PostsService {
 
         return {
           ...post,
-          user: {
-            name: users.find(
-              (user) => user.id === post.userId,
-            )?.name ?? null,
 
-            avatarUrl: userProfiles.find(
-              (profile) => profile.userId === post.userId,
-            )?.avatarUrl ?? null,
+          user: {
+            name:
+              users.find(
+                (user) => user.id === post.userId,
+              )?.name ?? null,
+
+            avatarUrl:
+              userProfiles.find(
+                (profile) => profile.userId === post.userId,
+              )?.avatarUrl ?? null,
           },
 
           media: media.filter(
@@ -1083,10 +1317,14 @@ export class PostsService {
           ),
 
           skills: postSkills
-            .filter((postSkill: any) => postSkill.postId === post.id)
+            .filter(
+              (postSkill: any) =>
+                postSkill.postId === post.id,
+            )
             .map((postSkill: any) => {
               const skill = skills.find(
-                (item: any) => item.id === postSkill.skillId,
+                (item: any) =>
+                  item.id === postSkill.skillId,
               );
 
               return skill
@@ -1115,13 +1353,31 @@ export class PostsService {
       }),
     );
 
+    // =====================================
+    // 11. RESPONSE
+    // =====================================
+
     const lastPost = items[items.length - 1];
 
     return {
       success: true,
+
       feedMode: personalizedFeed.feedMode,
+
       highlightedSkill: personalizedFeed.highlightedSkill,
+
+      // New percentage information
+      skillDistribution:
+        personalizedFeed.skillDistribution.map((item) => ({
+          skillId: item.skillId,
+          skillName: item.skillName,
+          points: item.points,
+          percentage: item.percentage,
+          postsPer10: item.postQuota,
+        })),
+
       data: itemsWithMedia,
+
       pagination: {
         limit: pageSize,
         hasMore,
