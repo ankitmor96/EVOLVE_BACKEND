@@ -215,7 +215,7 @@ export class SkillService {
     }
 
     // =====================================
-    // UPDATE USER SKILL
+    // UPDATE MULTIPLE USER SKILLS
     // =====================================
 
     async updateUserSkill(
@@ -223,6 +223,7 @@ export class SkillService {
         userSkillId: number,
         dto: UpdateUserSkillDto,
     ) {
+        // Find existing user skill
         const userSkill =
             await this.prisma.client.orm.public.UserSkill
                 .where({
@@ -231,33 +232,66 @@ export class SkillService {
                 })
                 .first();
 
-        console.log('PATCH USER SKILL INPUT:', {
-            userId,
-            userSkillId,
-        });
-
-        console.log('FOUND USER SKILL:', userSkill);
-
         if (!userSkill) {
             throw new Error('User skill not found');
         }
 
-        if (dto.skill.length !== 1) {
-            throw new Error(
-                'Only one skill can be updated at a time',
-            );
+        // Validate skill array
+        if (!dto.skill || dto.skill.length === 0) {
+            throw new Error('At least one skill is required');
         }
 
-        return this.prisma.client.orm.public.UserSkill
-            .where({
-                id: userSkillId,
-                userId,
-            })
-            .update({
-                skillId: dto.skill[0],
-                relationshipType: dto.relationshipType,
-            });
+        // Remove duplicate skill IDs
+        const skillIds = [...new Set(dto.skill)];
+
+        // Get existing user skills
+        const existingSkills =
+            await this.prisma.client.orm.public.UserSkill
+                .where({
+                    userId,
+                })
+                .all();
+
+        // Remove old records belonging to the existing
+        // and requested relationship types
+        const recordsToDelete = existingSkills.filter(
+            (item) =>
+                item.relationshipType === userSkill.relationshipType ||
+                item.relationshipType === dto.relationshipType,
+        );
+
+        for (const item of recordsToDelete) {
+            await this.prisma.client.orm.public.UserSkill
+                .where({
+                    id: item.id,
+                    userId,
+                })
+                .delete();
+        }
+
+        // Create updated multiple skills
+        const updatedSkills = [];
+
+        for (const skillId of skillIds) {
+            const skill =
+                await this.prisma.client.orm.public.UserSkill.create({
+                    userId,
+                    skillId,
+                    relationshipType: dto.relationshipType,
+                });
+
+            updatedSkills.push(skill);
+        }
+
+        return {
+            success: true,
+            message: 'User skills updated successfully',
+            relationshipType: dto.relationshipType,
+            skill: skillIds,
+            data: updatedSkills,
+        };
     }
+    
     // =====================================
     // DELETE USER SKILL
     // =====================================
