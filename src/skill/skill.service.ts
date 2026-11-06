@@ -291,7 +291,7 @@ export class SkillService {
             data: updatedSkills,
         };
     }
-    
+
     // =====================================
     // DELETE USER SKILL
     // =====================================
@@ -323,80 +323,91 @@ export class SkillService {
 
 
     // =====================================
-    // GET SKILLS BY SPECIFIC USER ID
+    // GET USER PROFILE SKILLS & IDENTITIES
     // =====================================
 
     async getSkillsByUserId(userId: number) {
-        const user = await this.prisma.client.orm.public.User
-            .where({
-                id: userId,
-            })
-            .first();
 
-        if (!user) {
-            throw new Error('User not found');
-        }
+        // USER IDENTITY
+        const userIdentities =
+            await this.prisma.client.orm.public.UserIdentity
+                .where({ userId })
+                .all();
 
-        const profile = await this.prisma.client.orm.public.UserProfile
-            .where({
-                userId,
-            })
-            .first();
+        const identities = [];
 
-        const userSkills = await this.prisma.client.orm.public.UserSkill
-            .where({
-                userId,
-            })
-            .all();
+        for (const item of userIdentities) {
+            const identityType =
+                await this.prisma.client.orm.public.IdentityType
+                    .where({ id: item.identityTypeId })
+                    .first();
 
-        const skills = [];
-
-        for (const userSkill of userSkills) {
-            const skill = await this.prisma.client.orm.public.Skill
-                .where({
-                    id: userSkill.skillId,
-                })
-                .first();
-
-            skills.push({
-                ...userSkill,
-                skill,
+            identities.push({
+                ...item,
+                identityType,
             });
         }
 
-        const posts = await this.prisma.client.orm.public.Post
-            .where({
-                userId,
-                status: 'PUBLISHED',
-                deletedAt: null,
-            })
-            .all();
-
-        const postsWithMedia = [];
-
-        for (const post of posts) {
-            const media = await this.prisma.client.orm.public.PostMedia
-                .where({
-                    postId: post.id,
-                })
+        // USER CURIOSITY
+        const userCuriosities =
+            await this.prisma.client.orm.public.UserCuriosity
+                .where({ userId })
                 .all();
 
-            postsWithMedia.push({
-                ...post,
-                media,
+        const curiosities = [];
+
+        for (const item of userCuriosities) {
+            const skill =
+                await this.prisma.client.orm.public.Skill
+                    .where({ id: item.skillId })
+                    .first();
+
+            const category = skill
+                ? await this.prisma.client.orm.public.SkillCategory
+                    .where({ id: skill.categoryId })
+                    .first()
+                : null;
+
+            curiosities.push({
+                ...item,
+                skill,
+                category,
+            });
+        }
+
+        // USER SKILLS
+        const userSkills =
+            await this.prisma.client.orm.public.UserSkill
+                .where({ userId })
+                .all();
+
+        const skills = [];
+
+        for (const item of userSkills) {
+            const skill =
+                await this.prisma.client.orm.public.Skill
+                    .where({ id: item.skillId })
+                    .first();
+
+            const category = skill
+                ? await this.prisma.client.orm.public.SkillCategory
+                    .where({ id: skill.categoryId })
+                    .first()
+                : null;
+
+            skills.push({
+                ...item,
+                skill,
+                category,
             });
         }
 
         return {
             success: true,
-            userId: user.id,
-            user: {
-                id: user.id,
-                name: user.name,
-                profile,
-            },
+            userId,
+            identities,
+            curiosities,
             skills,
-            posts: postsWithMedia,
         };
     }
 

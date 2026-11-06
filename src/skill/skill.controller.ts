@@ -4,6 +4,7 @@ import {
     Delete,
     Get,
     Param,
+    ParseIntPipe,
     Patch,
     Post,
     Req,
@@ -180,6 +181,14 @@ export class SkillController {
         return this.skillService.getSkillsByUserId(
             Number(userId),
         );
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('users/:userId/profile-details')
+    async getUserProfileDetails(
+        @Param('userId', ParseIntPipe) userId: number,
+    ) {
+        return this.skillService.getSkillsByUserId(userId);
     }
 
 }
