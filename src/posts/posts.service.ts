@@ -797,7 +797,7 @@ export class PostsService {
     const activeSkillIds = new Set(
       activeSkills.map((skill: any) => Number(skill.id)),
     );
-    console.log("Active Skills:", activeSkillIds);
+    // console.log("Active Skills:", activeSkillIds);
 
     // 4. Keep active onboarding skills
     const onboardingSkillIds = [
@@ -811,6 +811,7 @@ export class PostsService {
     console.log('[FEED CONFIG] User ID:', userId);
     console.log('[FEED CONFIG] Explored Posts:', uniqueExploredPosts.size);
     console.log('[FEED CONFIG] Onboarding Skills:', onboardingSkillIds);
+    console.log("[FEED DEBUG] Raw UserSkills:", userSkills)
 
     // 5. Before 10 unique explorations: INITIAL feed
     if (uniqueExploredPosts.size < 10) {
