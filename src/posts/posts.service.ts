@@ -807,7 +807,11 @@ export class PostsService {
       ),
     ];
 
-    // 5. Before 10 unique explorations: old feed logic
+    console.log('[FEED CONFIG] User ID:', userId);
+    console.log('[FEED CONFIG] Explored Posts:', uniqueExploredPosts.size);
+    console.log('[FEED CONFIG] Onboarding Skills:', onboardingSkillIds);
+
+    // 5. Before 10 unique explorations: INITIAL feed
     if (uniqueExploredPosts.size < 10) {
       return {
         skillIds: onboardingSkillIds,
@@ -833,7 +837,6 @@ export class PostsService {
       }
     }
 
-    // Include onboarding skills even if their points are zero
     const skillPointData = onboardingSkillIds.map((skillId) => {
       const skill = activeSkills.find(
         (item: any) => Number(item.id) === skillId,
@@ -852,7 +855,7 @@ export class PostsService {
       0,
     );
 
-    // 7. If there are no points, use initial feed
+    // 7. If no points, use INITIAL feed
     if (totalPoints <= 0) {
       return {
         skillIds: onboardingSkillIds,
@@ -876,7 +879,7 @@ export class PostsService {
           : a.skillId - b.skillId;
       });
 
-    // 9. Calculate post quota out of 10 using largest remainder
+    // 9. Calculate quota out of 10 using largest remainder
     const quotaData = distribution.map((item) => {
       const exactQuota = (item.percentage / 100) * 10;
 
@@ -894,15 +897,13 @@ export class PostsService {
         0,
       );
 
-    const remainderOrder = [...quotaData].sort(
-      (a, b) => {
-        const difference = b.remainder - a.remainder;
+    const remainderOrder = [...quotaData].sort((a, b) => {
+      const difference = b.remainder - a.remainder;
 
-        return difference !== 0
-          ? difference
-          : b.points - a.points;
-      },
-    );
+      return difference !== 0
+        ? difference
+        : b.points - a.points;
+    });
 
     for (let i = 0; i < remainingPosts; i++) {
       const selected = remainderOrder[i];
@@ -912,7 +913,7 @@ export class PostsService {
       }
     }
 
-    // 10. Prepare category skill IDs for every onboarding skill
+    // 10. Prepare category skill IDs
     const skillDistribution = quotaData.map((item) => {
       const categorySkillIds = activeSkills
         .filter(
@@ -955,9 +956,28 @@ export class PostsService {
     };
   }
 
+  async getFeed(userId: number, cursor?: number | string) {
+    // Normalize and validate user ID
+    userId = Number(userId);
 
-  async getFeed(userId: number, cursor?: number) {
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new BadRequestException('Invalid user ID');
+    }
+
+    const normalizedCursor =
+      cursor === undefined ? undefined : Number(cursor);
+
+    if (
+      normalizedCursor !== undefined &&
+      (!Number.isInteger(normalizedCursor) || normalizedCursor <= 0)
+    ) {
+      throw new BadRequestException('Invalid feed cursor');
+    }
+
     const pageSize = 10;
+
+    console.log('========== FEED REQUEST START ==========');
+    console.log('[FEED] Logged-in User ID:', userId);
 
     // =====================================
     // 1. PERSONALIZED FEED CONFIGURATION
@@ -965,6 +985,9 @@ export class PostsService {
 
     const personalizedFeed =
       await this.getPersonalizedFeedSkillIds(userId);
+
+    console.log('[FEED] Mode:', personalizedFeed.feedMode);
+    console.log('[FEED] Matching Skill IDs:', personalizedFeed.skillIds);
 
     const personalizedPostIds: number[] = [];
 
@@ -985,6 +1008,8 @@ export class PostsService {
       );
     }
 
+    console.log('[FEED] Matching Post IDs:', personalizedPostIds);
+
     // =====================================
     // 2. CONNECTIONS
     // =====================================
@@ -999,14 +1024,16 @@ export class PostsService {
     const connectedUserIds = connections
       .filter(
         (connection) =>
-          connection.requesterId === userId ||
-          connection.receiverId === userId,
+          Number(connection.requesterId) === userId ||
+          Number(connection.receiverId) === userId,
       )
       .map((connection) =>
-        connection.requesterId === userId
-          ? connection.receiverId
-          : connection.requesterId,
+        Number(connection.requesterId) === userId
+          ? Number(connection.receiverId)
+          : Number(connection.requesterId),
       );
+
+    console.log('[FEED] Connected User IDs:', connectedUserIds);
 
     // =====================================
     // 3. FETCH POSTS
@@ -1028,13 +1055,24 @@ export class PostsService {
           .all()
         : [];
 
+    console.log(
+      '[FEED] Fetched Posts:',
+      allPosts.map((post) => ({
+        id: Number(post.id),
+        userId: Number(post.userId),
+        status: post.status,
+        moderation: post.moderation_status,
+        visibility: post.visibility,
+      })),
+    );
+
     // =====================================
     // 4. MODERATION AND VISIBILITY FILTER
     // =====================================
 
     const visiblePosts = allPosts.filter((post) => {
       // Owner can see own posts
-      if (post.userId === userId) {
+      if (Number(post.userId) === userId) {
         return true;
       }
 
@@ -1048,11 +1086,16 @@ export class PostsService {
       }
 
       if (post.visibility === 'CONNECTIONS') {
-        return connectedUserIds.includes(post.userId);
+        return connectedUserIds.includes(Number(post.userId));
       }
 
       return false;
     });
+
+    console.log(
+      '[FEED] Visible Post IDs:',
+      visiblePosts.map((post) => Number(post.id)),
+    );
 
     // =====================================
     // 5. INITIAL OR EXPANDED FEED
@@ -1061,7 +1104,7 @@ export class PostsService {
     let orderedPosts: typeof visiblePosts = [];
 
     if (personalizedFeed.feedMode === 'INITIAL') {
-      // Old INITIAL feed behavior remains unchanged
+      // Existing INITIAL feed behavior
       orderedPosts = visiblePosts;
     } else {
       // =====================================
@@ -1121,7 +1164,9 @@ export class PostsService {
       const getNextPost = (bucketIndex: number) => {
         const bucket = buckets[bucketIndex];
 
-        while (postIndexes[bucketIndex] < bucket.posts.length) {
+        while (
+          postIndexes[bucketIndex] < bucket.posts.length
+        ) {
           const post =
             bucket.posts[postIndexes[bucketIndex]];
 
@@ -1157,8 +1202,8 @@ export class PostsService {
 
         // Fill remaining slots if some buckets have fewer posts
         while (finalFeed.length - beforeCount < pageSize) {
-          let selectedPost: (typeof visiblePosts)[number] | null =
-            null;
+          let selectedPost:
+            (typeof visiblePosts)[number] | null = null;
 
           // Try higher-point skills first
           for (let i = 0; i < buckets.length; i++) {
@@ -1185,17 +1230,18 @@ export class PostsService {
       orderedPosts = finalFeed;
     }
 
+    console.log(
+      '[FEED] Ordered Post IDs:',
+      orderedPosts.map((post) => Number(post.id)),
+    );
+
     // =====================================
     // 6. CURSOR PAGINATION
     // =====================================
 
-    if (cursor !== undefined) {
-      if (!Number.isInteger(cursor) || cursor <= 0) {
-        throw new BadRequestException('Invalid feed cursor');
-      }
-
+    if (normalizedCursor !== undefined) {
       const cursorIndex = orderedPosts.findIndex(
-        (post) => Number(post.id) === cursor,
+        (post) => Number(post.id) === normalizedCursor,
       );
 
       if (cursorIndex === -1) {
@@ -1220,7 +1266,7 @@ export class PostsService {
     // =====================================
 
     const userIds = [
-      ...new Set(items.map((post) => post.userId)),
+      ...new Set(items.map((post) => Number(post.userId))),
     ];
 
     const users =
@@ -1303,28 +1349,31 @@ export class PostsService {
           user: {
             name:
               users.find(
-                (user) => user.id === post.userId,
+                (user) =>
+                  Number(user.id) === Number(post.userId),
               )?.name ?? null,
 
             avatarUrl:
               userProfiles.find(
-                (profile) => profile.userId === post.userId,
+                (profile) =>
+                  Number(profile.userId) === Number(post.userId),
               )?.avatarUrl ?? null,
           },
 
           media: media.filter(
-            (item) => item.postId === post.id,
+            (item) =>
+              Number(item.postId) === Number(post.id),
           ),
 
           skills: postSkills
             .filter(
               (postSkill: any) =>
-                postSkill.postId === post.id,
+                Number(postSkill.postId) === Number(post.id),
             )
             .map((postSkill: any) => {
               const skill = skills.find(
                 (item: any) =>
-                  item.id === postSkill.skillId,
+                  Number(item.id) === Number(postSkill.skillId),
               );
 
               return skill
@@ -1359,6 +1408,14 @@ export class PostsService {
 
     const lastPost = items[items.length - 1];
 
+    console.log(
+      '[FEED] Final Post IDs:',
+      items.map((post) => Number(post.id)),
+    );
+
+    console.log('[FEED] Has More:', hasMore);
+    console.log('========== FEED REQUEST END ==========');
+
     return {
       success: true,
 
@@ -1366,7 +1423,6 @@ export class PostsService {
 
       highlightedSkill: personalizedFeed.highlightedSkill,
 
-      // New percentage information
       skillDistribution:
         personalizedFeed.skillDistribution.map((item) => ({
           skillId: item.skillId,
@@ -1386,7 +1442,6 @@ export class PostsService {
       },
     };
   }
-
 
   async getMyPostsByMediaType(
     userId: number,
@@ -1710,7 +1765,7 @@ export class PostsService {
       myReactions,
     };
   }
-  
+
   // =====================================
   // GET POST LEARNING DETAILS
   // =====================================
