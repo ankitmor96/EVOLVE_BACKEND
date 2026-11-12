@@ -538,4 +538,46 @@ export class PostsController {
             userId,
         );
     }
+
+    // =====================================
+    // GET POSTS BY PROFILE USER ID
+    // =====================================
+
+    @Get('profile/:profileUserId')
+    @UseGuards(JwtAuthGuard)
+    async getProfilePosts(
+        @Param('profileUserId', ParseIntPipe)
+        profileUserId: number,
+
+        @Req() req: any,
+
+        @Query('cursor')
+        cursor?: string,
+    ) {
+        const viewerId = Number(req.user?.userId);
+
+        if (!Number.isInteger(viewerId) || viewerId <= 0) {
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
+        }
+
+        let cursorId: number | undefined;
+
+        if (cursor !== undefined) {
+            cursorId = Number(cursor);
+
+            if (!Number.isInteger(cursorId) || cursorId <= 0) {
+                throw new BadRequestException(
+                    'Cursor must be a positive integer',
+                );
+            }
+        }
+
+        return this.postsService.getProfilePosts(
+            viewerId,
+            profileUserId,
+            cursorId,
+        );
+    }
 }

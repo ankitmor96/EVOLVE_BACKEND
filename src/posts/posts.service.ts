@@ -813,7 +813,7 @@ export class PostsService {
       ...new Set(
         userSkills
           .map((item: any) => Number(item.skillId))
-          // .filter((id: number) => activeSkillIds.has(id)),
+        // .filter((id: number) => activeSkillIds.has(id)),
       ),
     ];
 
@@ -1957,6 +1957,192 @@ export class PostsService {
     return {
       success: true,
       message: 'Post deleted successfully',
+    };
+  }
+
+  // =====================================
+  // GET POSTS BY PROFILE USER ID
+  // =====================================
+
+  async getProfilePosts(
+    viewerId: number,
+    profileUserId: number,
+    cursor?: number,
+  ) {
+    const pageSize = 10;
+
+    if (
+      !Number.isInteger(viewerId) ||
+      viewerId <= 0 ||
+      !Number.isInteger(profileUserId) ||
+      profileUserId <= 0
+    ) {
+      throw new BadRequestException('Invalid user ID');
+    }
+
+    // Check whether the profile owner exists.
+    const profileUser = await this.prisma.client.orm.public.User
+      .where((user) => user.id.eq(profileUserId))
+      .first();
+
+    if (!profileUser) {
+      throw new NotFoundException('Profile user not found');
+    }
+
+    // Check accepted connection between viewer and profile owner.
+    const connections =
+      await this.prisma.client.orm.public.Connection
+        .where((connection) =>
+          connection.status.eq('ACCEPTED'),
+        )
+        .all();
+
+    const isConnected = connections.some(
+      (connection) =>
+        (connection.requesterId === viewerId &&
+          connection.receiverId === profileUserId) ||
+        (connection.requesterId === profileUserId &&
+          connection.receiverId === viewerId),
+    );
+
+    // Fetch only the selected profile user's posts.
+    const allPosts = await this.prisma.client.orm.public.Post
+      .where((post) => post.userId.eq(profileUserId))
+      .where((post) => post.status.eq('PUBLISHED'))
+      .where((post) => post.deletedAt.isNull())
+      .where((post) => post.publishedAt.isNotNull())
+      .orderBy([
+        (post) => post.createdAt.desc(),
+        (post) => post.id.desc(),
+      ])
+      .all();
+
+    // Apply visibility and moderation rules.
+    const visiblePosts = allPosts.filter((post) => {
+      // Profile owner can see their own posts.
+      if (viewerId === profileUserId) {
+        return true;
+      }
+
+      // Other users can only see approved posts.
+      if (post.moderation_status !== 'APPROVED') {
+        return false;
+      }
+
+      // Public posts are visible to everyone.
+      if (post.visibility === 'PUBLIC') {
+        return true;
+      }
+
+      // Connections-only posts require accepted connection.
+      if (post.visibility === 'CONNECTIONS') {
+        return isConnected;
+      }
+
+      return false;
+    });
+
+    // Cursor pagination.
+    let startIndex = 0;
+
+    if (cursor !== undefined) {
+      if (!Number.isInteger(cursor) || cursor <= 0) {
+        throw new BadRequestException('Invalid profile posts cursor');
+      }
+
+      const cursorIndex = visiblePosts.findIndex(
+        (post) => post.id === cursor,
+      );
+
+      if (cursorIndex === -1) {
+        throw new NotFoundException(
+          'Profile posts cursor not found',
+        );
+      }
+
+      startIndex = cursorIndex + 1;
+    }
+
+    const items = visiblePosts.slice(
+      startIndex,
+      startIndex + pageSize,
+    );
+
+    const hasMore =
+      visiblePosts.length > startIndex + pageSize;
+
+    const postIds = items.map((post) => post.id);
+
+    // Fetch profile information.
+    const userProfile =
+      await this.prisma.client.orm.public.UserProfile
+        .where((profile) => profile.userId.eq(profileUserId))
+        .first();
+
+    // Fetch media.
+    const media = postIds.length > 0
+      ? await this.prisma.client.orm.public.PostMedia
+        .where((item) => item.postId.in(postIds))
+        .orderBy((item) => item.position.asc())
+        .all()
+      : [];
+
+    // Attach media and engagement counts.
+    const itemsWithMedia = await Promise.all(
+      items.map(async (post) => {
+        const reactions =
+          await this.prisma.client.orm.public.PostReaction
+            .where({ postId: post.id })
+            .all();
+
+        const learningRecords =
+          await this.prisma.client.orm.public.PostLearning
+            .where({ postId: post.id })
+            .all();
+
+        return {
+          ...post,
+
+          user: {
+            name: profileUser.name ?? null,
+            avatarUrl: userProfile?.avatarUrl ?? null,
+          },
+
+          media: media.filter(
+            (item) => item.postId === post.id,
+          ),
+
+          reactionCounts: {
+            APPRECIATE: reactions.filter(
+              (reaction) =>
+                reaction.reactionType === 'APPRECIATE',
+            ).length,
+
+            HELPFUL: reactions.filter(
+              (reaction) =>
+                reaction.reactionType === 'HELPFUL',
+            ).length,
+          },
+
+          learningCount: learningRecords.length,
+        };
+      }),
+    );
+
+    const lastPost = items[items.length - 1];
+
+    return {
+      success: true,
+      profileUserId,
+      data: itemsWithMedia,
+
+      pagination: {
+        limit: pageSize,
+        hasMore,
+        nextCursor: hasMore && lastPost
+          ? lastPost.id
+          : null,
+      },
     };
   }
 
