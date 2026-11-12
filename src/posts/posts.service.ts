@@ -778,15 +778,24 @@ export class PostsService {
     );
 
     // 2. Get onboarding skills
+    // const userSkills =
+    //   await this.prisma.client.orm.public.UserSkill
+    //     .where({
+    //       userId,
+    //       relationshipType: {
+    //         in: ['CAN_DO', 'LEARNING', 'WANT_TO_IMPROVE'],
+    //       },
+    //     })
+    //     .all();
     const userSkills =
       await this.prisma.client.orm.public.UserSkill
         .where({
-          userId,
-          relationshipType: {
-            in: ['CAN_DO', 'LEARNING', 'WANT_TO_IMPROVE'],
-          },
+          userId: Number(userId),
         })
         .all();
+
+    console.log('[FEED DEBUG] User ID:', userId);
+    console.log('[FEED DEBUG] Raw UserSkills:', userSkills);
 
     // 3. Get active skills
     const activeSkills =
@@ -811,7 +820,7 @@ export class PostsService {
     console.log('[FEED CONFIG] User ID:', userId);
     console.log('[FEED CONFIG] Explored Posts:', uniqueExploredPosts.size);
     console.log('[FEED CONFIG] Onboarding Skills:', onboardingSkillIds);
-    console.log("[FEED DEBUG] Raw UserSkills:", userSkills)
+    // console.log("[FEED DEBUG] Raw UserSkills:", userSkills)
 
     // 5. Before 10 unique explorations: INITIAL feed
     if (uniqueExploredPosts.size < 10) {
