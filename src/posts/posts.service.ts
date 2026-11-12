@@ -797,6 +797,7 @@ export class PostsService {
     const activeSkillIds = new Set(
       activeSkills.map((skill: any) => Number(skill.id)),
     );
+    console.log("Active Skills:", activeSkillIds);
 
     // 4. Keep active onboarding skills
     const onboardingSkillIds = [
