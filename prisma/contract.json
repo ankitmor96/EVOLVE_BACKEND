@@ -4581,7 +4581,8 @@
                 {
                   "columns": [
                     "postId",
-                    "userId"
+                    "userId",
+                    "reactionType"
                   ]
                 }
               ]
@@ -5783,7 +5784,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "0b58a3ff60da679871331f9e880332ee1cf99cd7cae9e7d87e3f4540d0ae16b2"
+    "storageHash": "0507416b6a1d073c29323bf94d7ad95b2793a74b40ab47f3e7f345952033aceb"
   },
   "capabilities": {
     "postgres": {

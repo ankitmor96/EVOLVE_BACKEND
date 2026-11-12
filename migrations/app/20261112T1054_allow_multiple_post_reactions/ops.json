@@ -1,0 +1,86 @@
+[
+  {
+    "id": "dropConstraint.PostReaction.PostReaction_postId_userId_key",
+    "label": "Drop constraint \"PostReaction_postId_userId_key\" on \"PostReaction\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "PostReaction_postId_userId_key",
+        "table": "PostReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PostReaction_postId_userId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostReaction_postId_userId_key",
+          "public",
+          "\"public\".\"PostReaction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop constraint \"PostReaction_postId_userId_key\"",
+        "sql": "ALTER TABLE \"public\".\"PostReaction\" DROP CONSTRAINT \"PostReaction_postId_userId_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"PostReaction_postId_userId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostReaction_postId_userId_key",
+          "public",
+          "\"public\".\"PostReaction\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.PostReaction.PostReaction_postId_userId_reactionType_key",
+    "label": "Add unique constraint on \"PostReaction\" (postId, userId, reactionType)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "PostReaction_postId_userId_reactionType_key",
+        "table": "PostReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PostReaction_postId_userId_reactionType_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostReaction_postId_userId_reactionType_key",
+          "public",
+          "\"public\".\"PostReaction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"PostReaction_postId_userId_reactionType_key\"",
+        "sql": "ALTER TABLE \"public\".\"PostReaction\" ADD CONSTRAINT \"PostReaction_postId_userId_reactionType_key\" UNIQUE (\"postId\", \"userId\", \"reactionType\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"PostReaction_postId_userId_reactionType_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PostReaction_postId_userId_reactionType_key",
+          "public",
+          "\"public\".\"PostReaction\""
+        ]
+      }
+    ]
+  }
+]

@@ -1542,6 +1542,7 @@ export class PostsService {
     };
   }
 
+
   async setPostReaction(
     postId: number,
     userId: number,
@@ -1558,43 +1559,41 @@ export class PostsService {
       throw new NotFoundException('Post not found');
     }
 
+    // Check only the same reaction type
     const existingReaction =
       await this.prisma.client.orm.public.PostReaction
         .where({
           postId,
           userId,
+          reactionType,
         })
         .first();
 
     let reaction;
 
-    if (existingReaction) {
-      reaction = await this.prisma.client.orm.public.PostReaction
-        .where({
+    // Add only if this reaction does not already exist
+    if (!existingReaction) {
+      reaction =
+        await this.prisma.client.orm.public.PostReaction.create({
           postId,
           userId,
-        })
-        .update({
           reactionType,
         });
     } else {
-      reaction = await this.prisma.client.orm.public.PostReaction.create({
-        postId,
-        userId,
-        reactionType,
-      });
+      reaction = existingReaction;
     }
 
-    const reactions = await this.prisma.client.orm.public.PostReaction
-      .where({
-        postId,
-      })
-      .all();
+    // Get updated reaction counts
+    const reactions =
+      await this.prisma.client.orm.public.PostReaction
+        .where({ postId })
+        .all();
 
     const reactionCounts = {
       APPRECIATE: reactions.filter(
         (item) => item.reactionType === 'APPRECIATE',
       ).length,
+
       HELPFUL: reactions.filter(
         (item) => item.reactionType === 'HELPFUL',
       ).length,
@@ -1610,6 +1609,8 @@ export class PostsService {
 
     return reaction;
   }
+
+
   async removePostReaction(
     postId: number,
     userId: number,
@@ -1687,24 +1688,29 @@ export class PostsService {
         })
         .all();
 
-    const myReaction =
-      reactions.find((reaction) => reaction.userId === userId);
+    // Get all reactions made by the logged-in user
+    const myReactions = reactions
+      .filter((reaction) => reaction.userId === userId)
+      .map((reaction) => reaction.reactionType);
 
     return {
       success: true,
       postId,
+
       counts: {
         APPRECIATE: reactions.filter(
           (reaction) => reaction.reactionType === 'APPRECIATE',
         ).length,
+
         HELPFUL: reactions.filter(
           (reaction) => reaction.reactionType === 'HELPFUL',
         ).length,
       },
-      myReaction: myReaction?.reactionType ?? null,
+
+      myReactions,
     };
   }
-
+  
   // =====================================
   // GET POST LEARNING DETAILS
   // =====================================
