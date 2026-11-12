@@ -195,16 +195,16 @@ export class ProfileService {
   // GET PROFILE + IDENTITIES
   // =====================================
 
+
   async getProfile(userId: number) {
     const profile =
       await this.prisma.client.orm.public.UserProfile
         .where({ userId })
         .first();
 
+    // New user has no profile
     if (!profile) {
-      throw new NotFoundException(
-        'User profile not found',
-      );
+      return null;
     }
 
     const userIdentities =
@@ -231,6 +231,7 @@ export class ProfileService {
       identities,
     };
   }
+
 
   // =====================================
   // UPLOAD AVATAR

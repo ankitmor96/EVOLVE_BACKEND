@@ -143,13 +143,20 @@ export class ProfileController {
     // GET PROFILE + IDENTITIES
     // =====================================
 
+
     @UseGuards(JwtAuthGuard)
     @Get()
     async getProfile(@Req() req: any) {
-        return this.profileService.getProfile(
+        const profile = await this.profileService.getProfile(
             req.user.userId,
         );
+
+        return {
+            success: true,
+            data: profile,
+        };
     }
+
 
     // =====================================
     // GET COMPLETE PROFILE
