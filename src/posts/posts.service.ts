@@ -804,7 +804,7 @@ export class PostsService {
       ...new Set(
         userSkills
           .map((item: any) => Number(item.skillId))
-          .filter((id: number) => activeSkillIds.has(id)),
+          // .filter((id: number) => activeSkillIds.has(id)),
       ),
     ];
 
