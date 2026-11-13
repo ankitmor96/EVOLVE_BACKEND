@@ -427,10 +427,90 @@ export class ConnectionsService {
         };
     }
 
+
+    // 8. Get accepted connections of any user
+    async getUserConnections(ownerId: number) {
+        this.validateId(ownerId, 'owner ID');
+
+        // Check whether profile owner exists
+        const owner = await this.prisma.client.orm.public.User
+            .where({ id: ownerId })
+            .first();
+
+        if (!owner) {
+            throw new NotFoundException('User not found');
+        }
+
+        // Get connections sent by owner
+        const sentConnections =
+            await this.prisma.client.orm.public.Connection
+                .where({
+                    requesterId: ownerId,
+                    status: 'ACCEPTED',
+                })
+                .all();
+
+        // Get connections received by owner
+        const receivedConnections =
+            await this.prisma.client.orm.public.Connection
+                .where({
+                    receiverId: ownerId,
+                    status: 'ACCEPTED',
+                })
+                .all();
+
+        const connections = [
+            ...sentConnections,
+            ...receivedConnections,
+        ];
+
+        const data = await Promise.all(
+            connections.map(async (connection) => {
+
+                const isRequester =
+                    Number(connection.requesterId) === ownerId;
+
+                const otherUserId = isRequester
+                    ? Number(connection.receiverId)
+                    : Number(connection.requesterId);
+
+                const otherUser =
+                    await this.prisma.client.orm.public.User
+                        .where({ id: otherUserId })
+                        .first();
+
+                const profile =
+                    await this.prisma.client.orm.public.UserProfile
+                        .where({ userId: otherUserId })
+                        .first();
+
+                return {
+                    connectionId: connection.id,
+                    user: {
+                        id: otherUserId,
+                        name: otherUser?.name ?? null,
+                        username: profile?.username ?? null,
+                        avatarUrl: profile?.avatarUrl ?? null,
+                    },
+                };
+            }),
+        );
+
+        return {
+            success: true,
+            ownerId,
+            totalConnections: data.length,
+            data,
+        };
+    }
+
+
     // Shared ID validation
     private validateId(id: number, fieldName: string) {
         if (!Number.isInteger(id) || id <= 0) {
             throw new BadRequestException(`Invalid ${fieldName}`);
         }
     }
+
+
 }

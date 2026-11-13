@@ -18,8 +18,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @UseGuards(JwtAuthGuard)
 export class ConnectionsController {
     constructor(
-    private readonly connectionsService: ConnectionsService,
-) {}
+        private readonly connectionsService: ConnectionsService,
+    ) { }
 
     // 1. Send connection request
     @Post('request/:userId')
@@ -98,4 +98,14 @@ export class ConnectionsController {
             connectionId,
         );
     }
+
+
+    // 8. Get another user's accepted connections
+    @Get('user/:userId')
+    getUserConnections(
+        @Param('userId', ParseIntPipe) userId: number,
+    ) {
+        return this.connectionsService.getUserConnections(userId);
+    }
+
 }
