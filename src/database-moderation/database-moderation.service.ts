@@ -39,15 +39,15 @@ type ModerationPost = {
 
 type ModerationInput =
   | {
-      type: 'text';
-      text: string;
-    }
+    type: 'text';
+    text: string;
+  }
   | {
-      type: 'image_url';
-      image_url: {
-        url: string;
-      };
+    type: 'image_url';
+    image_url: {
+      url: string;
     };
+  };
 
 // ========================================
 // SERVICE
@@ -55,8 +55,7 @@ type ModerationInput =
 
 @Injectable()
 export class DatabaseModerationService
-  implements OnModuleInit, OnModuleDestroy
-{
+  implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(
     DatabaseModerationService.name,
   );
@@ -151,10 +150,9 @@ export class DatabaseModerationService
       // Fetch PENDING posts
       const pendingPosts =
         await this.prisma.client.orm.public.Post
-          .where({
-            moderation_status: 'PENDING',
-            deletedAt: null,
-          })
+          .where((post) => post.moderation_status.eq('PENDING'))
+          .where((post) => post.deletedAt.isNull())
+          .where((post) => post.postType.neq('VIDEO'))
           .orderBy((post) => post.createdAt.asc())
           .limit(this.batchSize)
           .all();
@@ -162,10 +160,9 @@ export class DatabaseModerationService
       // Fetch REVIEW posts
       const reviewPosts =
         await this.prisma.client.orm.public.Post
-          .where({
-            moderation_status: 'REVIEW',
-            deletedAt: null,
-          })
+          .where((post) => post.moderation_status.eq('REVIEW'))
+          .where((post) => post.deletedAt.isNull())
+          .where((post) => post.postType.neq('VIDEO'))
           .orderBy((post) => post.createdAt.asc())
           .all();
 
@@ -545,8 +542,8 @@ export class DatabaseModerationService
 
           const nextRetryAt = canRetry
             ? Temporal.Now.instant().add({
-                milliseconds: this.retryDelayMs,
-              })
+              milliseconds: this.retryDelayMs,
+            })
             : null;
 
           await this.prisma.client.orm.public.Post

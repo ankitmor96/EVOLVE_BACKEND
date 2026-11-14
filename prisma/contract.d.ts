@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'0507416b6a1d073c29323bf94d7ad95b2793a74b40ab47f3e7f345952033aceb'>;
+  StorageHashBase<'d2fb03a834ee8730b95f3e37490aeedc4b1fd947f59eb90094918d759bb1014b'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -457,6 +457,20 @@ export type FieldOutputTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'];
     };
+    readonly VideoModerationResult: {
+      readonly audioModerationResult: CodecTypes['pg/json@1']['output'] | null;
+      readonly audioTranscript: CodecTypes['pg/text@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly finalStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
+      readonly frameModerationResult: CodecTypes['pg/json@1']['output'] | null;
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly postId: CodecTypes['pg/int4@1']['output'];
+      readonly processingStatus: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+      readonly reasons: CodecTypes['pg/json@1']['output'] | null;
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+      readonly videoUrl: CodecTypes['pg/text@1']['output'];
+    };
   };
 };
 export type FieldInputTypes = {
@@ -668,6 +682,20 @@ export type FieldInputTypes = {
       readonly skillId: CodecTypes['pg/int4@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
+    };
+    readonly VideoModerationResult: {
+      readonly audioModerationResult: CodecTypes['pg/json@1']['input'] | null;
+      readonly audioTranscript: CodecTypes['pg/text@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly finalStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
+      readonly frameModerationResult: CodecTypes['pg/json@1']['input'] | null;
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly postId: CodecTypes['pg/int4@1']['input'];
+      readonly processingStatus: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+      readonly reasons: CodecTypes['pg/json@1']['input'] | null;
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
+      readonly videoUrl: CodecTypes['pg/text@1']['input'];
     };
   };
 };
@@ -881,6 +909,20 @@ export type StorageColumnTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'];
     };
+    readonly VideoModerationResult: {
+      readonly audioModerationResult: CodecTypes['pg/json@1']['output'] | null;
+      readonly audioTranscript: CodecTypes['pg/text@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly finalStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
+      readonly frameModerationResult: CodecTypes['pg/json@1']['output'] | null;
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly postId: CodecTypes['pg/int4@1']['output'];
+      readonly processingStatus: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+      readonly reasons: CodecTypes['pg/json@1']['output'] | null;
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+      readonly videoUrl: CodecTypes['pg/text@1']['output'];
+    };
   };
 };
 export type StorageColumnInputTypes = {
@@ -1093,6 +1135,20 @@ export type StorageColumnInputTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
     };
+    readonly VideoModerationResult: {
+      readonly audioModerationResult: CodecTypes['pg/json@1']['input'] | null;
+      readonly audioTranscript: CodecTypes['pg/text@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly finalStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
+      readonly frameModerationResult: CodecTypes['pg/json@1']['input'] | null;
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly postId: CodecTypes['pg/int4@1']['input'];
+      readonly processingStatus: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+      readonly reasons: CodecTypes['pg/json@1']['input'] | null;
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
+      readonly videoUrl: CodecTypes['pg/text@1']['input'];
+    };
   };
 };
 
@@ -1220,6 +1276,7 @@ export namespace Models {
     reactions: public_PostReaction[];
     skills: public_PostSkill[];
     user: public_User;
+    videoModerationResult: public_VideoModerationResult | null;
     readonly [RelationKeys]?:
       | 'comments'
       | 'learning'
@@ -1228,7 +1285,8 @@ export namespace Models {
       | 'postExplorations'
       | 'reactions'
       | 'skills'
-      | 'user';
+      | 'user'
+      | 'videoModerationResult';
   };
   export type public_PostLearning = {
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -1409,6 +1467,22 @@ export namespace Models {
     user: public_User;
     readonly [RelationKeys]?: 'skill' | 'user';
   };
+  export type public_VideoModerationResult = {
+    audioModerationResult: CodecTypes['pg/json@1']['output'] | null;
+    audioTranscript: CodecTypes['pg/text@1']['output'] | null;
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    finalStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW';
+    frameModerationResult: CodecTypes['pg/json@1']['output'] | null;
+    id: CodecTypes['pg/int4@1']['output'];
+    postId: CodecTypes['pg/int4@1']['output'];
+    processingStatus: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+    reasons: CodecTypes['pg/json@1']['output'] | null;
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    userId: CodecTypes['pg/int4@1']['output'];
+    videoUrl: CodecTypes['pg/text@1']['output'];
+    post: public_Post;
+    readonly [RelationKeys]?: 'post';
+  };
 }
 
 export declare const models: {
@@ -1436,6 +1510,7 @@ export declare const models: {
     UserProfile: Models.public_UserProfile;
     UserSkill: Models.public_UserSkill;
     UserSkillPoint: Models.public_UserSkillPoint;
+    VideoModerationResult: Models.public_VideoModerationResult;
   };
 };
 
@@ -3275,6 +3350,120 @@ type ContractBase = Omit<
                 },
               ];
             };
+            readonly VideoModerationResult: {
+              columns: {
+                readonly audioModerationResult: {
+                  readonly nativeType: 'json';
+                  readonly codecId: 'pg/json@1';
+                  readonly nullable: true;
+                };
+                readonly audioTranscript: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly finalStatus: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'PENDING'>;
+                  };
+                };
+                readonly frameModerationResult: {
+                  readonly nativeType: 'json';
+                  readonly codecId: 'pg/json@1';
+                  readonly nullable: true;
+                };
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly postId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly processingStatus: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'QUEUED'>;
+                  };
+                };
+                readonly reasons: {
+                  readonly nativeType: 'json';
+                  readonly codecId: 'pg/json@1';
+                  readonly nullable: true;
+                };
+                readonly updatedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly userId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly videoUrl: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['postId'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'VideoModerationResult_finalStatus_idx_fb451742';
+                  readonly prefix: 'VideoModerationResult_finalStatus_idx';
+                  readonly columns: readonly ['finalStatus'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'VideoModerationResult_processingStatus_idx_6f216ba4';
+                  readonly prefix: 'VideoModerationResult_processingStatus_idx';
+                  readonly columns: readonly ['processingStatus'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'VideoModerationResult_userId_idx_a489d58a';
+                  readonly prefix: 'VideoModerationResult_userId_idx';
+                  readonly columns: readonly ['userId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'VideoModerationResult';
+                    readonly columns: readonly ['postId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Post';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
           };
           readonly valueSet: {
             readonly ConnectionStatus: {
@@ -3326,6 +3515,10 @@ type ContractBase = Omit<
             readonly SkillRelationshipType: {
               readonly kind: 'valueSet';
               readonly values: readonly ['CAN_DO', 'LEARNING', 'WANT_TO_IMPROVE'];
+            };
+            readonly VideoProcessingStatus: {
+              readonly kind: 'valueSet';
+              readonly values: readonly ['QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED'];
             };
           };
         };
@@ -3402,6 +3595,10 @@ type ContractBase = Omit<
     readonly UserSkillPoint: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'UserSkillPoint';
+    };
+    readonly VideoModerationResult: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'VideoModerationResult';
     };
   };
   readonly domain: {
@@ -4128,6 +4325,18 @@ type ContractBase = Omit<
                 readonly on: {
                   readonly localFields: readonly ['userId'];
                   readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly videoModerationResult: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'VideoModerationResult';
+                };
+                readonly cardinality: '1:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['postId'];
                 };
               };
             };
@@ -5205,6 +5414,93 @@ type ContractBase = Omit<
               };
             };
           };
+          readonly VideoModerationResult: {
+            readonly fields: {
+              readonly audioModerationResult: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/json@1' };
+              };
+              readonly audioTranscript: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly finalStatus: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly frameModerationResult: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/json@1' };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly postId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly processingStatus: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly reasons: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/json@1' };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly userId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly videoUrl: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+            };
+            readonly relations: {
+              readonly post: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'Post' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['postId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'VideoModerationResult';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly audioModerationResult: { readonly column: 'audioModerationResult' };
+                readonly audioTranscript: { readonly column: 'audioTranscript' };
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly finalStatus: { readonly column: 'finalStatus' };
+                readonly frameModerationResult: { readonly column: 'frameModerationResult' };
+                readonly id: { readonly column: 'id' };
+                readonly postId: { readonly column: 'postId' };
+                readonly processingStatus: { readonly column: 'processingStatus' };
+                readonly reasons: { readonly column: 'reasons' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
+                readonly userId: { readonly column: 'userId' };
+                readonly videoUrl: { readonly column: 'videoUrl' };
+              };
+            };
+          };
         };
         readonly enum: {
           readonly ConnectionStatus: {
@@ -5300,6 +5596,15 @@ type ContractBase = Omit<
               { readonly name: 'CAN_DO'; readonly value: 'CAN_DO' },
               { readonly name: 'LEARNING'; readonly value: 'LEARNING' },
               { readonly name: 'WANT_TO_IMPROVE'; readonly value: 'WANT_TO_IMPROVE' },
+            ];
+          };
+          readonly VideoProcessingStatus: {
+            readonly codecId: 'pg/text@1';
+            readonly members: readonly [
+              { readonly name: 'QUEUED'; readonly value: 'QUEUED' },
+              { readonly name: 'PROCESSING'; readonly value: 'PROCESSING' },
+              { readonly name: 'COMPLETED'; readonly value: 'COMPLETED' },
+              { readonly name: 'FAILED'; readonly value: 'FAILED' },
             ];
           };
         };

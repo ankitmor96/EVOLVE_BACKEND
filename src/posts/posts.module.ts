@@ -12,6 +12,7 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ModerationModule } from '../moderation/moderation.module';
+import { DatabaseModerationModule } from '../database-moderation/database-moderation.module';
 
 
 @Module({
@@ -21,6 +22,7 @@ imports: [
   CloudinaryModule,
   NotificationsModule,
   ModerationModule,
+  DatabaseModerationModule,
   BullModule.registerQueue({
     name: 'posts',
   }),

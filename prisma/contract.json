@@ -95,6 +95,10 @@
     "UserSkillPoint": {
       "model": "UserSkillPoint",
       "namespace": "public"
+    },
+    "VideoModerationResult": {
+      "model": "VideoModerationResult",
+      "namespace": "public"
     }
   },
   "domain": {
@@ -313,6 +317,27 @@
               {
                 "name": "WANT_TO_IMPROVE",
                 "value": "WANT_TO_IMPROVE"
+              }
+            ]
+          },
+          "VideoProcessingStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "QUEUED",
+                "value": "QUEUED"
+              },
+              {
+                "name": "PROCESSING",
+                "value": "PROCESSING"
+              },
+              {
+                "name": "COMPLETED",
+                "value": "COMPLETED"
+              },
+              {
+                "name": "FAILED",
+                "value": "FAILED"
               }
             ]
           }
@@ -1448,6 +1473,22 @@
                 },
                 "to": {
                   "model": "User",
+                  "namespace": "public"
+                }
+              },
+              "videoModerationResult": {
+                "cardinality": "1:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "postId"
+                  ]
+                },
+                "to": {
+                  "model": "VideoModerationResult",
                   "namespace": "public"
                 }
               }
@@ -3139,6 +3180,166 @@
               },
               "namespaceId": "public",
               "table": "UserSkillPoint"
+            }
+          },
+          "VideoModerationResult": {
+            "fields": {
+              "audioModerationResult": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "audioTranscript": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "finalStatus": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "ModerationStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "frameModerationResult": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "postId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "processingStatus": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "VideoProcessingStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "reasons": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "videoUrl": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "post": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "postId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Post",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "audioModerationResult": {
+                  "column": "audioModerationResult"
+                },
+                "audioTranscript": {
+                  "column": "audioTranscript"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "finalStatus": {
+                  "column": "finalStatus"
+                },
+                "frameModerationResult": {
+                  "column": "frameModerationResult"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "postId": {
+                  "column": "postId"
+                },
+                "processingStatus": {
+                  "column": "processingStatus"
+                },
+                "reasons": {
+                  "column": "reasons"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "userId": {
+                  "column": "userId"
+                },
+                "videoUrl": {
+                  "column": "videoUrl"
+                }
+              },
+              "namespaceId": "public",
+              "table": "VideoModerationResult"
             }
           }
         }
@@ -5680,6 +5881,171 @@
                   ]
                 }
               ]
+            },
+            "VideoModerationResult": {
+              "checks": [
+                {
+                  "expression": "\"finalStatus\" IN ('PENDING', 'APPROVED', 'REJECTED', 'REVIEW')",
+                  "name": "VideoModerationResult_finalStatus_check_c37955c3",
+                  "prefix": "VideoModerationResult_finalStatus_check"
+                },
+                {
+                  "expression": "\"processingStatus\" IN ('QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED')",
+                  "name": "VideoModerationResult_processingStatus_check_4f901583",
+                  "prefix": "VideoModerationResult_processingStatus_check"
+                }
+              ],
+              "columns": {
+                "audioModerationResult": {
+                  "codecId": "pg/json@1",
+                  "nativeType": "json",
+                  "nullable": true
+                },
+                "audioTranscript": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "finalStatus": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "PENDING"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "ModerationStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "frameModerationResult": {
+                  "codecId": "pg/json@1",
+                  "nativeType": "json",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "postId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "processingStatus": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "QUEUED"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "VideoProcessingStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "reasons": {
+                  "codecId": "pg/json@1",
+                  "nativeType": "json",
+                  "nullable": true
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "videoUrl": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "postId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "VideoModerationResult"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Post"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "finalStatus"
+                  ],
+                  "name": "VideoModerationResult_finalStatus_idx_fb451742",
+                  "prefix": "VideoModerationResult_finalStatus_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "processingStatus"
+                  ],
+                  "name": "VideoModerationResult_processingStatus_idx_6f216ba4",
+                  "prefix": "VideoModerationResult_processingStatus_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "VideoModerationResult_userId_idx_a489d58a",
+                  "prefix": "VideoModerationResult_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "postId"
+                  ]
+                }
+              ]
             }
           },
           "valueSet": {
@@ -5777,6 +6143,15 @@
                 "LEARNING",
                 "WANT_TO_IMPROVE"
               ]
+            },
+            "VideoProcessingStatus": {
+              "kind": "valueSet",
+              "values": [
+                "QUEUED",
+                "PROCESSING",
+                "COMPLETED",
+                "FAILED"
+              ]
             }
           }
         },
@@ -5784,7 +6159,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "0507416b6a1d073c29323bf94d7ad95b2793a74b40ab47f3e7f345952033aceb"
+    "storageHash": "d2fb03a834ee8730b95f3e37490aeedc4b1fd947f59eb90094918d759bb1014b"
   },
   "capabilities": {
     "postgres": {

@@ -39,6 +39,13 @@ enum ModerationStatus {
   REVIEW
 }
 
+enum VideoProcessingStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 enum MediaType {
   IMAGE
   VIDEO
@@ -256,6 +263,7 @@ model Post {
   publishedAt DateTime?
   deletedAt   DateTime?
   moderationResult ModerationResult?
+  videoModerationResult VideoModerationResult?
 
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   media       PostMedia[]
@@ -499,3 +507,28 @@ model UserSkillPoint {
   @@index([skillId])
 }
 
+model VideoModerationResult {
+  id                     Int                   @id @default(autoincrement())
+  postId                 Int                   @unique
+  userId                 Int
+
+  videoUrl               String
+
+  processingStatus       VideoProcessingStatus @default(QUEUED)
+  finalStatus            ModerationStatus      @default(PENDING)
+
+  frameModerationResult  Json?
+  audioTranscript        String?
+  audioModerationResult  Json?
+
+  reasons                Json?
+
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @default(now())
+
+  post                   Post                  @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([processingStatus])
+  @@index([finalStatus])
+}

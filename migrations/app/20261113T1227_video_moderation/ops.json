@@ -1,0 +1,242 @@
+[
+  {
+    "id": "table.VideoModerationResult",
+    "label": "Create table \"VideoModerationResult\"",
+    "summary": "Creates table \"VideoModerationResult\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "VideoModerationResult"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"VideoModerationResult\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"VideoModerationResult\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"VideoModerationResult\"",
+        "sql": "CREATE TABLE \"public\".\"VideoModerationResult\" (\n  \"audioModerationResult\" json,\n  \"audioTranscript\" text,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"finalStatus\" text DEFAULT 'PENDING' NOT NULL,\n  \"frameModerationResult\" json,\n  \"id\" SERIAL NOT NULL,\n  \"postId\" int4 NOT NULL,\n  \"processingStatus\" text DEFAULT 'QUEUED' NOT NULL,\n  \"reasons\" json,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"userId\" int4 NOT NULL,\n  \"videoUrl\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"VideoModerationResult_finalStatus_check_c37955c3\" CHECK (\"finalStatus\" IN ('PENDING', 'APPROVED', 'REJECTED', 'REVIEW')),\n  CONSTRAINT \"VideoModerationResult_processingStatus_check_4f901583\" CHECK (\"processingStatus\" IN ('QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"VideoModerationResult\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"VideoModerationResult\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.VideoModerationResult.VideoModerationResult_postId_key",
+    "label": "Add unique constraint on \"VideoModerationResult\" (postId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "VideoModerationResult_postId_key",
+        "table": "VideoModerationResult"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"VideoModerationResult_postId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "VideoModerationResult_postId_key",
+          "public",
+          "\"public\".\"VideoModerationResult\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"VideoModerationResult_postId_key\"",
+        "sql": "ALTER TABLE \"public\".\"VideoModerationResult\" ADD CONSTRAINT \"VideoModerationResult_postId_key\" UNIQUE (\"postId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"VideoModerationResult_postId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "VideoModerationResult_postId_key",
+          "public",
+          "\"public\".\"VideoModerationResult\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.VideoModerationResult.VideoModerationResult_finalStatus_idx_fb451742",
+    "label": "Create index \"VideoModerationResult_finalStatus_idx_fb451742\" on \"VideoModerationResult\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "VideoModerationResult_finalStatus_idx_fb451742",
+        "table": "VideoModerationResult"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"VideoModerationResult_finalStatus_idx_fb451742\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"VideoModerationResult_finalStatus_idx_fb451742\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"VideoModerationResult_finalStatus_idx_fb451742\"",
+        "sql": "CREATE INDEX \"VideoModerationResult_finalStatus_idx_fb451742\" ON \"public\".\"VideoModerationResult\" (\"finalStatus\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"VideoModerationResult_finalStatus_idx_fb451742\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"VideoModerationResult_finalStatus_idx_fb451742\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.VideoModerationResult.VideoModerationResult_processingStatus_idx_6f216ba4",
+    "label": "Create index \"VideoModerationResult_processingStatus_idx_6f216ba4\" on \"VideoModerationResult\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "VideoModerationResult_processingStatus_idx_6f216ba4",
+        "table": "VideoModerationResult"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"VideoModerationResult_processingStatus_idx_6f216ba4\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"VideoModerationResult_processingStatus_idx_6f216ba4\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"VideoModerationResult_processingStatus_idx_6f216ba4\"",
+        "sql": "CREATE INDEX \"VideoModerationResult_processingStatus_idx_6f216ba4\" ON \"public\".\"VideoModerationResult\" (\"processingStatus\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"VideoModerationResult_processingStatus_idx_6f216ba4\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"VideoModerationResult_processingStatus_idx_6f216ba4\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.VideoModerationResult.VideoModerationResult_userId_idx_a489d58a",
+    "label": "Create index \"VideoModerationResult_userId_idx_a489d58a\" on \"VideoModerationResult\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "VideoModerationResult_userId_idx_a489d58a",
+        "table": "VideoModerationResult"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"VideoModerationResult_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"VideoModerationResult_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"VideoModerationResult_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"VideoModerationResult_userId_idx_a489d58a\" ON \"public\".\"VideoModerationResult\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"VideoModerationResult_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"VideoModerationResult_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.VideoModerationResult.VideoModerationResult_postId_fkey",
+    "label": "Add foreign key \"VideoModerationResult_postId_fkey\" on \"VideoModerationResult\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "VideoModerationResult_postId_fkey",
+        "table": "VideoModerationResult"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"VideoModerationResult_postId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "VideoModerationResult_postId_fkey",
+          "public",
+          "\"public\".\"VideoModerationResult\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"VideoModerationResult_postId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"VideoModerationResult\"\nADD CONSTRAINT \"VideoModerationResult_postId_fkey\"\nFOREIGN KEY (\"postId\")\nREFERENCES \"public\".\"Post\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"VideoModerationResult_postId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "VideoModerationResult_postId_fkey",
+          "public",
+          "\"public\".\"VideoModerationResult\""
+        ]
+      }
+    ]
+  }
+]

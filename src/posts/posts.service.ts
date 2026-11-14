@@ -110,6 +110,37 @@ export class PostsService {
     );
   }
 
+  // =====================================
+  // ADD VIDEO MODERATION JOB TO QUEUE
+  // =====================================
+
+  async enqueueVideoModerationJob(
+    postId: number,
+    userId: number,
+  ) {
+    console.log('Adding video moderation job to queue:', {
+      postId,
+      userId,
+    });
+
+    return this.postsQueue.add(
+      'video-moderation-created',
+      {
+        postId,
+        userId,
+      },
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000,
+        },
+        removeOnComplete: 100,
+        removeOnFail: 500,
+      },
+    );
+  }
+
   private async getUserSkillCategories(userId: number) {
     const userSkills = await this.prisma.client.orm.public.UserSkill
       .where({ userId })
@@ -451,7 +482,7 @@ export class PostsService {
 
 
       await this.enqueuePostJob(postId, userId);
-      await this.enqueueModerationJob(postId, userId);
+      await this.enqueueVideoModerationJob(postId, userId);
 
       // Notify connected clients about the new video post.
       this.postsGateway.emitPostCreated({

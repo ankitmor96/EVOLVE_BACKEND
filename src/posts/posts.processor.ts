@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { ModerationService } from '../moderation/moderation.service';
+import { VideoModerationPipelineService } from '../database-moderation/video/video-moderation-pipeline.service';
 
 interface PostCreatedJob {
   postId: number;
@@ -39,6 +40,7 @@ export class PostsProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly moderationService: ModerationService,
+    private readonly videoModerationPipeline: VideoModerationPipelineService,
   ) {
     super();
 
@@ -330,6 +332,14 @@ export class PostsProcessor extends WorkerHost {
           );
         }
 
+        // Prevent VIDEO posts from entering generic moderation flow
+        if (post.postType === 'VIDEO') {
+          console.warn(
+            `Skipping VIDEO post ${postId} in generic moderation flow`,
+          );
+          break;
+        }
+
         const media =
           await this.prisma.client.orm.public.PostMedia
             .where((item) => item.postId.eq(postId))
@@ -376,6 +386,204 @@ export class PostsProcessor extends WorkerHost {
 
         break;
       }
+
+      // ======================================
+      // VIDEO MODERATION CREATED
+      // ======================================
+
+
+
+      case 'video-moderation-created': {
+        const { postId, userId } = job.data;
+
+        // 1. Validate post
+        const post =
+          await this.prisma.client.orm.public.Post
+            .where({ id: postId, userId })
+            .first();
+
+        if (!post) {
+          throw new Error(
+            `Video post ${postId} not found for user ${userId}`,
+          );
+        }
+
+        if (post.postType !== 'VIDEO') {
+          throw new Error(
+            `Post ${postId} is not a VIDEO post`,
+          );
+        }
+
+        // 2. Get video media
+        const media =
+          await this.prisma.client.orm.public.PostMedia
+            .where((item) => item.postId.eq(postId))
+            .orderBy((item) => item.position.asc())
+            .first();
+
+        if (!media || media.mediaType !== 'VIDEO') {
+          throw new Error(
+            `Video media not found for post ${postId}`,
+          );
+        }
+
+        // 3. Get existing video moderation record
+        let videoResult =
+          await this.prisma.client.orm.public.VideoModerationResult
+            .where({ postId })
+            .first();
+
+        if (videoResult) {
+          if (videoResult.userId !== userId) {
+            throw new Error(
+              `Video moderation owner mismatch for post ${postId}`,
+            );
+          }
+
+          // Already completed: prevent duplicate processing
+          if (videoResult.processingStatus === 'COMPLETED') {
+            console.log(
+              `Video moderation already completed for post ${postId}`,
+            );
+            break;
+          }
+        } else {
+          // 4. Create moderation record
+          videoResult =
+            await this.prisma.client.orm.public.VideoModerationResult
+              .create({
+                postId,
+                userId,
+                videoUrl: String(media.mediaUrl),
+                processingStatus: 'QUEUED',
+                finalStatus: 'PENDING',
+                frameModerationResult: null,
+                audioTranscript: null,
+                audioModerationResult: null,
+                reasons: [],
+              });
+
+          console.log(
+            `Video moderation record created: ${videoResult.id}`,
+          );
+        }
+
+        // 5. Update processing status
+        await this.prisma.client.orm.public.VideoModerationResult
+          .where({ postId, userId })
+          .update({
+            processingStatus: 'PROCESSING',
+          });
+
+        console.log(
+          `Video moderation started for post ${postId}`,
+        );
+
+        try {
+          // 6. Execute video moderation pipeline
+          const summary =
+            await this.videoModerationPipeline.processVideo(
+              postId,
+              userId,
+              String(media.mediaUrl),
+            );
+
+          // 7. Log moderation summary
+          console.log(
+            `Video moderation pipeline completed for post ${postId}`,
+            {
+              finalStatus: summary.finalStatus,
+              totalFrames: summary.frameResults.length,
+              audioModerated: summary.audioResult !== null,
+              reasons: summary.reasons,
+            },
+          );
+
+          // 8. Save video moderation result
+          await this.prisma.client.orm.public.VideoModerationResult
+            .where({ postId, userId })
+            .update({
+              frameModerationResult: summary.frameResults,
+              audioTranscript: summary.audioResult?.transcript ?? null,
+              audioModerationResult: summary.audioResult,
+              reasons: summary.reasons,
+              finalStatus: summary.finalStatus,
+              processingStatus: 'COMPLETED',
+            });
+
+          console.log(
+            `Video moderation result saved for post ${postId}`,
+          );
+
+          // 9. Update main Post moderation status
+          await this.prisma.client.orm.public.Post
+            .where({ id: postId, userId })
+            .update({
+              moderation_status: summary.finalStatus,
+            });
+
+          console.log(
+            `Post moderation status updated to ${summary.finalStatus} for post ${postId}`,
+          );
+
+        } catch (error) {
+          // 10. Handle BullMQ retry
+          const maxAttempts = job.opts.attempts ?? 1;
+
+          const isFinalAttempt =
+            job.attemptsMade + 1 >= maxAttempts;
+
+          console.error(
+            `Video moderation failed for post ${postId}`,
+            {
+              attempt: job.attemptsMade + 1,
+              maxAttempts,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : String(error),
+            },
+          );
+
+          // Only mark FAILED after all retries are exhausted
+          if (isFinalAttempt) {
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : String(error);
+
+            await this.prisma.client.orm.public.VideoModerationResult
+              .where({ postId, userId })
+              .update({
+                processingStatus: 'FAILED',
+                finalStatus: 'REVIEW',
+                reasons: [
+                  `Video moderation failed: ${errorMessage}`,
+                ],
+              });
+
+            await this.prisma.client.orm.public.Post
+              .where({ id: postId, userId })
+              .update({
+                moderation_status: 'REVIEW',
+              });
+
+            console.error(
+              `Video moderation permanently failed for post ${postId}`,
+            );
+          } else {
+            console.log(
+              `Video moderation will be retried for post ${postId}`,
+            );
+          }
+
+          // Important: BullMQ needs this error to trigger retry
+          throw error;
+        }
+
+        break;
+      }
+
 
       default:
         console.warn(
