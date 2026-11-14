@@ -7,6 +7,12 @@ import {
   VideoModerationSummary,
 } from './video-moderation.types';
 
+type TranscriptionStatus =
+  | 'NO_AUDIO'
+  | 'NO_SPEECH'
+  | 'TRANSCRIBED'
+  | 'AUDIO_EXTRACTION_FAILED';
+
 @Injectable()
 export class VideoModerationDecisionService {
   private readonly logger = new Logger(
@@ -18,24 +24,36 @@ export class VideoModerationDecisionService {
     frameResults: FrameModerationResult[];
     audioResult: AudioModerationResult | null;
     hasAudio: boolean;
+    transcriptionStatus: TranscriptionStatus;
   }): VideoModerationSummary {
     const {
       postId,
       frameResults,
       audioResult,
       hasAudio,
+      transcriptionStatus,
     } = input;
 
     const reasons: string[] = [];
 
-    // 1. Check whether frame moderation is complete
+    // 1. Check frame moderation
     if (frameResults.length === 0) {
       reasons.push('No frame moderation results available');
     }
 
-    // 2. Check whether audio moderation is complete
-    if (hasAudio && (!audioResult || !audioResult.transcript.trim())) {
-      reasons.push('Audio moderation result is missing or transcript is empty');
+    // 2. Check audio moderation completeness
+    if (
+      hasAudio &&
+      transcriptionStatus === 'AUDIO_EXTRACTION_FAILED'
+    ) {
+      reasons.push('Audio extraction failed or audio buffer is missing');
+    }
+
+    if (
+      transcriptionStatus === 'TRANSCRIBED' &&
+      !audioResult
+    ) {
+      reasons.push('Transcript moderation result is missing');
     }
 
     // 3. Check flagged video frames
@@ -47,7 +65,9 @@ export class VideoModerationDecisionService {
 
         reasons.push(
           `Frame ${frame.index} flagged: ${
-            categories.length ? categories.join(', ') : 'Harmful content detected'
+            categories.length
+              ? categories.join(', ')
+              : 'Harmful content detected'
           }`,
         );
       }
@@ -61,21 +81,32 @@ export class VideoModerationDecisionService {
 
       reasons.push(
         `Audio flagged: ${
-          categories.length ? categories.join(', ') : 'Harmful content detected'
+          categories.length
+            ? categories.join(', ')
+            : 'Harmful content detected'
         }`,
       );
     }
 
-    // 5. Final moderation decision
-    let finalStatus: 'APPROVED' | 'REJECTED' | 'REVIEW';
-
+    // 5. Determine incomplete moderation
     const incompleteModeration =
       frameResults.length === 0 ||
-      (hasAudio && (!audioResult || !audioResult.transcript.trim()));
+      (
+        hasAudio &&
+        transcriptionStatus === 'AUDIO_EXTRACTION_FAILED'
+      ) ||
+      (
+        transcriptionStatus === 'TRANSCRIBED' &&
+        !audioResult
+      );
 
+    // 6. Check harmful content
     const contentFlagged =
       frameResults.some((frame) => frame.flagged) ||
       Boolean(audioResult?.flagged);
+
+    // 7. Final decision
+    let finalStatus: 'APPROVED' | 'REJECTED' | 'REVIEW';
 
     if (contentFlagged) {
       finalStatus = 'REJECTED';
@@ -84,6 +115,11 @@ export class VideoModerationDecisionService {
     } else {
       finalStatus = 'APPROVED';
     }
+
+    // 8. Audio status logs
+    this.logger.log(
+      `Audio status for post ${postId}: ${transcriptionStatus}`,
+    );
 
     this.logger.log(
       `Video moderation decision for post ${postId}: ${finalStatus}`,

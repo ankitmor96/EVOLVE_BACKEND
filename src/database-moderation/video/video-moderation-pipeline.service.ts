@@ -12,8 +12,15 @@ import { VideoModerationDecisionService } from './video-moderation-decision.serv
 
 import {
   FrameModerationResult,
+  AudioModerationResult,
   VideoModerationSummary,
 } from './video-moderation.types';
+
+type TranscriptionStatus =
+  | 'NO_AUDIO'
+  | 'NO_SPEECH'
+  | 'TRANSCRIBED'
+  | 'AUDIO_EXTRACTION_FAILED';
 
 @Injectable()
 export class VideoModerationPipelineService {
@@ -34,9 +41,11 @@ export class VideoModerationPipelineService {
     userId: number,
     videoUrl: string,
   ): Promise<VideoModerationSummary> {
-    this.logger.log(`Starting video moderation for post ${postId}`);
+    this.logger.log(
+      `Starting video moderation for post ${postId}`,
+    );
 
-    // 1. Extract frames and audio from Cloudinary video
+    // 1. Extract video frames and audio
     const extraction =
       await this.videoModerationService.extractVideoAssets(
         videoUrl,
@@ -53,7 +62,7 @@ export class VideoModerationPipelineService {
         extraction.frames,
       );
 
-    // 3. Moderate frame batches using OpenAI
+    // 3. Moderate video frames
     const frameResults: FrameModerationResult[] = [];
 
     for (const batch of frameBatches) {
@@ -66,20 +75,55 @@ export class VideoModerationPipelineService {
       frameResults.push(...results);
     }
 
-    // 4. Transcribe audio
+    // 4. Initialize audio status
     let transcript = '';
 
-    if (extraction.audioBuffer && extraction.hasAudio) {
-      transcript = await this.videoAudioService.transcribeAudio(
-        extraction.audioBuffer,
-        postId,
-      );
+    let transcriptionStatus: TranscriptionStatus =
+      extraction.hasAudio
+        ? 'AUDIO_EXTRACTION_FAILED'
+        : 'NO_AUDIO';
+
+    // 5. Transcribe audio when audio stream exists
+    if (extraction.hasAudio) {
+      if (
+        extraction.audioBuffer &&
+        extraction.audioBuffer.length > 0
+      ) {
+        const transcriptionResult =
+          await this.videoAudioService.transcribeAudio(
+            extraction.audioBuffer,
+            postId,
+          );
+
+        transcriptionStatus = transcriptionResult.status;
+
+        if (transcriptionResult.status === 'TRANSCRIBED') {
+          transcript = transcriptionResult.transcript;
+
+          this.logger.log(
+            `Speech transcript received for post ${postId}`,
+          );
+        } else {
+          transcript = '';
+
+          this.logger.log(
+            `No transcript received for post ${postId}. Audio moderation will be skipped.`,
+          );
+        }
+      } else {
+        this.logger.error(
+          `Audio stream exists but audio buffer is missing for post ${postId}`,
+        );
+      }
     }
 
-    // 5. Moderate audio transcript using OpenAI
-    let audioResult = null;
+    // 6. Moderate transcript only when speech transcript exists
+    let audioResult: AudioModerationResult | null = null;
 
-    if (extraction.hasAudio && transcript.trim()) {
+    if (
+      transcriptionStatus === 'TRANSCRIBED' &&
+      transcript.trim()
+    ) {
       audioResult =
         await this.videoOpenAIService.moderateTranscript(
           transcript,
@@ -87,12 +131,13 @@ export class VideoModerationPipelineService {
         );
     }
 
-    // 6. Generate final moderation decision
+    // 7. Generate final moderation decision
     const summary = this.decisionService.evaluateVideo({
       postId,
       frameResults,
       audioResult,
       hasAudio: extraction.hasAudio,
+      transcriptionStatus,
     });
 
     this.logger.log(
