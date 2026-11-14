@@ -2,13 +2,11 @@
 import {
   WebSocketGateway,
   WebSocketServer,
-  SubscribeMessage,
-  ConnectedSocket,
-  MessageBody,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
 } from '@nestjs/websockets';
 
 import { JwtService } from '@nestjs/jwt';
-
 import { Socket, Server } from 'socket.io';
 
 @WebSocketGateway({
@@ -17,9 +15,10 @@ import { Socket, Server } from 'socket.io';
     credentials: true,
   },
 })
-export class PostsGateway {
-
-  constructor(private readonly jwtService: JwtService) { }
+export class PostsGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
+  constructor(private readonly jwtService: JwtService) {}
 
   @WebSocketServer()
   server!: Server;
@@ -36,14 +35,60 @@ export class PostsGateway {
   private pendingCommentUpdates: unknown[] = [];
   private commentUpdatesFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
-  // Socket connect thay tyare
-  handleConnection(client: Socket): void {
-    console.log('🔌 Socket connected:', client.id);
+  // =========================
+  // SOCKET AUTHENTICATION
+  // =========================
+
+  async handleConnection(client: Socket): Promise<void> {
+    try {
+      const token = client.handshake.auth?.token;
+
+      if (typeof token !== 'string' || !token) {
+        throw new Error('Socket JWT token is missing');
+      }
+
+      const payload = this.jwtService.verify(token);
+
+      const userId = Number(
+        payload.sub ?? payload.id ?? payload.userId,
+      );
+
+      if (!Number.isInteger(userId) || userId <= 0) {
+        throw new Error('Invalid user ID in JWT');
+      }
+
+      client.data.userId = userId;
+
+      await client.join(`user:${userId}`);
+
+      console.log(
+        `🔐 Socket authenticated: ${client.id}, User: ${userId}`,
+      );
+    } catch (error) {
+      console.error('❌ Socket authentication failed:', error);
+      client.disconnect(true);
+    }
   }
 
-  // Socket disconnect thay tyare
   handleDisconnect(client: Socket): void {
     console.log('🔌 Socket disconnected:', client.id);
+  }
+
+  // =========================
+  // PRIVATE MESSAGING EVENT
+  // =========================
+
+  emitNewMessage(
+    receiverId: number | string,
+    data: unknown,
+  ): void {
+    this.server
+      .to(`user:${receiverId}`)
+      .emit('message:new', data);
+
+    console.log(
+      `📨 New message emitted to user:${receiverId}`,
+    );
   }
 
   // =========================

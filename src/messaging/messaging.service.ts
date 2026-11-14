@@ -9,12 +9,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { Temporal } from '@js-temporal/polyfill';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PostsGateway } from '../posts/posts.gateway';
 
 @Injectable()
 export class MessagingService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly notificationsService: NotificationsService,
+        private readonly postsGateway: PostsGateway,
     ) { }
 
     private async getConnectionStatus(
@@ -455,6 +457,7 @@ export class MessagingService {
     }
 
     // 6. Send a message
+
     async sendMessage(
         currentUserId: number,
         conversationId: number,
@@ -479,6 +482,7 @@ export class MessagingService {
             );
         }
 
+        // 1. Save message in database
         const message =
             await this.prisma.client.orm.public.Message.create({
                 conversationId,
@@ -486,28 +490,44 @@ export class MessagingService {
                 content: text,
             });
 
+        // 2. Update conversation timestamp
         await this.prisma.client.orm.public.Conversation
             .where({ id: conversationId })
             .update({
                 updatedAt: Temporal.Now.instant(),
             });
 
-
+        // 3. Get conversation participants
         const participants =
             await this.getConversationParticipants(conversationId);
 
+        // 4. Find receiver
         const receiver = participants.find(
-            (participant) => Number(participant.userId) !== currentUserId,
+            (participant) =>
+                Number(participant.userId) !== currentUserId,
         );
 
         if (receiver) {
+            const receiverId = Number(receiver.userId);
+
+            // 5. Send realtime Socket.IO event
+            this.postsGateway.emitNewMessage(receiverId, {
+                conversationId,
+                message: {
+                    id: message.id,
+                    senderId: currentUserId,
+                    content: text,
+                    createdAt: message.createdAt,
+                },
+            });
+
+            // 6. Create existing notification
             await this.notificationsService.createMessageNotification(
-                Number(receiver.userId),
+                receiverId,
                 currentUserId,
                 conversationId,
             );
         }
-
 
         return {
             success: true,
@@ -515,6 +535,7 @@ export class MessagingService {
             data: message,
         };
     }
+
 
     // 7. Mark incoming messages as read
     async markMessagesRead(

@@ -1,13 +1,22 @@
 
 import { Module } from '@nestjs/common';
+
 import { MessagingService } from './messaging.service';
 import { MessagingController } from './messaging.controller';
-import { PrismaService } from '../prisma/prisma.service';
+
 import { NotificationsModule } from '../notifications/notifications.module';
+import { PostsModule } from '../posts/posts.module';
 
 @Module({
-  imports: [NotificationsModule],
-  providers: [MessagingService, PrismaService],
-  controllers: [MessagingController],
+  imports: [
+    NotificationsModule,
+    PostsModule,
+  ],
+  providers: [
+    MessagingService,
+  ],
+  controllers: [
+    MessagingController,
+  ],
 })
 export class MessagingModule {}
