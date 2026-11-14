@@ -25,6 +25,7 @@ import { MessagingModule } from './messaging/messaging.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { LearningModule } from './learning/learning.module';
 import { DatabaseModerationModule } from './database-moderation/database-moderation.module';
+import { DiscoverModule } from './discover/discover.module';
 
 
 
@@ -99,6 +100,8 @@ import { DatabaseModerationModule } from './database-moderation/database-moderat
     LearningModule,
 
     DatabaseModerationModule,
+
+    DiscoverModule,
   ],
 
 

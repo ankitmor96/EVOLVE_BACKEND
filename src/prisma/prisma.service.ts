@@ -12,9 +12,25 @@ export class PrismaService implements OnModuleInit {
   });
 
   async onModuleInit() {
-    await this.db.connect();
+    try {
+      console.log('Checking database connection...');
+      console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
 
-    console.log('✅ Database connected successfully');
+      await this.db.connect();
+
+      console.log('Database connected successfully');
+    } catch (error) {
+      console.error('Database initialization failed:', error);
+
+      if (error instanceof Error) {
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error cause:', error.cause);
+        console.error('Error stack:', error.stack);
+      }
+
+      throw error;
+    }
   }
 
   get client() {

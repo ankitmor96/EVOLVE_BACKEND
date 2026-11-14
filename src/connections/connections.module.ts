@@ -9,5 +9,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
   imports: [PostsModule, NotificationsModule],
   providers: [ConnectionsService],
   controllers: [ConnectionsController],
+  exports: [ConnectionsService],
 })
-export class ConnectionsModule {}
+export class ConnectionsModule { }
