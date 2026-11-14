@@ -4,6 +4,7 @@ import {
   Get,
   Req,
   Query,
+  Param,
   UseGuards,
   DefaultValuePipe,
   ParseIntPipe,
@@ -21,6 +22,7 @@ export class DiscoverController {
     private readonly discoverService: DiscoverService,
   ) {}
 
+  // 1. Get accepted connections posts
   @Get('connections/posts')
   getConnectionsPosts(
     @Req() req: Request & {
@@ -34,7 +36,31 @@ export class DiscoverController {
     cursor?: string,
   ) {
     return this.discoverService.getConnectionsPosts(
-      req.user.userId,
+      Number(req.user.userId),
+      limit,
+      cursor,
+    );
+  }
+
+  // 2. Get posts by selected skill
+  @Get('skills/:skillId/posts')
+  getSkillPosts(
+    @Req() req: Request & {
+      user: { userId: number };
+    },
+
+    @Param('skillId', ParseIntPipe)
+    skillId: number,
+
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe)
+    limit: number,
+
+    @Query('cursor')
+    cursor?: string,
+  ) {
+    return this.discoverService.getSkillPosts(
+      Number(req.user.userId),
+      skillId,
       limit,
       cursor,
     );
