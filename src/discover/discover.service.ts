@@ -644,124 +644,108 @@ export class DiscoverService {
     }
 
     // =========================
-// 4. SKILL POST COUNTS
-// =========================
+    // 4. SKILL POST COUNTS
+    // =========================
 
-async getSkillPostCounts(userId: number) {
+    async getSkillPostCounts(userId: number) {
 
-    // 1. Validate user ID
-    if (!Number.isInteger(userId) || userId <= 0) {
-        throw new BadRequestException('Invalid user ID');
-    }
-
-    // 2. Get user's selected curiosities
-    const curiosities =
-        await this.prisma.client.orm.public.UserCuriosity
-            .where({ userId })
-            .all();
-
-    const skillIds = [
-        ...new Set(
-            curiosities.map((item) => Number(item.skillId)),
-        ),
-    ];
-
-    if (skillIds.length === 0) {
-        return {
-            success: true,
-            message: 'No selected curiosities found',
-            totalCuriosities: 0,
-            data: [],
-        };
-    }
-
-    // 3. Get selected skills
-    const skills =
-        await this.prisma.client.orm.public.Skill
-            .where((skill) => skill.id.in(skillIds))
-            .all();
-
-    // 4. Get posts connected to selected skills
-    const postSkills =
-        await this.prisma.client.orm.public.PostSkill
-            .where((item) => item.skillId.in(skillIds))
-            .all();
-
-    // 5. Get unique post IDs
-    const postIds = [
-        ...new Set(
-            postSkills.map((item) => Number(item.postId)),
-        ),
-    ];
-
-    // 6. Get accepted connections
-    const connections =
-        await this.connectionsService.getMyConnections(userId);
-
-    const connectionUserIds = new Set<number>(
-        connections.data.map(
-            (connection) => Number(connection.user.id),
-        ),
-    );
-
-    // 7. Fetch eligible posts
-    const allPosts = postIds.length > 0
-        ? await this.prisma.client.orm.public.Post
-            .where((post) => post.id.in(postIds))
-            .where((post) => post.status.eq('PUBLISHED'))
-            .where((post) => post.moderation_status.eq('APPROVED'))
-            .where((post) => post.deletedAt.isNull())
-            .all()
-        : [];
-
-    // 8. Apply visibility permissions
-    const eligiblePosts = allPosts.filter((post) => {
-        const authorId = Number(post.userId);
-
-        if (post.visibility === 'PUBLIC') {
-            return true;
+        // 1. Validate user ID
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new BadRequestException('Invalid user ID');
         }
 
-        if (post.visibility === 'CONNECTIONS') {
-            return (
-                authorId === userId ||
-                connectionUserIds.has(authorId)
-            );
-        }
+        // 2. Get all available skills
+        const skills =
+            await this.prisma.client.orm.public.Skill
+                .all();
 
-        return false;
-    });
-
-    // 9. Create eligible post ID set
-    const eligiblePostIds = new Set(
-        eligiblePosts.map((post) => Number(post.id)),
-    );
-
-    // 10. Count posts for each selected skill
-    const data = skills.map((skill) => {
-        const uniqueSkillPostIds = new Set(
-            postSkills
-                .filter(
-                    (item) => Number(item.skillId) === Number(skill.id),
-                )
-                .map((item) => Number(item.postId))
-                .filter((postId) => eligiblePostIds.has(postId)),
+        const skillIds = skills.map(
+            (skill) => Number(skill.id),
         );
 
-        return {
-            skillId: skill.id,
-            skillName: skill.name,
-            postCount: uniqueSkillPostIds.size,
-        };
-    });
+        // 3. Get posts connected to all skills
+        const postSkills = skillIds.length > 0
+            ? await this.prisma.client.orm.public.PostSkill
+                .where((item) => item.skillId.in(skillIds))
+                .all()
+            : [];
 
-    // 11. Final response
-    return {
-        success: true,
-        message: 'Skill post counts fetched successfully',
-        totalCuriosities: skillIds.length,
-        data,
-    };
-}
+        // 4. Get unique post IDs
+        const postIds = [
+            ...new Set(
+                postSkills.map((item) => Number(item.postId)),
+            ),
+        ];
+
+        // 5. Get accepted connections
+        const connections =
+            await this.connectionsService.getMyConnections(userId);
+
+        const connectionUserIds = new Set<number>(
+            connections.data.map(
+                (connection) => Number(connection.user.id),
+            ),
+        );
+
+        // 6. Fetch eligible posts
+        const allPosts = postIds.length > 0
+            ? await this.prisma.client.orm.public.Post
+                .where((post) => post.id.in(postIds))
+                .where((post) => post.status.eq('PUBLISHED'))
+                .where((post) => post.moderation_status.eq('APPROVED'))
+                .where((post) => post.deletedAt.isNull())
+                .all()
+            : [];
+
+        // 7. Apply visibility permissions
+        const eligiblePosts = allPosts.filter((post) => {
+            const authorId = Number(post.userId);
+
+            if (post.visibility === 'PUBLIC') {
+                return true;
+            }
+
+            if (post.visibility === 'CONNECTIONS') {
+                return (
+                    authorId === userId ||
+                    connectionUserIds.has(authorId)
+                );
+            }
+
+            return false;
+        });
+
+        // 8. Create eligible post ID set
+        const eligiblePostIds = new Set(
+            eligiblePosts.map((post) => Number(post.id)),
+        );
+
+        // 9. Count posts for each available skill
+        const data = skills.map((skill) => {
+
+            const uniqueSkillPostIds = new Set(
+                postSkills
+                    .filter(
+                        (item) => Number(item.skillId) === Number(skill.id),
+                    )
+                    .map((item) => Number(item.postId))
+                    .filter((postId) => eligiblePostIds.has(postId)),
+            );
+
+            return {
+                skillId: skill.id,
+                skillName: skill.name,
+                postCount: uniqueSkillPostIds.size,
+            };
+        });
+
+        // 10. Final response
+        return {
+            success: true,
+            message: 'Skill post counts fetched successfully',
+            totalSkills: skills.length,
+            data,
+        };
+    }
 
 }
