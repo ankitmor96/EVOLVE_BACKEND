@@ -20,7 +20,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class DiscoverController {
   constructor(
     private readonly discoverService: DiscoverService,
-  ) {}
+  ) { }
 
   // 1. Get accepted connections posts
   @Get('connections/posts')
@@ -84,6 +84,18 @@ export class DiscoverController {
       Number(req.user.userId),
       limit,
       cursor,
+    );
+  }
+
+  // 4. Get post counts for selected curiosities
+  @Get('skills/counts')
+  getSkillPostCounts(
+    @Req() req: Request & {
+      user: { userId: number };
+    },
+  ) {
+    return this.discoverService.getSkillPostCounts(
+      Number(req.user.userId),
     );
   }
 
