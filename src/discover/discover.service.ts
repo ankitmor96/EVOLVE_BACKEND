@@ -752,7 +752,7 @@ export class DiscoverService {
             hasMore,
             nextCursor,
 
-            data: await this.attachMediaToPosts(
+            data: await this.attachMediaUserAndReactions(
                 pagePosts.map((item) => item.post),
             ),
         };
