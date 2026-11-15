@@ -93,6 +93,121 @@ export class DiscoverService {
     }
 
 
+    private async attachMediaUserAndReactions(posts: any[]) {
+        if (posts.length === 0) {
+            return [];
+        }
+
+        const postIds = posts.map((post) => Number(post.id));
+
+        // 1. Fetch media
+        const mediaList =
+            await this.prisma.client.orm.public.PostMedia
+                .where((media) => media.postId.in(postIds))
+                .all();
+
+        const mediaMap = new Map<number, any[]>();
+
+        for (const media of mediaList) {
+            const postId = Number(media.postId);
+
+            if (!mediaMap.has(postId)) {
+                mediaMap.set(postId, []);
+            }
+
+            mediaMap.get(postId)!.push(media);
+        }
+
+        // 2. Fetch post authors' usernames
+        const userIds = [
+            ...new Set(posts.map((post) => Number(post.userId))),
+        ];
+
+        const profiles =
+            await this.prisma.client.orm.public.UserProfile
+                .where((profile) => profile.userId.in(userIds))
+                .all();
+
+        const usernameMap = new Map<number, string>();
+
+        for (const profile of profiles) {
+            usernameMap.set(
+                Number(profile.userId),
+                String(profile.username),
+            );
+        }
+
+        // 3. Fetch reactions
+        const reactionList =
+            await this.prisma.client.orm.public.PostReaction
+                .where((reaction) => reaction.postId.in(postIds))
+                .all();
+
+        const reactionMap = new Map<number, any>();
+
+        for (const reaction of reactionList) {
+            const postId = Number(reaction.postId);
+
+            if (!reactionMap.has(postId)) {
+                reactionMap.set(postId, {
+                    APPRECIATE: 0,
+                    HELPFUL: 0,
+                    LEARNED: 0,
+                });
+            }
+
+            const counts = reactionMap.get(postId);
+
+            const reactionType = String(reaction.reactionType);
+
+            if (
+                reactionType === 'APPRECIATE' ||
+                reactionType === 'HELPFUL' ||
+                reactionType === 'LEARNED'
+            ) {
+                counts[reactionType]++;
+            }
+        }
+
+        // 4. Final response
+        return posts.map((post) => {
+            const postId = Number(post.id);
+            const authorId = Number(post.userId);
+
+            const counts = reactionMap.get(postId) ?? {};
+
+            const reactions = Object.fromEntries(
+                Object.entries(counts).filter(
+                    ([, count]) => Number(count) > 0,
+                ),
+            );
+
+            return {
+                ...post,
+
+                userName: usernameMap.get(authorId) ?? null,
+
+                reactions,
+
+                media: (mediaMap.get(postId) ?? [])
+                    .sort(
+                        (a, b) =>
+                            Number(a.position) - Number(b.position),
+                    )
+                    .map((item) => ({
+                        id: item.id,
+                        mediaType: item.mediaType,
+                        mediaUrl: item.mediaUrl,
+                        thumbnailUrl: item.thumbnailUrl,
+                        altText: item.altText,
+                        position: item.position,
+                    })),
+            };
+        });
+    }
+
+
+
     // =========================
     // CONNECTION CURSOR
     // =========================
@@ -276,7 +391,7 @@ export class DiscoverService {
             limit,
             hasMore,
             nextCursor,
-            data: await this.attachMediaToPosts(
+            data: await this.attachMediaUserAndReactions(
                 pagePosts.map((item) => item.post),
             ),
         };
@@ -452,7 +567,7 @@ export class DiscoverService {
             hasMore,
             nextCursor,
 
-            data: await this.attachMediaToPosts(
+            data: await this.attachMediaUserAndReactions(
                 pagePosts.map((item) => item.post),
             ),
         };
