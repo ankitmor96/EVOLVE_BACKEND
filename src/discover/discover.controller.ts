@@ -65,4 +65,26 @@ export class DiscoverController {
       cursor,
     );
   }
+
+
+  // 3. Get posts based on user's selected curiosities
+  @Get('curiosities/posts')
+  getCuriosityPosts(
+    @Req() req: Request & {
+      user: { userId: number };
+    },
+
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe)
+    limit: number,
+
+    @Query('cursor')
+    cursor?: string,
+  ) {
+    return this.discoverService.getCuriosityPosts(
+      Number(req.user.userId),
+      limit,
+      cursor,
+    );
+  }
+
 }

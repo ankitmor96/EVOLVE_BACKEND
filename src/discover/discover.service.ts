@@ -457,4 +457,189 @@ export class DiscoverService {
             ),
         };
     }
+
+    // =========================
+    // 3. CURIOSITY BASED POSTS
+    // =========================
+
+    async getCuriosityPosts(
+        userId: number,
+        limit = 10,
+        cursor?: string,
+    ) {
+        // 1. Validate user ID
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new BadRequestException('Invalid user ID');
+        }
+
+        // 2. Validate limit
+        if (!Number.isInteger(limit) || limit <= 0) {
+            throw new BadRequestException(
+                'Limit must be greater than zero',
+            );
+        }
+
+        limit = Math.min(limit, 50);
+
+        // 3. Get user's selected curiosities
+        const curiosities =
+            await this.prisma.client.orm.public.UserCuriosity
+                .where({ userId })
+                .all();
+
+        const skillIds = [
+            ...new Set(
+                curiosities.map((item) => Number(item.skillId)),
+            ),
+        ];
+
+        if (skillIds.length === 0) {
+            return {
+                success: true,
+                message: 'No selected curiosities found',
+                totalCuriosities: 0,
+                totalPosts: 0,
+                limit,
+                hasMore: false,
+                nextCursor: null,
+                data: [],
+            };
+        }
+
+        // 4. Decode cursor or generate new seed
+        const paginationCursor = cursor
+            ? this.decodeCursor(cursor)
+            : null;
+
+        const seed = paginationCursor?.seed ?? randomUUID();
+
+        // 5. Find all posts connected to selected curiosities
+        const postSkills =
+            await this.prisma.client.orm.public.PostSkill
+                .where((item) => item.skillId.in(skillIds))
+                .all();
+
+        const postIds = [
+            ...new Set(
+                postSkills.map((item) => Number(item.postId)),
+            ),
+        ];
+
+        if (postIds.length === 0) {
+            return {
+                success: true,
+                message: 'No posts found for selected curiosities',
+                totalCuriosities: skillIds.length,
+                totalPosts: 0,
+                limit,
+                hasMore: false,
+                nextCursor: null,
+                data: [],
+            };
+        }
+
+        // 6. Get accepted connections
+        const connections =
+            await this.connectionsService.getMyConnections(userId);
+
+        const connectionUserIds = new Set<number>(
+            connections.data.map(
+                (connection) => Number(connection.user.id),
+            ),
+        );
+
+        // 7. Fetch matching posts
+        const allPosts =
+            await this.prisma.client.orm.public.Post
+                .where((post) => post.id.in(postIds))
+                .where((post) => post.status.eq('PUBLISHED'))
+                .where((post) => post.moderation_status.eq('APPROVED'))
+                .where((post) => post.deletedAt.isNull())
+                .all();
+
+        // 8. Apply visibility permissions
+        const posts = allPosts.filter((post) => {
+            const authorId = Number(post.userId);
+
+            if (post.visibility === 'PUBLIC') {
+                return true;
+            }
+
+            if (post.visibility === 'CONNECTIONS') {
+                return (
+                    authorId === userId ||
+                    connectionUserIds.has(authorId)
+                );
+            }
+
+            // PRIVATE posts are not included
+            return false;
+        });
+
+        // 9. Generate stable random ordering
+        const randomizedPosts = posts
+            .map((post) => ({
+                post,
+                hash: this.generateHash(seed, Number(post.id)),
+            }))
+            .sort((a, b) => {
+                if (a.hash !== b.hash) {
+                    return a.hash - b.hash;
+                }
+
+                return Number(a.post.id) - Number(b.post.id);
+            });
+
+        // 10. Apply cursor pagination
+        const remainingPosts = paginationCursor
+            ? randomizedPosts.filter((item) => {
+                return (
+                    item.hash > paginationCursor.lastHash ||
+                    (
+                        item.hash === paginationCursor.lastHash &&
+                        Number(item.post.id) >
+                        paginationCursor.lastPostId
+                    )
+                );
+            })
+            : randomizedPosts;
+
+        // 11. Fetch limit + 1
+        const selectedPosts = remainingPosts.slice(0, limit + 1);
+
+        const hasMore = selectedPosts.length > limit;
+
+        const pagePosts = selectedPosts.slice(0, limit);
+
+        // 12. Generate next cursor
+        let nextCursor: string | null = null;
+
+        if (hasMore && pagePosts.length > 0) {
+            const lastPost = pagePosts[pagePosts.length - 1];
+
+            nextCursor = this.encodeCursor({
+                version: 1,
+                seed,
+                lastHash: lastPost.hash,
+                lastPostId: Number(lastPost.post.id),
+            });
+        }
+
+        // 13. Final response
+        return {
+            success: true,
+            message: 'Curiosity posts fetched successfully',
+
+            totalCuriosities: skillIds.length,
+            totalPosts: posts.length,
+
+            limit,
+            hasMore,
+            nextCursor,
+
+            data: await this.attachMediaToPosts(
+                pagePosts.map((item) => item.post),
+            ),
+        };
+    }
 }
