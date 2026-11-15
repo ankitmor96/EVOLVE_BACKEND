@@ -49,6 +49,50 @@ export class DiscoverService {
         return hash >>> 0;
     }
 
+
+
+    private async attachMediaToPosts(posts: any[]) {
+        if (posts.length === 0) {
+            return [];
+        }
+
+        const postIds = posts.map((post) => Number(post.id));
+
+        const mediaList =
+            await this.prisma.client.orm.public.PostMedia
+                .where((media) => media.postId.in(postIds))
+                .all();
+
+        const mediaMap = new Map<number, any[]>();
+
+        for (const media of mediaList) {
+            const postId = Number(media.postId);
+
+            if (!mediaMap.has(postId)) {
+                mediaMap.set(postId, []);
+            }
+
+            mediaMap.get(postId)!.push(media);
+        }
+
+        return posts.map((post) => ({
+            ...post,
+            media: (mediaMap.get(Number(post.id)) ?? [])
+                .sort(
+                    (a, b) => Number(a.position) - Number(b.position),
+                )
+                .map((item) => ({
+                    id: item.id,
+                    mediaType: item.mediaType,
+                    mediaUrl: item.mediaUrl,
+                    thumbnailUrl: item.thumbnailUrl,
+                    altText: item.altText,
+                    position: item.position,
+                })),
+        }));
+    }
+
+
     // =========================
     // CONNECTION CURSOR
     // =========================
@@ -169,16 +213,16 @@ export class DiscoverService {
             };
         }
 
+
         const posts =
             await this.prisma.client.orm.public.Post
-                .where({
-                    userId: { in: connectionUserIds },
-                })
+                .where((post) => post.userId.in(connectionUserIds))
                 .where((post) => post.status.eq('PUBLISHED'))
                 .where((post) => post.moderation_status.eq('APPROVED'))
                 .where((post) => post.deletedAt.isNull())
                 .where((post) => post.visibility.neq('PRIVATE'))
                 .all();
+
 
         const randomizedPosts = posts
             .map((post) => ({
@@ -232,7 +276,9 @@ export class DiscoverService {
             limit,
             hasMore,
             nextCursor,
-            data: pagePosts.map((item) => item.post),
+            data: await this.attachMediaToPosts(
+                pagePosts.map((item) => item.post),
+            ),
         };
     }
 
@@ -406,7 +452,9 @@ export class DiscoverService {
             hasMore,
             nextCursor,
 
-            data: pagePosts.map((item) => item.post),
+            data: await this.attachMediaToPosts(
+                pagePosts.map((item) => item.post),
+            ),
         };
     }
 }
