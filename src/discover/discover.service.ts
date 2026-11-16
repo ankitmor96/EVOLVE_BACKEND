@@ -863,4 +863,240 @@ export class DiscoverService {
         };
     }
 
+
+    async getUserSuggestions(currentUserId: number) {
+        // 1. Fetch all posts
+        const allPosts =
+            await this.prisma.client.orm.public.Post.all();
+
+        // Only published, approved and non-deleted posts
+        const eligiblePosts = allPosts.filter(
+            (post) =>
+                String(post.status) === 'PUBLISHED' &&
+                String(post.moderation_status) === 'APPROVED' &&
+                post.deletedAt === null,
+        );
+
+        // 2. Group posts by user
+        const userPostMap = new Map<number, any[]>();
+
+        for (const post of eligiblePosts) {
+            const userId = Number(post.userId);
+
+            // Exclude logged-in user
+            if (userId === currentUserId) {
+                continue;
+            }
+
+            if (!userPostMap.has(userId)) {
+                userPostMap.set(userId, []);
+            }
+
+            userPostMap.get(userId)!.push(post);
+        }
+
+        const userIds = [...userPostMap.keys()];
+
+        if (userIds.length === 0) {
+            return {
+                success: true,
+                message: 'User suggestions fetched successfully',
+                totalUsers: 0,
+                data: [],
+            };
+        }
+
+        // 3. Fetch user profiles
+        const profiles =
+            await this.prisma.client.orm.public.UserProfile
+                .where((profile) => profile.userId.in(userIds))
+                .all();
+
+        const profileMap = new Map<number, any>();
+
+        for (const profile of profiles) {
+            profileMap.set(Number(profile.userId), profile);
+        }
+
+        // 4. Fetch selected user identities
+        const identities =
+            await this.prisma.client.orm.public.UserIdentity
+                .where((identity) => identity.userId.in(userIds))
+                .all();
+
+        // 5. Fetch identity type IDs
+        const identityTypeIds = [
+            ...new Set(
+                identities.map((identity) =>
+                    Number(identity.identityTypeId),
+                ),
+            ),
+        ];
+
+        // 6. Fetch identity names and slugs
+        const identityTypes =
+            identityTypeIds.length > 0
+                ? await this.prisma.client.orm.public.IdentityType
+                    .where((identityType) =>
+                        identityType.id.in(identityTypeIds),
+                    )
+                    .all()
+                : [];
+
+        const identityTypeMap = new Map<number, any>();
+
+        for (const identityType of identityTypes) {
+            identityTypeMap.set(
+                Number(identityType.id),
+                identityType,
+            );
+        }
+
+        // 7. Get all eligible post IDs
+        const postIds = eligiblePosts
+            .filter((post) =>
+                userIds.includes(Number(post.userId)),
+            )
+            .map((post) => Number(post.id));
+
+        // Map postId -> owner userId
+        const postOwnerMap = new Map<number, number>();
+
+        for (const post of eligiblePosts) {
+            const userId = Number(post.userId);
+
+            if (userIds.includes(userId)) {
+                postOwnerMap.set(Number(post.id), userId);
+            }
+        }
+
+        // 8. Fetch reactions
+        const reactions =
+            await this.prisma.client.orm.public.PostReaction
+                .where((reaction) => reaction.postId.in(postIds))
+                .all();
+
+        // 9. Fetch learning records
+        const learningRecords =
+            await this.prisma.client.orm.public.PostLearning
+                .where((learning) => learning.postId.in(postIds))
+                .all();
+
+        // 10. Initialize ranking for every user
+        const rankingMap = new Map<number, any>();
+
+        for (const userId of userIds) {
+            rankingMap.set(userId, {
+                APPRECIATE: 0,
+                HELPFUL: 0,
+                LEARNED: 0,
+                total: 0,
+            });
+        }
+
+        // 11. Count APPRECIATE and HELPFUL
+        for (const reaction of reactions) {
+            const ownerId = postOwnerMap.get(
+                Number(reaction.postId),
+            );
+
+            if (ownerId === undefined) {
+                continue;
+            }
+
+            const reactionType = String(reaction.reactionType);
+            const ranking = rankingMap.get(ownerId);
+
+            if (
+                reactionType === 'APPRECIATE' ||
+                reactionType === 'HELPFUL'
+            ) {
+                ranking[reactionType]++;
+            }
+        }
+
+        // 12. Count LEARNED from PostLearning
+        for (const learning of learningRecords) {
+            const ownerId = postOwnerMap.get(
+                Number(learning.postId),
+            );
+
+            if (ownerId === undefined) {
+                continue;
+            }
+
+            rankingMap.get(ownerId).LEARNED++;
+        }
+
+        // 13. Calculate total reaction ranking
+        for (const ranking of rankingMap.values()) {
+            ranking.total =
+                ranking.APPRECIATE +
+                ranking.HELPFUL +
+                ranking.LEARNED;
+        }
+
+        // 14. Prepare user suggestions
+        const suggestions = userIds.map((userId) => {
+            const profile = profileMap.get(userId);
+
+            // Get all selected identities of this user
+            const userIdentities = identities
+                .filter(
+                    (identity) =>
+                        Number(identity.userId) === userId,
+                )
+                .map((identity) => {
+                    const identityType =
+                        identityTypeMap.get(
+                            Number(identity.identityTypeId),
+                        );
+
+                    return {
+                        name: identityType?.name ?? null,
+                        slug: identityType?.slug ?? null,
+                        isPrimary: identity.isPrimary,
+                    };
+                });
+
+            return {
+                userId,
+
+                userName: profile?.username
+                    ? String(profile.username)
+                    : null,
+
+                totalPostCount:
+                    userPostMap.get(userId)?.length ?? 0,
+
+                identity: userIdentities,
+
+                reactionRanking: rankingMap.get(userId),
+            };
+        });
+
+        // 15. Sort by highest reaction ranking
+        suggestions.sort((a, b) => {
+            // First priority: total reaction ranking
+            const rankingDifference =
+                b.reactionRanking.total -
+                a.reactionRanking.total;
+
+            if (rankingDifference !== 0) {
+                return rankingDifference;
+            }
+
+            // Second priority: total post count
+            return b.totalPostCount - a.totalPostCount;
+        });
+
+        // 16. Final response
+        return {
+            success: true,
+            message: 'User suggestions fetched successfully',
+            totalUsers: suggestions.length,
+            data: suggestions,
+        };
+    }
+
 }

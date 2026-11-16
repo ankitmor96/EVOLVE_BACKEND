@@ -99,4 +99,15 @@ export class DiscoverController {
     );
   }
 
+  @Get('users/suggestions')
+  getUserSuggestions(
+    @Req() req: Request & {
+      user: { userId: number };
+    },
+  ) {
+    return this.discoverService.getUserSuggestions(
+      Number(req.user.userId),
+    );
+  }
+
 }
