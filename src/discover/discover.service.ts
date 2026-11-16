@@ -864,6 +864,7 @@ export class DiscoverService {
     }
 
 
+
     async getUserSuggestions(currentUserId: number) {
         // 1. Fetch all posts
         const allPosts =
@@ -1065,6 +1066,9 @@ export class DiscoverService {
                 userName: profile?.username
                     ? String(profile.username)
                     : null,
+
+                // Added user avatar URL
+                avatarUrl: profile?.avatarUrl ?? null,
 
                 totalPostCount:
                     userPostMap.get(userId)?.length ?? 0,
