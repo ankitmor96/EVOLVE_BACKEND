@@ -631,20 +631,29 @@ export class ProfileService {
     };
   }
 
+
   async getCompleteProfileByUserId(userId: number) {
     if (!Number.isInteger(userId) || userId <= 0) {
       throw new BadRequestException('Valid user ID is required');
     }
 
-    const profile =
+    // 1. Check whether user exists
+    const user =
+      await this.prisma.client.orm.public.User
+        .where({ id: userId })
+        .first();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // 2. Get user profile (may not exist)
+    const existingProfile =
       await this.prisma.client.orm.public.UserProfile
         .where({ userId })
         .first();
 
-    if (!profile) {
-      throw new NotFoundException('User profile not found');
-    }
-
+    // 3. Get identities
     const userIdentities =
       await this.prisma.client.orm.public.UserIdentity
         .where({ userId })
@@ -664,16 +673,19 @@ export class ProfileService {
       });
     }
 
+    // 4. Get curiosities
     const curiosities =
       await this.prisma.client.orm.public.UserCuriosity
         .where({ userId })
         .all();
 
+    // 5. Get skills
     const skills =
       await this.prisma.client.orm.public.UserSkill
         .where({ userId })
         .all();
 
+    // 6. Get accepted connections
     const sentConnections =
       await this.prisma.client.orm.public.Connection
         .where({
@@ -693,8 +705,19 @@ export class ProfileService {
     const connectionCount =
       sentConnections.length + receivedConnections.length;
 
+    // 7. Fallback profile when profile does not exist
+    const profile = existingProfile ?? {
+      userId,
+      username: null,
+      avatarUrl: null,
+      countryCode: null,
+      ageRange: null,
+      bio: null,
+    };
+
     return {
       profile,
+      profileExists: !!existingProfile,
       identities,
       curiosities,
       skills,
