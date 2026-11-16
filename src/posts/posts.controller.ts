@@ -596,4 +596,19 @@ export class PostsController {
         return this.postsService.getLearningSkillStats(userId);
     }
 
+
+    @Get('learning/recently-learned')
+    @UseGuards(JwtAuthGuard)
+    async getRecentlyLearnedPosts(@Req() req: any) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
+        }
+
+        return this.postsService.getRecentlyLearnedPosts(userId);
+    }
+
 }

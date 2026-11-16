@@ -2330,4 +2330,190 @@ export class PostsService {
   }
 
 
+  async getRecentlyLearnedPosts(userId: number) {
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new BadRequestException('Invalid user ID');
+    }
+
+    // 1. Get logged-in user's LEARNING skills
+    const userSkills =
+      await this.prisma.client.orm.public.UserSkill
+        .where({
+          userId,
+          relationshipType: 'LEARNING',
+        })
+        .all();
+
+    if (userSkills.length === 0) {
+      return {
+        success: true,
+        totalPosts: 0,
+        data: [],
+      };
+    }
+
+    const skillIds = [
+      ...new Set(userSkills.map((item: any) => Number(item.skillId))),
+    ];
+
+    // 2. Get user's learned posts
+    const learningRecords =
+      await this.prisma.client.orm.public.PostLearning
+        .where({ userId })
+        .orderBy((item: any) => item.createdAt.desc())
+        .all();
+
+    if (learningRecords.length === 0) {
+      return {
+        success: true,
+        totalPosts: 0,
+        data: [],
+      };
+    }
+
+    const learnedPostIds = [
+      ...new Set(
+        learningRecords.map((item: any) => Number(item.postId)),
+      ),
+    ];
+
+    // 3. Find posts linked with user's LEARNING skills
+    const postSkills =
+      await this.prisma.client.orm.public.PostSkill
+        .where((item: any) =>
+          item.postId.in(learnedPostIds),
+        )
+        .all();
+
+    const matchingPostSkills = postSkills.filter(
+      (item: any) => skillIds.includes(Number(item.skillId)),
+    );
+
+    const matchingPostIds = new Set(
+      matchingPostSkills.map(
+        (item: any) => Number(item.postId),
+      ),
+    );
+
+    // 4. Keep only matching learning records
+    const filteredLearningRecords = learningRecords.filter(
+      (item: any) =>
+        matchingPostIds.has(Number(item.postId)),
+    );
+
+    if (filteredLearningRecords.length === 0) {
+      return {
+        success: true,
+        totalPosts: 0,
+        data: [],
+      };
+    }
+
+    const postIds = [
+      ...new Set(
+        filteredLearningRecords.map(
+          (item: any) => Number(item.postId),
+        ),
+      ),
+    ];
+
+    // 5. Fetch post details
+    const posts =
+      await this.prisma.client.orm.public.Post
+        .where((post: any) => post.id.in(postIds))
+        .all();
+
+    // 6. Fetch skill details
+    const skills =
+      await this.prisma.client.orm.public.Skill
+        .where((skill: any) => skill.id.in(skillIds))
+        .all();
+
+    // 7. Fetch post media
+    const media =
+      await this.prisma.client.orm.public.PostMedia
+        .where((item: any) => item.postId.in(postIds))
+        .orderBy((item: any) => item.position.asc())
+        .all();
+
+    // 8. Calculate relative time
+    const getTimeAgo = (date: Date) => {
+      const seconds = Math.floor(
+        (Date.now() - new Date(date).getTime()) / 1000,
+      );
+
+      if (seconds < 60) return 'Just now';
+
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+
+      const days = Math.floor(hours / 24);
+      if (days < 7) return `${days}d ago`;
+
+      const weeks = Math.floor(days / 7);
+      if (days < 30) return `${weeks}w ago`;
+
+      const months = Math.floor(days / 30);
+      if (days < 365) return `${months}mo ago`;
+
+      const years = Math.floor(days / 365);
+      return `${years}y ago`;
+    };
+
+    // 9. Prepare recently learned posts
+    const data = filteredLearningRecords.map((record: any) => {
+      const postId = Number(record.postId);
+
+      const post = posts.find(
+        (item: any) => Number(item.id) === postId,
+      );
+
+      const postSkillIds = matchingPostSkills
+        .filter(
+          (item: any) => Number(item.postId) === postId,
+        )
+        .map((item: any) => Number(item.skillId));
+
+      const skillNames = skills
+        .filter((skill: any) =>
+          postSkillIds.includes(Number(skill.id)),
+        )
+        .map((skill: any) => skill.name);
+
+      return {
+        postId,
+        caption: post?.caption ?? null,
+        postType: post?.postType ?? null,
+
+        skills: skillNames,
+
+        media: media
+          .filter(
+            (item: any) => Number(item.postId) === postId,
+          )
+          .map((item: any) => ({
+            mediaType: item.mediaType,
+            mediaUrl: item.mediaUrl,
+            thumbnailUrl: item.thumbnailUrl,
+          })),
+
+        learnedAt: record.createdAt,
+        timeAgo: getTimeAgo(record.createdAt),
+      };
+    }).filter((item: any) => item.postId && posts.some(
+      (post: any) => Number(post.id) === item.postId,
+    ));
+
+    return {
+      success: true,
+      totalPosts: data.length,
+      data,
+    };
+  }
+
+
+
 }
