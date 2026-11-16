@@ -2177,4 +2177,157 @@ export class PostsService {
     };
   }
 
+
+  async getLearningSkillStats(userId: number) {
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new BadRequestException('Invalid user ID');
+    }
+
+    // 1. Get only LEARNING skills of logged-in user
+    const userSkills =
+      await this.prisma.client.orm.public.UserSkill
+        .where({
+          userId,
+          relationshipType: 'LEARNING',
+        })
+        .all();
+
+    if (userSkills.length === 0) {
+      return {
+        success: true,
+        totalSkills: 0,
+        data: [],
+      };
+    }
+
+    const skillIds = [
+      ...new Set(
+        userSkills.map((item: any) => Number(item.skillId)),
+      ),
+    ];
+
+    // 2. Fetch skill details
+    const skills =
+      await this.prisma.client.orm.public.Skill
+        .where((skill: any) => skill.id.in(skillIds))
+        .all();
+
+    // 3. Get user's unique explored posts
+    const explorations =
+      await this.prisma.client.orm.public.UserPostExploration
+        .where({ userId })
+        .all();
+
+    const exploredPostIds = [
+      ...new Set(
+        explorations.map((item: any) => Number(item.postId)),
+      ),
+    ];
+
+    // 4. Get PostSkill mapping
+    const postSkills =
+      exploredPostIds.length > 0
+        ? await this.prisma.client.orm.public.PostSkill
+          .where((item: any) =>
+            item.postId.in(exploredPostIds),
+          )
+          .all()
+        : [];
+
+    // 5. Get only posts matching user's LEARNING skills
+    const matchingPostSkills = postSkills.filter(
+      (item: any) =>
+        skillIds.includes(Number(item.skillId)),
+    );
+
+    const matchingPostIds = [
+      ...new Set(
+        matchingPostSkills.map(
+          (item: any) => Number(item.postId),
+        ),
+      ),
+    ];
+
+    // 6. Fetch reactions for matching explored posts
+    const reactions =
+      matchingPostIds.length > 0
+        ? await this.prisma.client.orm.public.PostReaction
+          .where((item: any) =>
+            item.postId.in(matchingPostIds),
+          )
+          .all()
+        : [];
+
+    // 7. Fetch learned records for matching explored posts
+    const learningRecords =
+      matchingPostIds.length > 0
+        ? await this.prisma.client.orm.public.PostLearning
+          .where((item: any) =>
+            item.postId.in(matchingPostIds),
+          )
+          .all()
+        : [];
+
+    // 8. Prepare skill-wise statistics
+    const data = skills
+      .filter((skill: any) =>
+        skillIds.includes(Number(skill.id)),
+      )
+      .map((skill: any) => {
+        const skillId = Number(skill.id);
+
+        // All unique explored posts belonging to this skill
+        const skillPostIds = new Set(
+          matchingPostSkills
+            .filter(
+              (item: any) =>
+                Number(item.skillId) === skillId,
+            )
+            .map((item: any) => Number(item.postId)),
+        );
+
+        const postIds = [...skillPostIds];
+
+        // Count APPRECIATE reactions
+        const appreciateCount = reactions.filter(
+          (item: any) =>
+            skillPostIds.has(Number(item.postId)) &&
+            item.reactionType === 'APPRECIATE',
+        ).length;
+
+        // Count HELPFUL reactions
+        const helpfulCount = reactions.filter(
+          (item: any) =>
+            skillPostIds.has(Number(item.postId)) &&
+            item.reactionType === 'HELPFUL',
+        ).length;
+
+        // Count LEARNED records
+        const learnedCount = learningRecords.filter(
+          (item: any) =>
+            skillPostIds.has(Number(item.postId)),
+        ).length;
+
+        return {
+          skillId,
+          skillName: skill.name,
+
+          exploredPostCount: postIds.length,
+
+          reactionRanking: {
+            APPRECIATE: appreciateCount,
+            HELPFUL: helpfulCount,
+            LEARNED: learnedCount,
+          },
+        };
+      });
+
+    return {
+      success: true,
+      totalSkills: data.length,
+      data,
+    };
+  }
+
+
 }
