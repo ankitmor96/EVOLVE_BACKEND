@@ -157,7 +157,11 @@ export class LearningController {
 
     @Get('total-explorations')
     async getTotalExplorations(@Req() req: any) {
-        const userId = Number(req.user.sub);
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new BadRequestException('Invalid user ID');
+        }
 
         return this.learningService.getTotalExplorations(userId);
     }

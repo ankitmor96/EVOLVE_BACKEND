@@ -827,6 +827,10 @@ export class LearningService implements OnModuleDestroy {
     // =========================================
 
     async getTotalExplorations(userId: number) {
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new BadRequestException('Invalid user ID');
+        }
+
         const records =
             await this.prisma.client.orm.public.UserPostExploration
                 .where({
@@ -834,18 +838,17 @@ export class LearningService implements OnModuleDestroy {
                 })
                 .all();
 
-        // Total successful explorations including repeated visits
+        const uniquePostsExplored = records.length;
+
         const totalExplorations = records.reduce(
             (total: number, record: any) => {
-                return total + Number(record.explorationCount ?? 0);
+                const count = Number(record.explorationCount ?? 0);
+
+                return total + count;
             },
             0,
         );
 
-        // Total unique posts explored
-        const uniquePostsExplored = records.length;
-
-        // Repeated explorations only
         const repeatedExplorations =
             totalExplorations - uniquePostsExplored;
 
