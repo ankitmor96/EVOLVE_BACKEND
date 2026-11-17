@@ -821,6 +821,46 @@ export class LearningService implements OnModuleDestroy {
         };
     }
 
+    // =========================================
+    // TOTAL EXPLORATIONS (UNIQUE + REPEATED)
+    // GET /v1/learning/total-explorations
+    // =========================================
+
+    async getTotalExplorations(userId: number) {
+        const records =
+            await this.prisma.client.orm.public.UserPostExploration
+                .where({
+                    userId,
+                })
+                .all();
+
+        // Total successful explorations including repeated visits
+        const totalExplorations = records.reduce(
+            (total: number, record: any) => {
+                return total + Number(record.explorationCount ?? 0);
+            },
+            0,
+        );
+
+        // Total unique posts explored
+        const uniquePostsExplored = records.length;
+
+        // Repeated explorations only
+        const repeatedExplorations =
+            totalExplorations - uniquePostsExplored;
+
+        return {
+            success: true,
+            message: 'Total explorations fetched successfully',
+
+            total_explorations: totalExplorations,
+
+            unique_posts_explored: uniquePostsExplored,
+
+            repeated_explorations: repeatedExplorations,
+        };
+    }
+
     async getContentBreakdown(
         userId: number,
         period: 'day' | 'month' | 'all' = 'day',

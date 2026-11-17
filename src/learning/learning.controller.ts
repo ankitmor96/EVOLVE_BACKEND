@@ -151,6 +151,18 @@ export class LearningController {
     }
 
     // =========================================
+    // TOTAL EXPLORATIONS
+    // GET /v1/learning/total-explorations
+    // =========================================
+
+    @Get('total-explorations')
+    async getTotalExplorations(@Req() req: any) {
+        const userId = Number(req.user.sub);
+
+        return this.learningService.getTotalExplorations(userId);
+    }
+
+    // =========================================
     // CONTENT BREAKDOWN
     // GET /api/v1/learning/content-breakdown
     // =========================================
