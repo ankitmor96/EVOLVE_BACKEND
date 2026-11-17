@@ -583,34 +583,105 @@ export class ProfileService {
   // NO AUTHENTICATION REQUIRED
   // =====================================
 
+
   async getPublicProfile(username: string) {
     const normalizedUsername = username.trim().toLowerCase();
 
-    // 1. Find profile by username
+    // 1. Find profile
     const profile =
       await this.prisma.client.orm.public.UserProfile
-        .where({
-          username: normalizedUsername,
-        })
+        .where({ username: normalizedUsername })
         .first();
 
     if (!profile) {
       throw new NotFoundException('Profile not found');
     }
 
-    // 2. Find associated user
+    const userId = Number(profile.userId);
+
+    // 2. Find user
     const user =
       await this.prisma.client.orm.public.User
-        .where({
-          id: Number(profile.userId),
-        })
+        .where({ id: userId })
         .first();
 
     if (!user) {
       throw new NotFoundException('Profile not found');
     }
 
-    // 3. Return only public profile information
+    // 3. Fetch skills, posts, connections and identities
+    const [
+      userSkills,
+      userPosts,
+      sentConnections,
+      receivedConnections,
+      userIdentities,
+    ] = await Promise.all([
+      this.prisma.client.orm.public.UserSkill
+        .where({ userId })
+        .all(),
+
+      this.prisma.client.orm.public.Post
+        .where({ userId })
+        .all(),
+
+      this.prisma.client.orm.public.Connection
+        .where({
+          requesterId: userId,
+          status: 'ACCEPTED',
+        })
+        .all(),
+
+      this.prisma.client.orm.public.Connection
+        .where({
+          receiverId: userId,
+          status: 'ACCEPTED',
+        })
+        .all(),
+
+      this.prisma.client.orm.public.UserIdentity
+        .where({ userId })
+        .all(),
+    ]);
+
+    // 4. Count unique skills
+    const totalSkills = new Set(
+      userSkills.map((skill) => Number(skill.skillId)),
+    ).size;
+
+    // 5. Count only published, public and approved posts
+    const totalPosts = userPosts.filter(
+      (post) =>
+        post.status === 'PUBLISHED' &&
+        post.visibility === 'PUBLIC' &&
+        post.moderation_status === 'APPROVED' &&
+        post.deletedAt === null,
+    ).length;
+
+    // 6. Count accepted connections
+    const totalConnections =
+      sentConnections.length + receivedConnections.length;
+
+    // 7. Fetch identity details
+    const identities = [];
+
+    for (const identity of userIdentities) {
+      const identityType =
+        await this.prisma.client.orm.public.IdentityType
+          .where({ id: identity.identityTypeId })
+          .first();
+
+      if (identityType) {
+        identities.push({
+          id: identityType.id,
+          name: identityType.name,
+          slug: identityType.slug,
+          isPrimary: identity.isPrimary,
+        });
+      }
+    }
+
+    // 8. Return public profile
     return {
       success: true,
       message: 'Public profile fetched successfully',
@@ -622,8 +693,17 @@ export class ProfileService {
         countryCode: profile.countryCode,
         bio: profile.bio,
       },
+
+      statistics: {
+        totalSkills,
+        totalPosts,
+        totalConnections,
+      },
+
+      identities,
     };
   }
+
 
   // =====================================
   // GET COMPLETE PROFILE
