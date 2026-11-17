@@ -1609,6 +1609,135 @@ export class PostsService {
     };
   }
 
+
+
+
+  async getMyPostsDailyStats(userId: number) {
+
+    // =====================================
+    // GET TODAY DATE RANGE (IST)
+    // =====================================
+
+    const now = new Date();
+
+    // IST = UTC + 5:30
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+    const istNow = new Date(now.getTime() + IST_OFFSET_MS);
+
+    const year = istNow.getUTCFullYear();
+    const month = istNow.getUTCMonth();
+    const day = istNow.getUTCDate();
+
+    // Today's 00:00 IST converted to UTC
+    const startOfToday = new Date(
+      Date.UTC(year, month, day) - IST_OFFSET_MS,
+    );
+
+    // Tomorrow's 00:00 IST converted to UTC
+    const startOfTomorrow = new Date(
+      Date.UTC(year, month, day + 1) - IST_OFFSET_MS,
+    );
+
+    // Check whether record belongs to today (IST)
+    const isToday = (createdAt: any): boolean => {
+
+      const timestamp = new Date(
+        String(createdAt),
+      ).getTime();
+
+      return (
+        Number.isFinite(timestamp) &&
+        timestamp >= startOfToday.getTime() &&
+        timestamp < startOfTomorrow.getTime()
+      );
+    };
+
+    // =====================================
+    // GET MY POSTS
+    // =====================================
+
+    const myPosts = await this.prisma.client.orm.public.Post
+      .where((post) => post.userId.eq(userId))
+      .where((post) => post.deletedAt.isNull())
+      .all();
+
+    // =====================================
+    // FILTER ONLY TODAY'S POSTS
+    // =====================================
+
+    const todayPosts = myPosts.filter(
+      (post) => isToday(post.createdAt),
+    );
+
+    const todayPostCount = todayPosts.length;
+
+    // Only today's post IDs
+    const postIds = todayPosts.map(
+      (post) => post.id,
+    );
+
+    // =====================================
+    // DEFAULT COUNTS
+    // =====================================
+
+    let appreciateCount = 0;
+    let helpfulCount = 0;
+    let learnedCount = 0;
+
+    // =====================================
+    // GET TODAY'S POST ENGAGEMENTS
+    // =====================================
+
+    if (postIds.length > 0) {
+
+      // Get reactions only from today's posts
+      const reactions = await this.prisma.client.orm.public.PostReaction
+        .where((reaction) => reaction.postId.in(postIds))
+        .all();
+
+      // Only reactions created today
+      const todayReactions = reactions.filter(
+        (reaction) => isToday(reaction.createdAt),
+      );
+
+      // APPRECIATE count
+      appreciateCount = todayReactions.filter(
+        (reaction) => reaction.reactionType === 'APPRECIATE',
+      ).length;
+
+      // HELPFUL count
+      helpfulCount = todayReactions.filter(
+        (reaction) => reaction.reactionType === 'HELPFUL',
+      ).length;
+
+      // Get learning records only from today's posts
+      const learningRecords = await this.prisma.client.orm.public.PostLearning
+        .where((learning) => learning.postId.in(postIds))
+        .all();
+
+      // Only learning records created today
+      learnedCount = learningRecords.filter(
+        (learning) => isToday(learning.createdAt),
+      ).length;
+    }
+
+    // =====================================
+    // RESPONSE
+    // =====================================
+
+    return {
+      success: true,
+      data: {
+        todayPostCount,
+        appreciateCount,
+        helpfulCount,
+        learnedCount,
+      },
+    };
+  }
+
+
   async getMyPostsLearnedCount(userId: number) {
     const myPosts = await this.prisma.client.orm.public.Post
       .where((post) => post.userId.eq(userId))

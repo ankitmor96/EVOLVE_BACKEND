@@ -338,6 +338,27 @@ export class PostsController {
         return this.postsService.getMyPostsEngagementCounts(userId);
     }
 
+
+
+    // =====================================
+    // GET MY DAILY POST STATS
+    // =====================================
+
+    @UseGuards(JwtAuthGuard)
+    @Get('my-posts/daily-stats')
+    async getMyPostsDailyStats(@Req() req: any) {
+        const userId = Number(req.user?.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            throw new UnauthorizedException(
+                'Invalid authenticated user',
+            );
+        }
+
+        return this.postsService.getMyPostsDailyStats(userId);
+    }
+
+
     // =====================================
     // GET MY LEARNED COUNT
     // =====================================
