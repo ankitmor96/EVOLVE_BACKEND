@@ -2459,6 +2459,7 @@ export class PostsService {
   }
 
 
+
   async getRecentlyLearnedPosts(userId: number) {
     if (!Number.isInteger(userId) || userId <= 0) {
       throw new BadRequestException('Invalid user ID');
@@ -2566,9 +2567,34 @@ export class PostsService {
         .all();
 
     // 8. Calculate relative time
-    const getTimeAgo = (date: Date) => {
-      const seconds = Math.floor(
-        (Date.now() - new Date(date).getTime()) / 1000,
+    const getTimeAgo = (date: any): string => {
+      let timestamp: number;
+
+      // Handle JavaScript Date
+      if (date instanceof Date) {
+        timestamp = date.getTime();
+      }
+
+      // Handle Temporal.Instant
+      else if (
+        date &&
+        typeof date.epochMilliseconds === 'number'
+      ) {
+        timestamp = date.epochMilliseconds;
+      }
+
+      // Handle ISO string or timestamp
+      else {
+        timestamp = new Date(String(date)).getTime();
+      }
+
+      if (!Number.isFinite(timestamp)) {
+        return 'Unknown';
+      }
+
+      const seconds = Math.max(
+        0,
+        Math.floor((Date.now() - timestamp) / 1000),
       );
 
       if (seconds < 60) return 'Just now';
@@ -2642,7 +2668,5 @@ export class PostsService {
       data,
     };
   }
-
-
 
 }
