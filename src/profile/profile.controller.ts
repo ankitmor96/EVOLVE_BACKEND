@@ -260,6 +260,27 @@ export class ProfileController {
     }
 
     // =====================================
+    // PUBLIC PROFILE
+    // GET /api/profile/public/:username
+    // NO AUTHENTICATION REQUIRED
+    // =====================================
+
+    @Get('public/:username')
+    async getPublicProfile(
+        @Param('username') username: string,
+    ) {
+        if (
+            !username ||
+            username.length > 50 ||
+            !/^[a-zA-Z0-9_.]+$/.test(username)
+        ) {
+            throw new BadRequestException('Invalid username');
+        }
+
+        return this.profileService.getPublicProfile(username);
+    }
+
+    // =====================================
     // SEARCH USERS
     // =====================================
 

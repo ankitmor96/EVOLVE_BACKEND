@@ -579,6 +579,53 @@ export class ProfileService {
   }
 
   // =====================================
+  // GET PUBLIC PROFILE
+  // NO AUTHENTICATION REQUIRED
+  // =====================================
+
+  async getPublicProfile(username: string) {
+    const normalizedUsername = username.trim().toLowerCase();
+
+    // 1. Find profile by username
+    const profile =
+      await this.prisma.client.orm.public.UserProfile
+        .where({
+          username: normalizedUsername,
+        })
+        .first();
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    // 2. Find associated user
+    const user =
+      await this.prisma.client.orm.public.User
+        .where({
+          id: Number(profile.userId),
+        })
+        .first();
+
+    if (!user) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    // 3. Return only public profile information
+    return {
+      success: true,
+      message: 'Public profile fetched successfully',
+
+      profile: {
+        username: profile.username,
+        fullName: user.name,
+        avatarUrl: profile.avatarUrl,
+        countryCode: profile.countryCode,
+        bio: profile.bio,
+      },
+    };
+  }
+
+  // =====================================
   // GET COMPLETE PROFILE
   // =====================================
 
