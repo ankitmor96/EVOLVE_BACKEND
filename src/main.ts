@@ -19,6 +19,7 @@ async function bootstrap() {
 
   // CORS configuration
   const allowedOrigins = [
+    'https://api.evolvs.in',
     'https://evolvs.in',
     'https://www.evolvs.in',
     'https://evolve-inky-five.vercel.app',
