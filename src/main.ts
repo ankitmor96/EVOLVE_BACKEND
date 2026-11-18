@@ -3,8 +3,8 @@ import {
   ValidationPipe,
   BadRequestException,
 } from '@nestjs/common';
+
 import { NestFactory } from '@nestjs/core';
-import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 
 import { Temporal } from '@js-temporal/polyfill';
@@ -18,25 +18,27 @@ async function bootstrap() {
   // Add /api prefix to all routes
   app.setGlobalPrefix('api');
 
-  // Allow the Vite frontend to call the API directly
-  // app.enableCors({
-  //   origin:
-  //     app.get(ConfigService).get<string>('FRONTEND_URL') ??
-  //     'http://localhost:5173',
-  //   credentials: true,
-  // });
-
+  // CORS configuration
+  const allowedOrigins = [
+    'https://evolvs.in',
+    'https://www.evolvs.in',
+    'https://evolve-inky-five.vercel.app',
+    'http://localhost:5173',
+  ];
 
   app.enableCors({
-    origin: [
-      'https://evolve-inky-five.vercel.app',
-      'http://localhost:5173',
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
     ],
     credentials: true,
+    maxAge: 86400,
   });
 
-
-  // Global validation with temporary debugging logs
+  // Global validation with debugging logs
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
