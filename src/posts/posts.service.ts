@@ -1077,25 +1077,21 @@ export class PostsService {
 
     console.log('[FEED] Connected User IDs:', connectedUserIds);
 
+
     // =====================================
     // 3. FETCH POSTS
     // =====================================
 
     const allPosts =
-      personalizedPostIds.length > 0
-        ? await this.prisma.client.orm.public.Post
-          .where((p) => p.status.eq('PUBLISHED'))
-          .where((p) => p.deletedAt.isNull())
-          .where((p) => p.publishedAt.isNotNull())
-          .where((p: any) =>
-            p.id.in(personalizedPostIds),
-          )
-          .orderBy([
-            (p) => p.createdAt.desc(),
-            (p) => p.id.desc(),
-          ])
-          .all()
-        : [];
+      await this.prisma.client.orm.public.Post
+        .where((p) => p.status.eq('PUBLISHED'))
+        .where((p) => p.deletedAt.isNull())
+        .where((p) => p.publishedAt.isNotNull())
+        .orderBy([
+          (p) => p.createdAt.desc(),
+          (p) => p.id.desc(),
+        ])
+        .all();
 
     console.log(
       '[FEED] Fetched Posts:',
@@ -1107,6 +1103,7 @@ export class PostsService {
         visibility: post.visibility,
       })),
     );
+
 
     // =====================================
     // 4. MODERATION AND VISIBILITY FILTER
@@ -1139,6 +1136,7 @@ export class PostsService {
       visiblePosts.map((post) => Number(post.id)),
     );
 
+
     // =====================================
     // 5. INITIAL OR EXPANDED FEED
     // =====================================
@@ -1146,11 +1144,248 @@ export class PostsService {
     let orderedPosts: typeof visiblePosts = [];
 
     if (personalizedFeed.feedMode === 'INITIAL') {
-      // Existing INITIAL feed behavior
-      orderedPosts = visiblePosts;
-    } else {
+
+      console.log('========== INITIAL FEED START ==========');
+      console.log('[INITIAL] Applying 6 + 4 Algorithm');
+
       // =====================================
-      // EXPANDED FEED: PERCENTAGE DISTRIBUTION
+      // A. SELECT 6 SKILL MATCHED POSTS
+      // =====================================
+
+      const matchingPostIdSet = new Set(
+        personalizedPostIds.map((id) => Number(id)),
+      );
+
+      const skillMatchedPosts = visiblePosts.filter(
+        (post) =>
+          matchingPostIdSet.has(Number(post.id)),
+      );
+
+      const skillSelectedPosts =
+        skillMatchedPosts.slice(0, 6);
+
+      const selectedPostIds = new Set(
+        skillSelectedPosts.map(
+          (post) => Number(post.id),
+        ),
+      );
+
+      console.log(
+        '[INITIAL] Total Skill Matched Posts:',
+        skillMatchedPosts.length,
+      );
+
+      console.log(
+        '[INITIAL] Selected 6 Skill Posts:',
+        skillSelectedPosts.map((post) => Number(post.id)),
+      );
+
+      // =====================================
+      // B. GET REMAINING POSTS
+      // NO SKILL MATCH REQUIRED
+      // =====================================
+
+      const remainingPosts = visiblePosts.filter(
+        (post) =>
+          !selectedPostIds.has(Number(post.id)),
+      );
+
+      const remainingPostIds = remainingPosts.map(
+        (post) => Number(post.id),
+      );
+
+      console.log(
+        '[INITIAL] Remaining Candidate Posts:',
+        remainingPosts.length,
+      );
+
+      // =====================================
+      // C. FETCH REACTIONS
+      // =====================================
+
+      const allReactions =
+        remainingPostIds.length > 0
+          ? await this.prisma.client.orm.public.PostReaction
+            .where((item: any) =>
+              item.postId.in(remainingPostIds),
+            )
+            .all()
+          : [];
+
+      console.log(
+        '[INITIAL] Total Reactions Fetched:',
+        allReactions.length,
+      );
+
+      // =====================================
+      // D. CALCULATE REACTION SCORE
+      // APPRECIATE + HELPFUL ONLY
+      // =====================================
+
+      const engagementScores = remainingPosts.map(
+        (post) => {
+
+          const postId = Number(post.id);
+
+          const appreciateCount = allReactions.filter(
+            (reaction: any) =>
+              Number(reaction.postId) === postId &&
+              reaction.reactionType === 'APPRECIATE',
+          ).length;
+
+          const helpfulCount = allReactions.filter(
+            (reaction: any) =>
+              Number(reaction.postId) === postId &&
+              reaction.reactionType === 'HELPFUL',
+          ).length;
+
+          return {
+            post,
+            appreciateCount,
+            helpfulCount,
+            score: appreciateCount + helpfulCount,
+          };
+        },
+      );
+
+      // =====================================
+      // E. SELECT TOP 30 HIGH REACTION POSTS
+      // =====================================
+
+      const topEngagementPosts = engagementScores
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 30);
+
+      console.log(
+        '[INITIAL] Top Engagement Posts:',
+        topEngagementPosts.map((item) => ({
+          postId: Number(item.post.id),
+          appreciate: item.appreciateCount,
+          helpful: item.helpfulCount,
+          totalScore: item.score,
+        })),
+      );
+
+      // =====================================
+      // F. RANDOM SHUFFLE
+      // =====================================
+
+      const shufflePosts = <T,>(posts: T[]): T[] => {
+
+        const shuffled = [...posts];
+
+        for (let i = shuffled.length - 1; i > 0; i--) {
+
+          const j = Math.floor(
+            Math.random() * (i + 1),
+          );
+
+          [shuffled[i], shuffled[j]] = [
+            shuffled[j],
+            shuffled[i],
+          ];
+        }
+
+        return shuffled;
+      };
+
+      // =====================================
+      // G. SELECT RANDOM 4 POSTS
+      // =====================================
+
+      const engagementSelectedPosts = shufflePosts(
+        topEngagementPosts.map((item) => item.post),
+      ).slice(0, 4);
+
+      console.log(
+        '[INITIAL] Selected Reaction Posts:',
+        engagementSelectedPosts.map(
+          (post) => Number(post.id),
+        ),
+      );
+
+      // =====================================
+      // H. FILL REMAINING SLOTS
+      // =====================================
+
+      const finalSelectedIds = new Set([
+        ...skillSelectedPosts.map(
+          (post) => Number(post.id),
+        ),
+
+        ...engagementSelectedPosts.map(
+          (post) => Number(post.id),
+        ),
+      ]);
+
+      const missingSlots =
+        pageSize -
+        skillSelectedPosts.length -
+        engagementSelectedPosts.length;
+
+      const fallbackPosts =
+        missingSlots > 0
+          ? shufflePosts(
+            visiblePosts.filter(
+              (post) =>
+                !finalSelectedIds.has(
+                  Number(post.id),
+                ),
+            ),
+          ).slice(0, missingSlots)
+          : [];
+
+      console.log(
+        '[INITIAL] Fallback Posts:',
+        fallbackPosts.map((post) => Number(post.id)),
+      );
+
+      // =====================================
+      // I. FINAL INITIAL FEED
+      // =====================================
+
+      orderedPosts = [
+        ...skillSelectedPosts,
+        ...engagementSelectedPosts,
+        ...fallbackPosts,
+      ];
+
+      console.log(
+        '[INITIAL] Skill Posts Count:',
+        skillSelectedPosts.length,
+      );
+
+      console.log(
+        '[INITIAL] Reaction Posts Count:',
+        engagementSelectedPosts.length,
+      );
+
+      console.log(
+        '[INITIAL] Fallback Posts Count:',
+        fallbackPosts.length,
+      );
+
+      console.log(
+        '[INITIAL] Final Post IDs:',
+        orderedPosts.map((post) => Number(post.id)),
+      );
+
+      console.log(
+        '[INITIAL] Final Total Posts:',
+        orderedPosts.length,
+      );
+
+      console.log('========== INITIAL FEED END ==========');
+
+
+    } else {
+
+      console.log('========== EXPANDED FEED START ==========');
+      console.log('[EXPANDED] Applying 6 Skill + 4 Engagement Algorithm');
+
+      // =====================================
+      // A. FETCH POST SKILLS
       // =====================================
 
       const postSkills =
@@ -1164,13 +1399,15 @@ export class PostsService {
             .all()
           : [];
 
-      const usedPostIds = new Set<number>();
+      // =====================================
+      // B. CREATE SKILL BUCKETS
+      // =====================================
 
-      // Create skill-wise post buckets
       const buckets = personalizedFeed.skillDistribution.map(
         (distribution) => {
+
           const categorySkillIds = new Set(
-            distribution.categorySkillIds,
+            distribution.categorySkillIds.map(Number),
           );
 
           const bucketPosts = visiblePosts.filter((post) => {
@@ -1189,22 +1426,99 @@ export class PostsService {
             skillId: distribution.skillId,
             skillName: distribution.skillName,
             points: distribution.points,
-            postQuota: distribution.postQuota,
+            percentage: distribution.percentage,
             posts: bucketPosts,
           };
         },
       );
 
       // =====================================
-      // BUILD WEIGHTED FEED
+      // C. CALCULATE SKILL QUOTA OUT OF 6
       // =====================================
 
-      const postIndexes = buckets.map(() => 0);
+      const skillQuotaData = buckets.map((bucket) => {
+        const exactQuota =
+          (bucket.percentage / 100) * 6;
 
-      const finalFeed: typeof visiblePosts = [];
+        return {
+          ...bucket,
+          postQuota: Math.floor(exactQuota),
+          remainder: exactQuota - Math.floor(exactQuota),
+        };
+      });
 
-      const getNextPost = (bucketIndex: number) => {
-        const bucket = buckets[bucketIndex];
+      const remainingSkillSlots =
+        6 -
+        skillQuotaData.reduce(
+          (total, item) => total + item.postQuota,
+          0,
+        );
+
+      const remainderOrder = [...skillQuotaData].sort(
+        (a, b) => {
+          const difference = b.remainder - a.remainder;
+
+          return difference !== 0
+            ? difference
+            : b.points - a.points;
+        },
+      );
+
+      for (let i = 0; i < remainingSkillSlots; i++) {
+        const selected = remainderOrder[i];
+
+        if (selected) {
+          selected.postQuota += 1;
+        }
+      }
+
+      console.log(
+        '[EXPANDED] Skill Quotas Out Of 6:',
+        skillQuotaData.map((item) => ({
+          skill: item.skillName,
+          points: item.points,
+          percentage: item.percentage,
+          quota: item.postQuota,
+        })),
+      );
+
+      // =====================================
+      // D. TRACK USED POSTS
+      // =====================================
+
+      const usedPostIds = new Set<number>();
+
+      const postIndexes = skillQuotaData.map(() => 0);
+
+      // =====================================
+      // E. STABLE RANDOM RANK
+      // =====================================
+
+      const stableRank = (
+        postId: number,
+        batchIndex: number,
+      ): number => {
+        const value = `${userId}:${batchIndex}:${postId}`;
+
+        let hash = 2166136261;
+
+        for (let i = 0; i < value.length; i++) {
+          hash ^= value.charCodeAt(i);
+          hash = Math.imul(hash, 16777619);
+        }
+
+        return hash >>> 0;
+      };
+
+      // =====================================
+      // F. GET NEXT SKILL POST
+      // =====================================
+
+      const getNextSkillPost = (
+        bucketIndex: number,
+      ): (typeof visiblePosts)[number] | null => {
+
+        const bucket = skillQuotaData[bucketIndex];
 
         while (
           postIndexes[bucketIndex] < bucket.posts.length
@@ -1225,31 +1539,93 @@ export class PostsService {
         return null;
       };
 
-      // Create feed in batches of 10
+      // =====================================
+      // G. FETCH ALL REACTIONS
+      // =====================================
+
+      const allPostIds = visiblePosts.map(
+        (post) => Number(post.id),
+      );
+
+      const allReactions =
+        allPostIds.length > 0
+          ? await this.prisma.client.orm.public.PostReaction
+            .where((item: any) =>
+              item.postId.in(allPostIds),
+            )
+            .all()
+          : [];
+
+      // =====================================
+      // H. CALCULATE ENGAGEMENT SCORE
+      // APPRECIATE + HELPFUL ONLY
+      // =====================================
+
+      const engagementScores = visiblePosts.map((post) => {
+        const postId = Number(post.id);
+
+        const appreciateCount = allReactions.filter(
+          (reaction: any) =>
+            Number(reaction.postId) === postId &&
+            reaction.reactionType === 'APPRECIATE',
+        ).length;
+
+        const helpfulCount = allReactions.filter(
+          (reaction: any) =>
+            Number(reaction.postId) === postId &&
+            reaction.reactionType === 'HELPFUL',
+        ).length;
+
+        return {
+          post,
+          appreciateCount,
+          helpfulCount,
+          score: appreciateCount + helpfulCount,
+        };
+      });
+
+      // =====================================
+      // I. BUILD FEED IN BATCHES OF 10
+      // 6 SKILL + 4 ENGAGEMENT
+      // =====================================
+
+      const finalFeed: typeof visiblePosts = [];
+
+      let batchIndex = 0;
+
       while (true) {
         const beforeCount = finalFeed.length;
 
-        // First apply calculated quota
-        for (let i = 0; i < buckets.length; i++) {
-          const bucket = buckets[i];
+        const skillBatch: typeof visiblePosts = [];
+        const engagementBatch: typeof visiblePosts = [];
+        const fallbackBatch: typeof visiblePosts = [];
+
+        // =====================================
+        // 1. SELECT 6 SKILL POSTS
+        // =====================================
+
+        for (let i = 0; i < skillQuotaData.length; i++) {
+          const bucket = skillQuotaData[i];
 
           for (let j = 0; j < bucket.postQuota; j++) {
-            const post = getNextPost(i);
+            const post = getNextSkillPost(i);
 
             if (post) {
-              finalFeed.push(post);
+              skillBatch.push(post);
             }
           }
         }
 
-        // Fill remaining slots if some buckets have fewer posts
-        while (finalFeed.length - beforeCount < pageSize) {
+        // =====================================
+        // 2. FILL MISSING SKILL SLOTS
+        // =====================================
+
+        while (skillBatch.length < 6) {
           let selectedPost:
             (typeof visiblePosts)[number] | null = null;
 
-          // Try higher-point skills first
-          for (let i = 0; i < buckets.length; i++) {
-            selectedPost = getNextPost(i);
+          for (let i = 0; i < skillQuotaData.length; i++) {
+            selectedPost = getNextSkillPost(i);
 
             if (selectedPost) {
               break;
@@ -1260,22 +1636,134 @@ export class PostsService {
             break;
           }
 
-          finalFeed.push(selectedPost);
+          skillBatch.push(selectedPost);
         }
 
-        // Stop if no new post was added
+        // =====================================
+        // 3. GET REMAINING ENGAGEMENT POSTS
+        // =====================================
+
+        const remainingEngagementPosts =
+          engagementScores.filter((item) =>
+            !usedPostIds.has(Number(item.post.id)) &&
+            item.score > 0,
+          );
+
+        // =====================================
+        // 4. TOP 30 ENGAGEMENT POSTS
+        // =====================================
+
+        const top30EngagementPosts =
+          remainingEngagementPosts
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 30);
+
+        // =====================================
+        // 5. RANDOMLY SELECT 4
+        // =====================================
+
+        const shuffledEngagementPosts =
+          [...top30EngagementPosts].sort(
+            (a, b) =>
+              stableRank(Number(a.post.id), batchIndex) -
+              stableRank(Number(b.post.id), batchIndex),
+          );
+
+        const selectedEngagementPosts =
+          shuffledEngagementPosts.slice(0, 4);
+
+        for (const item of selectedEngagementPosts) {
+          const postId = Number(item.post.id);
+
+          if (!usedPostIds.has(postId)) {
+            usedPostIds.add(postId);
+            engagementBatch.push(item.post);
+          }
+        }
+
+        // =====================================
+        // 6. FILL REMAINING SLOTS
+        // =====================================
+
+        const missingSlots =
+          pageSize -
+          skillBatch.length -
+          engagementBatch.length;
+
+        if (missingSlots > 0) {
+          const remainingFallbackPosts =
+            visiblePosts
+              .filter(
+                (post) =>
+                  !usedPostIds.has(Number(post.id)),
+              )
+              .sort(
+                (a, b) =>
+                  stableRank(Number(a.id), batchIndex) -
+                  stableRank(Number(b.id), batchIndex),
+              )
+              .slice(0, missingSlots);
+
+          for (const post of remainingFallbackPosts) {
+            usedPostIds.add(Number(post.id));
+            fallbackBatch.push(post);
+          }
+        }
+
+        // =====================================
+        // 7. FINAL BATCH
+        // =====================================
+
+        const currentBatch = [
+          ...skillBatch,
+          ...engagementBatch,
+          ...fallbackBatch,
+        ];
+
+        if (currentBatch.length === 0) {
+          break;
+        }
+
+        finalFeed.push(...currentBatch);
+
+        console.log(
+          `[EXPANDED] Batch ${batchIndex + 1}:`,
+          {
+            skillPosts: skillBatch.map(
+              (post) => Number(post.id),
+            ),
+            engagementPosts: engagementBatch.map(
+              (post) => Number(post.id),
+            ),
+            fallbackPosts: fallbackBatch.map(
+              (post) => Number(post.id),
+            ),
+            totalPosts: currentBatch.length,
+          },
+        );
+
+        batchIndex++;
+
         if (finalFeed.length === beforeCount) {
           break;
         }
       }
 
       orderedPosts = finalFeed;
+
+      console.log(
+        '[EXPANDED] Final Ordered Post IDs:',
+        orderedPosts.map((post) => Number(post.id)),
+      );
+
+      console.log(
+        '[EXPANDED] Total Posts:',
+        orderedPosts.length,
+      );
+
+      console.log('========== EXPANDED FEED END ==========');
     }
 
-    console.log(
-      '[FEED] Ordered Post IDs:',
-      orderedPosts.map((post) => Number(post.id)),
-    );
 
     // =====================================
     // 6. CURSOR PAGINATION
