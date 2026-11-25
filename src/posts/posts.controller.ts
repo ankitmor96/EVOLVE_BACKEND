@@ -236,7 +236,7 @@ export class PostsController {
             }
         }
 
-        return this.postsService.getFeed(userId, cursorId);
+        return this.postsService.getFeed(userId, cursor);
     }
 
     // =====================================

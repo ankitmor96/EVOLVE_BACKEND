@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 
 import Redis from 'ioredis';
+import { randomUUID } from 'crypto';
 
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -56,6 +57,66 @@ export class PostsService implements OnModuleDestroy {
   // =====================================
 
   private readonly FEED_HISTORY_COOLDOWN_SECONDS = 24 * 60 * 60;
+
+  private readonly FEED_SESSION_TTL_SECONDS = 24 * 60 * 60;
+
+  // =====================================
+  // SAVE FEED SESSION IN REDIS
+  // =====================================
+
+  private async saveFeedSession(
+    userId: number,
+    orderedPostIds: number[],
+  ): Promise<string> {
+    const sessionId = randomUUID();
+
+    const key = `feed:session:${userId}:${sessionId}`;
+
+    await this.feedRedis.set(
+      key,
+      JSON.stringify(orderedPostIds),
+      'EX',
+      this.FEED_SESSION_TTL_SECONDS,
+    );
+
+    return sessionId;
+  }
+
+  // =====================================
+  // GET FEED SESSION FROM REDIS
+  // =====================================
+
+  private async getFeedSession(
+    userId: number,
+    sessionId: string,
+  ): Promise<number[] | null> {
+    const key = `feed:session:${userId}:${sessionId}`;
+
+    const sessionData = await this.feedRedis.get(key);
+
+    if (!sessionData) {
+      return null;
+    }
+
+    try {
+      const postIds: unknown = JSON.parse(sessionData);
+
+      if (
+        !Array.isArray(postIds) ||
+        !postIds.every(
+          (id) =>
+            Number.isInteger(Number(id)) &&
+            Number(id) > 0,
+        )
+      ) {
+        return null;
+      }
+
+      return postIds.map(Number);
+    } catch {
+      return null;
+    }
+  }
 
   // =====================================
   // GET RECENTLY SENT POSTS FOR USER
@@ -1092,26 +1153,46 @@ export class PostsService implements OnModuleDestroy {
     };
   }
 
-  async getFeed(userId: number, cursor?: number | string) {
-    // Normalize and validate user ID
+  async getFeed(userId: number, cursor?: string) {
     userId = Number(userId);
 
     if (!Number.isInteger(userId) || userId <= 0) {
       throw new BadRequestException('Invalid user ID');
     }
 
-    const normalizedCursor =
-      cursor === undefined ? undefined : Number(cursor);
+    let sessionId: string | undefined;
+    let cursorOffset = 0;
 
-    if (
-      normalizedCursor !== undefined &&
-      (!Number.isInteger(normalizedCursor) || normalizedCursor <= 0)
-    ) {
-      throw new BadRequestException('Invalid feed cursor');
+    if (cursor !== undefined) {
+      const cursorParts = cursor.split(':');
+
+      if (cursorParts.length !== 2) {
+        throw new BadRequestException('Invalid feed cursor');
+      }
+
+      const [parsedSessionId, parsedOffset] = cursorParts;
+
+      const offset = Number(parsedOffset);
+
+      const isValidUUID =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          parsedSessionId,
+        );
+
+      if (
+        !isValidUUID ||
+        !/^\d+$/.test(parsedOffset) ||
+        !Number.isSafeInteger(offset) ||
+        offset <= 0
+      ) {
+        throw new BadRequestException('Invalid feed cursor');
+      }
+
+      sessionId = parsedSessionId;
+      cursorOffset = offset;
     }
 
     const pageSize = 10;
-
     console.log('========== FEED REQUEST START ==========');
     console.log('[FEED] Logged-in User ID:', userId);
 
@@ -1232,25 +1313,23 @@ export class PostsService implements OnModuleDestroy {
 
     // =====================================
     // 4.1 EXCLUDE RECENTLY SENT POSTS
+    // ONLY FOR NEW FEED SESSION
     // =====================================
 
-    const recentlySentPostIds =
-      await this.getRecentlySentFeedPostIds(userId);
+    if (!sessionId) {
+      const recentlySentPostIds =
+        await this.getRecentlySentFeedPostIds(userId);
 
-    console.log(
-      '[FEED] Recently Sent Post IDs:',
-      [...recentlySentPostIds],
-    );
+      console.log(
+        '[FEED] Recently Sent Post IDs:',
+        [...recentlySentPostIds],
+      );
 
-    visiblePosts = visiblePosts.filter(
-      (post) =>
-        !recentlySentPostIds.has(Number(post.id)),
-    );
-
-    console.log(
-      '[FEED] New Eligible Post IDs:',
-      visiblePosts.map((post) => Number(post.id)),
-    );
+      visiblePosts = visiblePosts.filter(
+        (post) =>
+          !recentlySentPostIds.has(Number(post.id)),
+      );
+    }
 
 
     // =====================================
@@ -1280,7 +1359,35 @@ export class PostsService implements OnModuleDestroy {
 
     let orderedPosts: typeof visiblePosts = [];
 
-    if (personalizedFeed.feedMode === 'INITIAL') {
+    if (sessionId) {
+      // Get existing feed session from Redis
+      const sessionPostIds = await this.getFeedSession(
+        userId,
+        sessionId,
+      );
+
+      if (!sessionPostIds) {
+        throw new NotFoundException(
+          'Feed session expired or not found',
+        );
+      }
+
+      // Restore the original post order
+      const visiblePostMap = new Map(
+        visiblePosts.map((post) => [
+          Number(post.id),
+          post,
+        ]),
+      );
+
+      orderedPosts = sessionPostIds
+        .map((postId) => visiblePostMap.get(postId))
+        .filter(
+          (post): post is (typeof visiblePosts)[number] =>
+            Boolean(post),
+        );
+
+    } else if (personalizedFeed.feedMode === 'INITIAL') {
 
       console.log('========== INITIAL FEED START ==========');
 
@@ -1359,49 +1466,40 @@ export class PostsService implements OnModuleDestroy {
           skillBatch.push(post);
         }
 
-        // =====================================
-        // 2. SELECT TOP 30 ENGAGEMENT POSTS
-        // =====================================
-
-        const top30EngagementPosts = engagementScores
-          .filter(
-            (item) =>
-              !usedPostIds.has(Number(item.post.id)) &&
-              item.score > 0,
-          )
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 30);
 
         // =====================================
-        // 3. RANDOM SHUFFLE
+        // 2. GET ALL REMAINING ENGAGEMENT POSTS
         // =====================================
 
-        const shuffledEngagementPosts = [
-          ...top30EngagementPosts,
-        ];
-
-        for (
-          let i = shuffledEngagementPosts.length - 1;
-          i > 0;
-          i--
-        ) {
-          const j = Math.floor(Math.random() * (i + 1));
-
-          [
-            shuffledEngagementPosts[i],
-            shuffledEngagementPosts[j],
-          ] = [
-              shuffledEngagementPosts[j],
-              shuffledEngagementPosts[i],
-            ];
-        }
+        const remainingEngagementPosts = engagementScores.filter(
+          (item) =>
+            !usedPostIds.has(Number(item.post.id)),
+        );
 
         // =====================================
-        // 4. SELECT 4 ENGAGEMENT POSTS
+        // 3. RANDOMLY SELECT 4 POSTS
+        // 0 REACTION POSTS ALSO INCLUDED
         // =====================================
 
-        for (const item of shuffledEngagementPosts.slice(0, 4)) {
+        const randomlySelectedEngagementPosts = shufflePosts(
+          remainingEngagementPosts,
+        ).slice(0, 4);
 
+        // =====================================
+        // 4. SORT SELECTED POSTS BY REACTION SCORE
+        // HIGH REACTIONS FIRST, ZERO LAST
+        // =====================================
+
+        const selectedEngagementPosts =
+          randomlySelectedEngagementPosts.sort(
+            (a, b) => b.score - a.score,
+          );
+
+        // =====================================
+        // 5. ADD 4 ENGAGEMENT POSTS
+        // =====================================
+
+        for (const item of selectedEngagementPosts) {
           const postId = Number(item.post.id);
 
           if (!usedPostIds.has(postId)) {
@@ -1409,6 +1507,7 @@ export class PostsService implements OnModuleDestroy {
             engagementBatch.push(item.post);
           }
         }
+
 
         // =====================================
         // 5. FINAL BATCH
@@ -1708,33 +1807,36 @@ export class PostsService implements OnModuleDestroy {
         }
 
         // =====================================
-        // 3. GET REMAINING ENGAGEMENT POSTS
+        // 3. GET ALL REMAINING ENGAGEMENT POSTS
         // =====================================
 
         const remainingEngagementPosts =
-          engagementScores.filter((item) =>
-            !usedPostIds.has(Number(item.post.id)) &&
-            item.score > 0,
+          engagementScores.filter(
+            (item) =>
+              !usedPostIds.has(Number(item.post.id)),
           );
 
         // =====================================
-        // 4. TOP 30 ENGAGEMENT POSTS
+        // 4. RANDOMLY SELECT 4 POSTS
+        // 0 REACTION POSTS ALSO INCLUDED
         // =====================================
 
-        const top30EngagementPosts =
-          remainingEngagementPosts
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 30);
+        const randomlySelectedEngagementPosts =
+          shufflePosts(remainingEngagementPosts).slice(0, 4);
 
         // =====================================
-        // 5. RANDOMLY SELECT 4
+        // 5. SORT SELECTED POSTS BY REACTION SCORE
+        // HIGH REACTIONS FIRST, ZERO LAST
         // =====================================
-
-        const shuffledEngagementPosts =
-          shufflePosts(top30EngagementPosts);
 
         const selectedEngagementPosts =
-          shuffledEngagementPosts.slice(0, 4);
+          randomlySelectedEngagementPosts.sort(
+            (a, b) => b.score - a.score,
+          );
+
+        // =====================================
+        // 6. ADD 4 ENGAGEMENT POSTS
+        // =====================================
 
         for (const item of selectedEngagementPosts) {
           const postId = Number(item.post.id);
@@ -1744,6 +1846,7 @@ export class PostsService implements OnModuleDestroy {
             engagementBatch.push(item.post);
           }
         }
+
 
         // // =====================================
         // // 6. FILL REMAINING SLOTS
@@ -1824,6 +1927,27 @@ export class PostsService implements OnModuleDestroy {
       console.log('========== EXPANDED FEED END ==========');
     }
 
+    // =====================================
+    // SAVE NEW FEED SESSION IN REDIS
+    // =====================================
+
+    if (!sessionId) {
+      sessionId = await this.saveFeedSession(
+        userId,
+        orderedPosts.map((post) => Number(post.id)),
+      );
+
+      console.log(
+        '[FEED] New Session Created:',
+        sessionId,
+      );
+
+      console.log(
+        '[FEED] Saved Session Post IDs:',
+        orderedPosts.map((post) => Number(post.id)),
+      );
+    }
+
 
     // // =====================================
     // // 6. CURSOR PAGINATION
@@ -1843,7 +1967,10 @@ export class PostsService implements OnModuleDestroy {
     //   orderedPosts = orderedPosts.slice(cursorIndex + 1);
     // }
 
-    const posts = orderedPosts.slice(0, pageSize + 1);
+    const posts = orderedPosts.slice(
+      cursorOffset,
+      cursorOffset + pageSize + 1,
+    );
 
     const hasMore = posts.length > pageSize;
 
@@ -2010,7 +2137,7 @@ export class PostsService implements OnModuleDestroy {
     // 11. RESPONSE
     // =====================================
 
-    const lastPost = items[items.length - 1];
+    const nextOffset = cursorOffset + items.length;
 
     console.log(
       '[FEED] Final Post IDs:',
@@ -2042,7 +2169,9 @@ export class PostsService implements OnModuleDestroy {
         limit: pageSize,
         hasMore,
         nextCursor:
-          hasMore && lastPost ? lastPost.id : null,
+          hasMore && sessionId
+            ? `${sessionId}:${nextOffset}`
+            : null,
       },
     };
   }
