@@ -5,7 +5,10 @@ import {
   BadRequestException,
   NotFoundException,
   InternalServerErrorException,
+  OnModuleDestroy,
 } from '@nestjs/common';
+
+import Redis from 'ioredis';
 
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -22,7 +25,7 @@ type UploadedMediaFile = {
 };
 
 @Injectable()
-export class PostsService {
+export class PostsService implements OnModuleDestroy {
 
   constructor(
     private readonly prisma: PrismaService,
@@ -37,6 +40,97 @@ export class PostsService {
 
     private readonly notificationsService: NotificationsService,
   ) { }
+
+  private readonly feedRedis = new Redis({
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: Number(process.env.REDIS_PORT) || 6379,
+    maxRetriesPerRequest: 3,
+  });
+
+  async onModuleDestroy(): Promise<void> {
+    await this.feedRedis.quit();
+  }
+
+  // =====================================
+  // FEED HISTORY CONFIGURATION
+  // =====================================
+
+  private readonly FEED_HISTORY_COOLDOWN_SECONDS = 24 * 60 * 60;
+
+  // =====================================
+  // GET RECENTLY SENT POSTS FOR USER
+  // =====================================
+
+  private async getRecentlySentFeedPostIds(
+    userId: number,
+  ): Promise<Set<number>> {
+
+    const redis = this.feedRedis;
+
+    const key = `feed:history:${userId}`;
+
+    const now = Date.now();
+
+    const cutoff =
+      now -
+      this.FEED_HISTORY_COOLDOWN_SECONDS * 1000;
+
+    // Remove expired post IDs
+    await redis.zremrangebyscore(
+      key,
+      '-inf',
+      cutoff,
+    );
+
+    // Get IDs still inside cooldown
+    const postIds = await redis.zrange(
+      key,
+      '0',
+      '-1',
+    );
+
+    return new Set(
+      postIds.map((id) => Number(id)),
+    );
+  }
+
+  // =====================================
+  // SAVE SENT POSTS FOR USER
+  // =====================================
+
+  private async saveFeedHistory(
+    userId: number,
+    postIds: number[],
+  ): Promise<void> {
+
+    if (postIds.length === 0) {
+      return;
+    }
+
+    const redis = this.feedRedis;
+
+    const key = `feed:history:${userId}`;
+
+    const now = Date.now();
+
+    const redisArgs: (string | number)[] = [];
+
+    for (const postId of postIds) {
+      redisArgs.push(now, String(postId));
+    }
+
+    // Store post ID with current timestamp
+    await redis.zadd(
+      key,
+      ...redisArgs,
+    );
+
+    // Keep Redis history alive for cooldown period
+    await redis.expire(
+      key,
+      this.FEED_HISTORY_COOLDOWN_SECONDS,
+    );
+  }
 
 
   // =====================================
@@ -1109,7 +1203,7 @@ export class PostsService {
     // 4. MODERATION AND VISIBILITY FILTER
     // =====================================
 
-    const visiblePosts = allPosts.filter((post) => {
+    let visiblePosts = allPosts.filter((post) => {
       // Owner can see own posts
       if (Number(post.userId) === userId) {
         return true;
@@ -1136,6 +1230,49 @@ export class PostsService {
       visiblePosts.map((post) => Number(post.id)),
     );
 
+    // =====================================
+    // 4.1 EXCLUDE RECENTLY SENT POSTS
+    // =====================================
+
+    const recentlySentPostIds =
+      await this.getRecentlySentFeedPostIds(userId);
+
+    console.log(
+      '[FEED] Recently Sent Post IDs:',
+      [...recentlySentPostIds],
+    );
+
+    visiblePosts = visiblePosts.filter(
+      (post) =>
+        !recentlySentPostIds.has(Number(post.id)),
+    );
+
+    console.log(
+      '[FEED] New Eligible Post IDs:',
+      visiblePosts.map((post) => Number(post.id)),
+    );
+
+
+    // =====================================
+    // RANDOM SHUFFLE HELPER
+    // =====================================
+
+    const shufflePosts = <T>(posts: T[]): T[] => {
+      const shuffled = [...posts];
+
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+
+        [shuffled[i], shuffled[j]] = [
+          shuffled[j],
+          shuffled[i],
+        ];
+      }
+
+      return shuffled;
+    };
+
+
 
     // =====================================
     // 5. INITIAL OR EXPANDED FEED
@@ -1146,14 +1283,9 @@ export class PostsService {
     if (personalizedFeed.feedMode === 'INITIAL') {
 
       console.log('========== INITIAL FEED START ==========');
-      console.log('[INITIAL] Applying 6 + 4 Algorithm');
-
-      // =====================================
-      // A. SELECT 6 SKILL MATCHED POSTS
-      // =====================================
 
       const matchingPostIdSet = new Set(
-        personalizedPostIds.map((id) => Number(id)),
+        personalizedPostIds.map(Number),
       );
 
       const skillMatchedPosts = visiblePosts.filter(
@@ -1161,225 +1293,162 @@ export class PostsService {
           matchingPostIdSet.has(Number(post.id)),
       );
 
-      const skillSelectedPosts =
-        skillMatchedPosts.slice(0, 6);
-
-      const selectedPostIds = new Set(
-        skillSelectedPosts.map(
-          (post) => Number(post.id),
-        ),
-      );
-
-      console.log(
-        '[INITIAL] Total Skill Matched Posts:',
-        skillMatchedPosts.length,
-      );
-
-      console.log(
-        '[INITIAL] Selected 6 Skill Posts:',
-        skillSelectedPosts.map((post) => Number(post.id)),
-      );
-
-      // =====================================
-      // B. GET REMAINING POSTS
-      // NO SKILL MATCH REQUIRED
-      // =====================================
-
-      const remainingPosts = visiblePosts.filter(
-        (post) =>
-          !selectedPostIds.has(Number(post.id)),
-      );
-
-      const remainingPostIds = remainingPosts.map(
+      const allPostIds = visiblePosts.map(
         (post) => Number(post.id),
       );
 
-      console.log(
-        '[INITIAL] Remaining Candidate Posts:',
-        remainingPosts.length,
-      );
-
-      // =====================================
-      // C. FETCH REACTIONS
-      // =====================================
-
       const allReactions =
-        remainingPostIds.length > 0
+        allPostIds.length > 0
           ? await this.prisma.client.orm.public.PostReaction
             .where((item: any) =>
-              item.postId.in(remainingPostIds),
+              item.postId.in(allPostIds),
             )
             .all()
           : [];
 
-      console.log(
-        '[INITIAL] Total Reactions Fetched:',
-        allReactions.length,
-      );
+      const engagementScores = visiblePosts.map((post) => {
 
-      // =====================================
-      // D. CALCULATE REACTION SCORE
-      // APPRECIATE + HELPFUL ONLY
-      // =====================================
+        const postId = Number(post.id);
 
-      const engagementScores = remainingPosts.map(
-        (post) => {
+        const appreciateCount = allReactions.filter(
+          (reaction: any) =>
+            Number(reaction.postId) === postId &&
+            reaction.reactionType === 'APPRECIATE',
+        ).length;
 
-          const postId = Number(post.id);
+        const helpfulCount = allReactions.filter(
+          (reaction: any) =>
+            Number(reaction.postId) === postId &&
+            reaction.reactionType === 'HELPFUL',
+        ).length;
 
-          const appreciateCount = allReactions.filter(
-            (reaction: any) =>
-              Number(reaction.postId) === postId &&
-              reaction.reactionType === 'APPRECIATE',
-          ).length;
+        return {
+          post,
+          score: appreciateCount + helpfulCount,
+        };
+      });
 
-          const helpfulCount = allReactions.filter(
-            (reaction: any) =>
-              Number(reaction.postId) === postId &&
-              reaction.reactionType === 'HELPFUL',
-          ).length;
+      const usedPostIds = new Set<number>();
 
-          return {
-            post,
-            appreciateCount,
-            helpfulCount,
-            score: appreciateCount + helpfulCount,
-          };
-        },
-      );
+      const finalFeed: typeof visiblePosts = [];
 
-      // =====================================
-      // E. SELECT TOP 30 HIGH REACTION POSTS
-      // =====================================
+      let batchIndex = 0;
 
-      const topEngagementPosts = engagementScores
-        .filter((item) => item.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 30);
+      while (true) {
 
-      console.log(
-        '[INITIAL] Top Engagement Posts:',
-        topEngagementPosts.map((item) => ({
-          postId: Number(item.post.id),
-          appreciate: item.appreciateCount,
-          helpful: item.helpfulCount,
-          totalScore: item.score,
-        })),
-      );
+        const skillBatch: typeof visiblePosts = [];
+        const engagementBatch: typeof visiblePosts = [];
 
-      // =====================================
-      // F. RANDOM SHUFFLE
-      // =====================================
+        // =====================================
+        // 1. SELECT 6 SKILL POSTS
+        // =====================================
 
-      const shufflePosts = <T,>(posts: T[]): T[] => {
+        const remainingSkillPosts = skillMatchedPosts.filter(
+          (post) =>
+            !usedPostIds.has(Number(post.id)),
+        );
 
-        const shuffled = [...posts];
+        // Randomly shuffle skill posts
+        const shuffledSkillPosts = shufflePosts(remainingSkillPosts);
 
-        for (let i = shuffled.length - 1; i > 0; i--) {
+        // Select 6 random skill posts
+        const selectedSkillPosts = shuffledSkillPosts.slice(0, 6);
 
-          const j = Math.floor(
-            Math.random() * (i + 1),
-          );
-
-          [shuffled[i], shuffled[j]] = [
-            shuffled[j],
-            shuffled[i],
-          ];
+        for (const post of selectedSkillPosts) {
+          usedPostIds.add(Number(post.id));
+          skillBatch.push(post);
         }
 
-        return shuffled;
-      };
+        // =====================================
+        // 2. SELECT TOP 30 ENGAGEMENT POSTS
+        // =====================================
 
-      // =====================================
-      // G. SELECT RANDOM 4 POSTS
-      // =====================================
+        const top30EngagementPosts = engagementScores
+          .filter(
+            (item) =>
+              !usedPostIds.has(Number(item.post.id)) &&
+              item.score > 0,
+          )
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 30);
 
-      const engagementSelectedPosts = shufflePosts(
-        topEngagementPosts.map((item) => item.post),
-      ).slice(0, 4);
+        // =====================================
+        // 3. RANDOM SHUFFLE
+        // =====================================
+
+        const shuffledEngagementPosts = [
+          ...top30EngagementPosts,
+        ];
+
+        for (
+          let i = shuffledEngagementPosts.length - 1;
+          i > 0;
+          i--
+        ) {
+          const j = Math.floor(Math.random() * (i + 1));
+
+          [
+            shuffledEngagementPosts[i],
+            shuffledEngagementPosts[j],
+          ] = [
+              shuffledEngagementPosts[j],
+              shuffledEngagementPosts[i],
+            ];
+        }
+
+        // =====================================
+        // 4. SELECT 4 ENGAGEMENT POSTS
+        // =====================================
+
+        for (const item of shuffledEngagementPosts.slice(0, 4)) {
+
+          const postId = Number(item.post.id);
+
+          if (!usedPostIds.has(postId)) {
+            usedPostIds.add(postId);
+            engagementBatch.push(item.post);
+          }
+        }
+
+        // =====================================
+        // 5. FINAL BATCH
+        // NO FALLBACK
+        // =====================================
+
+        const currentBatch = [
+          ...skillBatch,
+          ...engagementBatch,
+        ];
+
+        if (currentBatch.length === 0) {
+          break;
+        }
+
+        finalFeed.push(...currentBatch);
+
+        console.log(
+          `[INITIAL] Batch ${batchIndex + 1}:`,
+          {
+            skillPosts: skillBatch.map((p) => Number(p.id)),
+            engagementPosts: engagementBatch.map((p) => Number(p.id)),
+            totalPosts: currentBatch.length,
+          },
+        );
+
+        batchIndex++;
+      }
+
+      orderedPosts = finalFeed;
 
       console.log(
-        '[INITIAL] Selected Reaction Posts:',
-        engagementSelectedPosts.map(
-          (post) => Number(post.id),
-        ),
-      );
-
-      // =====================================
-      // H. FILL REMAINING SLOTS
-      // =====================================
-
-      const finalSelectedIds = new Set([
-        ...skillSelectedPosts.map(
-          (post) => Number(post.id),
-        ),
-
-        ...engagementSelectedPosts.map(
-          (post) => Number(post.id),
-        ),
-      ]);
-
-      const missingSlots =
-        pageSize -
-        skillSelectedPosts.length -
-        engagementSelectedPosts.length;
-
-      const fallbackPosts =
-        missingSlots > 0
-          ? shufflePosts(
-            visiblePosts.filter(
-              (post) =>
-                !finalSelectedIds.has(
-                  Number(post.id),
-                ),
-            ),
-          ).slice(0, missingSlots)
-          : [];
-
-      console.log(
-        '[INITIAL] Fallback Posts:',
-        fallbackPosts.map((post) => Number(post.id)),
-      );
-
-      // =====================================
-      // I. FINAL INITIAL FEED
-      // =====================================
-
-      orderedPosts = [
-        ...skillSelectedPosts,
-        ...engagementSelectedPosts,
-        ...fallbackPosts,
-      ];
-
-      console.log(
-        '[INITIAL] Skill Posts Count:',
-        skillSelectedPosts.length,
-      );
-
-      console.log(
-        '[INITIAL] Reaction Posts Count:',
-        engagementSelectedPosts.length,
-      );
-
-      console.log(
-        '[INITIAL] Fallback Posts Count:',
-        fallbackPosts.length,
-      );
-
-      console.log(
-        '[INITIAL] Final Post IDs:',
+        '[INITIAL] Final Ordered Post IDs:',
         orderedPosts.map((post) => Number(post.id)),
-      );
-
-      console.log(
-        '[INITIAL] Final Total Posts:',
-        orderedPosts.length,
       );
 
       console.log('========== INITIAL FEED END ==========');
 
-
     } else {
+
 
       console.log('========== EXPANDED FEED START ==========');
       console.log('[EXPANDED] Applying 6 Skill + 4 Engagement Algorithm');
@@ -1427,7 +1496,7 @@ export class PostsService {
             skillName: distribution.skillName,
             points: distribution.points,
             percentage: distribution.percentage,
-            posts: bucketPosts,
+            posts: shufflePosts(bucketPosts),
           };
         },
       );
@@ -1494,21 +1563,21 @@ export class PostsService {
       // E. STABLE RANDOM RANK
       // =====================================
 
-      const stableRank = (
-        postId: number,
-        batchIndex: number,
-      ): number => {
-        const value = `${userId}:${batchIndex}:${postId}`;
+      // const stableRank = (
+      //   postId: number,
+      //   batchIndex: number,
+      // ): number => {
+      //   const value = `${userId}:${batchIndex}:${postId}`;
 
-        let hash = 2166136261;
+      //   let hash = 2166136261;
 
-        for (let i = 0; i < value.length; i++) {
-          hash ^= value.charCodeAt(i);
-          hash = Math.imul(hash, 16777619);
-        }
+      //   for (let i = 0; i < value.length; i++) {
+      //     hash ^= value.charCodeAt(i);
+      //     hash = Math.imul(hash, 16777619);
+      //   }
 
-        return hash >>> 0;
-      };
+      //   return hash >>> 0;
+      // };
 
       // =====================================
       // F. GET NEXT SKILL POST
@@ -1598,7 +1667,6 @@ export class PostsService {
 
         const skillBatch: typeof visiblePosts = [];
         const engagementBatch: typeof visiblePosts = [];
-        const fallbackBatch: typeof visiblePosts = [];
 
         // =====================================
         // 1. SELECT 6 SKILL POSTS
@@ -1663,11 +1731,7 @@ export class PostsService {
         // =====================================
 
         const shuffledEngagementPosts =
-          [...top30EngagementPosts].sort(
-            (a, b) =>
-              stableRank(Number(a.post.id), batchIndex) -
-              stableRank(Number(b.post.id), batchIndex),
-          );
+          shufflePosts(top30EngagementPosts);
 
         const selectedEngagementPosts =
           shuffledEngagementPosts.slice(0, 4);
@@ -1681,34 +1745,34 @@ export class PostsService {
           }
         }
 
-        // =====================================
-        // 6. FILL REMAINING SLOTS
-        // =====================================
+        // // =====================================
+        // // 6. FILL REMAINING SLOTS
+        // // =====================================
 
-        const missingSlots =
-          pageSize -
-          skillBatch.length -
-          engagementBatch.length;
+        // const missingSlots =
+        //   pageSize -
+        //   skillBatch.length -
+        //   engagementBatch.length;
 
-        if (missingSlots > 0) {
-          const remainingFallbackPosts =
-            visiblePosts
-              .filter(
-                (post) =>
-                  !usedPostIds.has(Number(post.id)),
-              )
-              .sort(
-                (a, b) =>
-                  stableRank(Number(a.id), batchIndex) -
-                  stableRank(Number(b.id), batchIndex),
-              )
-              .slice(0, missingSlots);
+        // if (missingSlots > 0) {
+        //   const remainingFallbackPosts =
+        //     visiblePosts
+        //       .filter(
+        //         (post) =>
+        //           !usedPostIds.has(Number(post.id)),
+        //       )
+        //       .sort(
+        //         (a, b) =>
+        //           stableRank(Number(a.id), batchIndex) -
+        //           stableRank(Number(b.id), batchIndex),
+        //       )
+        //       .slice(0, missingSlots);
 
-          for (const post of remainingFallbackPosts) {
-            usedPostIds.add(Number(post.id));
-            fallbackBatch.push(post);
-          }
-        }
+        //   for (const post of remainingFallbackPosts) {
+        //     usedPostIds.add(Number(post.id));
+        //     fallbackBatch.push(post);
+        //   }
+        // }
 
         // =====================================
         // 7. FINAL BATCH
@@ -1717,7 +1781,6 @@ export class PostsService {
         const currentBatch = [
           ...skillBatch,
           ...engagementBatch,
-          ...fallbackBatch,
         ];
 
         if (currentBatch.length === 0) {
@@ -1733,9 +1796,6 @@ export class PostsService {
               (post) => Number(post.id),
             ),
             engagementPosts: engagementBatch.map(
-              (post) => Number(post.id),
-            ),
-            fallbackPosts: fallbackBatch.map(
               (post) => Number(post.id),
             ),
             totalPosts: currentBatch.length,
@@ -1765,23 +1825,23 @@ export class PostsService {
     }
 
 
-    // =====================================
-    // 6. CURSOR PAGINATION
-    // =====================================
+    // // =====================================
+    // // 6. CURSOR PAGINATION
+    // // =====================================
 
-    if (normalizedCursor !== undefined) {
-      const cursorIndex = orderedPosts.findIndex(
-        (post) => Number(post.id) === normalizedCursor,
-      );
+    // if (normalizedCursor !== undefined) {
+    //   const cursorIndex = orderedPosts.findIndex(
+    //     (post) => Number(post.id) === normalizedCursor,
+    //   );
 
-      if (cursorIndex === -1) {
-        throw new NotFoundException(
-          'Feed cursor post not found',
-        );
-      }
+    //   if (cursorIndex === -1) {
+    //     throw new NotFoundException(
+    //       'Feed cursor post not found',
+    //     );
+    //   }
 
-      orderedPosts = orderedPosts.slice(cursorIndex + 1);
-    }
+    //   orderedPosts = orderedPosts.slice(cursorIndex + 1);
+    // }
 
     const posts = orderedPosts.slice(0, pageSize + 1);
 
@@ -1789,7 +1849,7 @@ export class PostsService {
 
     const items = posts.slice(0, pageSize);
 
-    const postIds = items.map((post) => post.id);
+    const postIds = items.map((post) => Number(post.id));
 
     // =====================================
     // 7. FETCH USERS
@@ -1930,6 +1990,20 @@ export class PostsService {
           learningCount: learningRecords.length,
         };
       }),
+    );
+
+    // =====================================
+    // SAVE RETURNED POSTS IN REDIS HISTORY
+    // =====================================
+
+    await this.saveFeedHistory(
+      userId,
+      items.map((post) => Number(post.id)),
+    );
+
+    console.log(
+      '[FEED] Saved Redis History:',
+      items.map((post) => Number(post.id)),
     );
 
     // =====================================
