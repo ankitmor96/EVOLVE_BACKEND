@@ -224,18 +224,6 @@ export class PostsController {
             );
         }
 
-        let cursorId: number | undefined;
-
-        if (cursor !== undefined) {
-            cursorId = Number(cursor);
-
-            if (!Number.isInteger(cursorId) || cursorId <= 0) {
-                throw new BadRequestException(
-                    'Cursor must be a positive integer',
-                );
-            }
-        }
-
         return this.postsService.getFeed(userId, cursor);
     }
 
