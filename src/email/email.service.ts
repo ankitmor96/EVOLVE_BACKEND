@@ -51,11 +51,6 @@
 //     }
 // }
 
-
-
-
-
-
 import {
     Injectable,
     InternalServerErrorException,
@@ -121,14 +116,14 @@ export class EmailService {
     border="0" style="background-color:#ffffff;">
 
     <tr>
-        <td align="center" style="padding:24px 15px;">
+        <td align="center" style="padding:20px 15px;">
 
             <table width="100%" cellpadding="0" cellspacing="0"
                 border="0" style="max-width:650px;">
 
                 <!-- EVOLV LOGO -->
                 <tr>
-                    <td style="padding:10px 15px 24px;">
+                    <td style="padding:10px 15px 20px;">
 
                         <a href="${websiteUrl}"
                             style="text-decoration:none;">
@@ -164,32 +159,32 @@ export class EmailService {
 
                 <!-- EMAIL CONTENT -->
                 <tr>
-                    <td style="padding:32px 15px 28px;">
+                    <td style="padding:25px 15px 25px;">
 
                         <h1 style="
-                            font-size:26px;
+                            font-size:20px;
                             line-height:1.3;
-                            font-weight:700;
-                            margin:0 0 18px;
+                            font-weight:600;
+                            margin:0 0 14px;
                             color:#171717;
                         ">
                             Hi!
                         </h1>
 
                         <h2 style="
-                            font-size:24px;
+                            font-size:21px;
                             line-height:1.3;
-                            font-weight:700;
-                            margin:0 0 20px;
+                            font-weight:600;
+                            margin:0 0 16px;
                             color:#111111;
                         ">
                             EVOLV Login Verification
                         </h2>
 
                         <p style="
-                            font-size:15px;
-                            line-height:1.6;
-                            margin:0 0 22px;
+                            font-size:14px;
+                            line-height:1.5;
+                            margin:0 0 18px;
                             color:#333333;
                         ">
                             Someone tried to log in to your EVOLV account.
@@ -203,15 +198,15 @@ export class EmailService {
                             <tr>
                                 <td align="center" style="
                                     background-color:#f0e8ff;
-                                    border-radius:18px;
-                                    padding:16px 10px;
+                                    border-radius:14px;
+                                    padding:12px 8px;
                                 ">
 
                                     <span style="
-                                        font-size:32px;
+                                        font-size:26px;
                                         line-height:1.3;
                                         font-weight:700;
-                                        letter-spacing:8px;
+                                        letter-spacing:6px;
                                         color:#000000;
                                     ">
                                         ${safeOtp}
@@ -225,7 +220,7 @@ export class EmailService {
                         <p style="
                             font-size:14px;
                             line-height:1.5;
-                            margin:25px 0 18px;
+                            margin:18px 0 14px;
                             color:#333333;
                         ">
                             This code is valid for 5 minutes.
@@ -257,7 +252,7 @@ export class EmailService {
 
                 <!-- FOOTER -->
                 <tr>
-                    <td style="padding:22px 15px 28px;">
+                    <td style="padding:18px 15px 22px;">
 
                         <p style="
                             font-size:14px;
@@ -271,15 +266,15 @@ export class EmailService {
                         <p style="
                             font-size:18px;
                             line-height:1.4;
-                            font-weight:700;
-                            margin:0 0 38px;
+                            font-weight:600;
+                            margin:0 0 28px;
                             color:#111111;
                         ">
                             Team EVOLV
                         </p>
 
                         <p align="center" style="
-                            font-size:13px;
+                            font-size:12px;
                             line-height:1.5;
                             margin:0;
                             color:#777777;
@@ -287,7 +282,7 @@ export class EmailService {
 
                             <a href="${websiteUrl}" style="
                                 color:#7136d9;
-                                font-weight:700;
+                                font-weight:600;
                                 text-decoration:none;
                             ">
                                 evolvs.in
