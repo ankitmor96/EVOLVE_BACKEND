@@ -55,6 +55,7 @@
 
 
 
+
 import {
     Injectable,
     InternalServerErrorException,
@@ -120,14 +121,14 @@ export class EmailService {
     border="0" style="background-color:#ffffff;">
 
     <tr>
-        <td align="center" style="padding:30px 15px;">
+        <td align="center" style="padding:24px 15px;">
 
             <table width="100%" cellpadding="0" cellspacing="0"
-                border="0" style="max-width:780px;">
+                border="0" style="max-width:650px;">
 
                 <!-- EVOLV LOGO -->
                 <tr>
-                    <td style="padding:10px 15px 30px;">
+                    <td style="padding:10px 15px 24px;">
 
                         <a href="${websiteUrl}"
                             style="text-decoration:none;">
@@ -135,11 +136,11 @@ export class EmailService {
                             <img
                                 src="${logoUrl}"
                                 alt="EVOLV - A Human Growth Network"
-                                width="320"
+                                width="280"
                                 style="
                                     display:block;
                                     width:100%;
-                                    max-width:320px;
+                                    max-width:280px;
                                     height:auto;
                                     border:0;
                                 "
@@ -163,32 +164,32 @@ export class EmailService {
 
                 <!-- EMAIL CONTENT -->
                 <tr>
-                    <td style="padding:45px 15px 35px;">
+                    <td style="padding:32px 15px 28px;">
 
                         <h1 style="
-                            font-size:36px;
+                            font-size:26px;
                             line-height:1.3;
                             font-weight:700;
-                            margin:0 0 24px;
+                            margin:0 0 18px;
                             color:#171717;
                         ">
                             Hi!
                         </h1>
 
                         <h2 style="
-                            font-size:32px;
+                            font-size:24px;
                             line-height:1.3;
                             font-weight:700;
-                            margin:0 0 28px;
+                            margin:0 0 20px;
                             color:#111111;
                         ">
                             EVOLV Login Verification
                         </h2>
 
                         <p style="
-                            font-size:21px;
+                            font-size:15px;
                             line-height:1.6;
-                            margin:0 0 28px;
+                            margin:0 0 22px;
                             color:#333333;
                         ">
                             Someone tried to log in to your EVOLV account.
@@ -202,15 +203,15 @@ export class EmailService {
                             <tr>
                                 <td align="center" style="
                                     background-color:#f0e8ff;
-                                    border-radius:24px;
-                                    padding:18px 10px;
+                                    border-radius:18px;
+                                    padding:16px 10px;
                                 ">
 
                                     <span style="
-                                        font-size:48px;
+                                        font-size:32px;
                                         line-height:1.3;
                                         font-weight:700;
-                                        letter-spacing:12px;
+                                        letter-spacing:8px;
                                         color:#000000;
                                     ">
                                         ${safeOtp}
@@ -222,16 +223,16 @@ export class EmailService {
                         </table>
 
                         <p style="
-                            font-size:21px;
+                            font-size:14px;
                             line-height:1.5;
-                            margin:35px 0 25px;
+                            margin:25px 0 18px;
                             color:#333333;
                         ">
                             This code is valid for 5 minutes.
                         </p>
 
                         <p style="
-                            font-size:21px;
+                            font-size:14px;
                             line-height:1.5;
                             margin:0;
                             color:#333333;
@@ -256,29 +257,29 @@ export class EmailService {
 
                 <!-- FOOTER -->
                 <tr>
-                    <td style="padding:28px 15px 35px;">
+                    <td style="padding:22px 15px 28px;">
 
                         <p style="
-                            font-size:20px;
+                            font-size:14px;
                             line-height:1.5;
-                            margin:0 0 12px;
+                            margin:0 0 8px;
                             color:#333333;
                         ">
                             Best regards,
                         </p>
 
                         <p style="
-                            font-size:24px;
+                            font-size:18px;
                             line-height:1.4;
                             font-weight:700;
-                            margin:0 0 55px;
+                            margin:0 0 38px;
                             color:#111111;
                         ">
                             Team EVOLV
                         </p>
 
                         <p align="center" style="
-                            font-size:20px;
+                            font-size:13px;
                             line-height:1.5;
                             margin:0;
                             color:#777777;
