@@ -5,11 +5,10 @@ import {
   BadRequestException,
   NotFoundException,
   InternalServerErrorException,
-  OnModuleDestroy,
+
 } from '@nestjs/common';
 
-import Redis from 'ioredis';
-import { randomUUID } from 'crypto';
+
 
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -26,7 +25,7 @@ type UploadedMediaFile = {
 };
 
 @Injectable()
-export class PostsService implements OnModuleDestroy {
+export class PostsService {
 
   constructor(
     private readonly prisma: PrismaService,
@@ -41,158 +40,6 @@ export class PostsService implements OnModuleDestroy {
 
     private readonly notificationsService: NotificationsService,
   ) { }
-
-  private readonly feedRedis = new Redis({
-    host: process.env.REDIS_HOST || '127.0.0.1',
-    port: Number(process.env.REDIS_PORT) || 6379,
-    maxRetriesPerRequest: 3,
-  });
-
-  async onModuleDestroy(): Promise<void> {
-    await this.feedRedis.quit();
-  }
-
-  // =====================================
-  // FEED HISTORY CONFIGURATION
-  // =====================================
-
-  private readonly FEED_HISTORY_COOLDOWN_SECONDS = 24 * 60 * 60;
-
-  private readonly FEED_SESSION_TTL_SECONDS = 24 * 60 * 60;
-
-  // =====================================
-  // SAVE FEED SESSION IN REDIS
-  // =====================================
-
-  private async saveFeedSession(
-    userId: number,
-    orderedPostIds: number[],
-  ): Promise<string> {
-    const sessionId = randomUUID();
-
-    const key = `feed:session:${userId}:${sessionId}`;
-
-    await this.feedRedis.set(
-      key,
-      JSON.stringify(orderedPostIds),
-      'EX',
-      this.FEED_SESSION_TTL_SECONDS,
-    );
-
-    return sessionId;
-  }
-
-  // =====================================
-  // GET FEED SESSION FROM REDIS
-  // =====================================
-
-  private async getFeedSession(
-    userId: number,
-    sessionId: string,
-  ): Promise<number[] | null> {
-    const key = `feed:session:${userId}:${sessionId}`;
-
-    const sessionData = await this.feedRedis.get(key);
-
-    if (!sessionData) {
-      return null;
-    }
-
-    try {
-      const postIds: unknown = JSON.parse(sessionData);
-
-      if (
-        !Array.isArray(postIds) ||
-        !postIds.every(
-          (id) =>
-            Number.isInteger(Number(id)) &&
-            Number(id) > 0,
-        )
-      ) {
-        return null;
-      }
-
-      return postIds.map(Number);
-    } catch {
-      return null;
-    }
-  }
-
-  // =====================================
-  // GET RECENTLY SENT POSTS FOR USER
-  // =====================================
-
-  private async getRecentlySentFeedPostIds(
-    userId: number,
-  ): Promise<Set<number>> {
-
-    const redis = this.feedRedis;
-
-    const key = `feed:history:${userId}`;
-
-    const now = Date.now();
-
-    const cutoff =
-      now -
-      this.FEED_HISTORY_COOLDOWN_SECONDS * 1000;
-
-    // Remove expired post IDs
-    await redis.zremrangebyscore(
-      key,
-      '-inf',
-      cutoff,
-    );
-
-    // Get IDs still inside cooldown
-    const postIds = await redis.zrange(
-      key,
-      '0',
-      '-1',
-    );
-
-    return new Set(
-      postIds.map((id) => Number(id)),
-    );
-  }
-
-  // =====================================
-  // SAVE SENT POSTS FOR USER
-  // =====================================
-
-  private async saveFeedHistory(
-    userId: number,
-    postIds: number[],
-  ): Promise<void> {
-
-    if (postIds.length === 0) {
-      return;
-    }
-
-    const redis = this.feedRedis;
-
-    const key = `feed:history:${userId}`;
-
-    const now = Date.now();
-
-    const redisArgs: (string | number)[] = [];
-
-    for (const postId of postIds) {
-      redisArgs.push(now, String(postId));
-    }
-
-    // Store post ID with current timestamp
-    await redis.zadd(
-      key,
-      ...redisArgs,
-    );
-
-    // Keep Redis history alive for cooldown period
-    await redis.expire(
-      key,
-      this.FEED_HISTORY_COOLDOWN_SECONDS,
-    );
-  }
-
 
   // =====================================
   // ADD BACKGROUND JOB TO QUEUE
@@ -943,6 +790,9 @@ export class PostsService implements OnModuleDestroy {
     skillIds: number[];
     feedMode: 'INITIAL' | 'EXPANDED';
     highlightedSkill: string | null;
+
+    blockedPostIds: number[];
+
     skillDistribution: {
       skillId: number;
       skillName: string;
@@ -958,6 +808,31 @@ export class PostsService implements OnModuleDestroy {
       await this.prisma.client.orm.public.UserPostExploration
         .where({ userId })
         .all();
+
+    // =====================================
+    // 48 HOURS EXPLORED POST BLOCK
+    // =====================================
+
+    const now = Date.now();
+
+    const fortyEightHoursInMs =
+      48 * 60 * 60 * 1000;
+
+    const blockedPostIds = [
+      ...new Set(
+        explorations
+          .filter((item: any) => {
+            const lastExploredAt =
+              Number(item.lastExploredAt.epochMilliseconds);
+
+            return (
+              now - lastExploredAt < fortyEightHoursInMs &&
+              now >= lastExploredAt
+            );
+          })
+          .map((item: any) => Number(item.postId)),
+      ),
+    ];
 
     const uniqueExploredPosts = new Set(
       explorations.map((item: any) => Number(item.postId)),
@@ -1014,6 +889,7 @@ export class PostsService implements OnModuleDestroy {
         skillIds: onboardingSkillIds,
         feedMode: 'INITIAL',
         highlightedSkill: null,
+        blockedPostIds,
         skillDistribution: [],
       };
     }
@@ -1058,6 +934,7 @@ export class PostsService implements OnModuleDestroy {
         skillIds: onboardingSkillIds,
         feedMode: 'INITIAL',
         highlightedSkill: null,
+        blockedPostIds,
         skillDistribution: [],
       };
     }
@@ -1149,6 +1026,7 @@ export class PostsService implements OnModuleDestroy {
       feedMode: 'EXPANDED',
       highlightedSkill:
         skillDistribution[0]?.skillName ?? null,
+      blockedPostIds,
       skillDistribution,
     };
   }
@@ -1160,39 +1038,18 @@ export class PostsService implements OnModuleDestroy {
       throw new BadRequestException('Invalid user ID');
     }
 
-    let sessionId: string | undefined;
-    let cursorOffset = 0;
+    const normalizedCursor =
+      cursor === undefined ? undefined : Number(cursor);
 
-    if (cursor !== undefined) {
-      const cursorParts = cursor.split(':');
-
-      if (cursorParts.length !== 2) {
-        throw new BadRequestException('Invalid feed cursor');
-      }
-
-      const [parsedSessionId, parsedOffset] = cursorParts;
-
-      const offset = Number(parsedOffset);
-
-      const isValidUUID =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          parsedSessionId,
-        );
-
-      if (
-        !isValidUUID ||
-        !/^\d+$/.test(parsedOffset) ||
-        !Number.isSafeInteger(offset) ||
-        offset <= 0
-      ) {
-        throw new BadRequestException('Invalid feed cursor');
-      }
-
-      sessionId = parsedSessionId;
-      cursorOffset = offset;
+    if (
+      normalizedCursor !== undefined &&
+      (!Number.isInteger(normalizedCursor) || normalizedCursor <= 0)
+    ) {
+      throw new BadRequestException('Invalid feed cursor');
     }
 
     const pageSize = 10;
+
     console.log('========== FEED REQUEST START ==========');
     console.log('[FEED] Logged-in User ID:', userId);
 
@@ -1306,30 +1163,23 @@ export class PostsService implements OnModuleDestroy {
       return false;
     });
 
+    const blockedPostIdSet = new Set(
+      personalizedFeed.blockedPostIds.map(Number),
+    );
+
+    visiblePosts = visiblePosts.filter(
+      (post) => !blockedPostIdSet.has(Number(post.id)),
+    );
+
+    console.log(
+      '[FEED] 48-Hour Blocked Post IDs:',
+      personalizedFeed.blockedPostIds,
+    );
+
     console.log(
       '[FEED] Visible Post IDs:',
       visiblePosts.map((post) => Number(post.id)),
     );
-
-    // =====================================
-    // 4.1 EXCLUDE RECENTLY SENT POSTS
-    // ONLY FOR NEW FEED SESSION
-    // =====================================
-
-    if (!sessionId) {
-      const recentlySentPostIds =
-        await this.getRecentlySentFeedPostIds(userId);
-
-      console.log(
-        '[FEED] Recently Sent Post IDs:',
-        [...recentlySentPostIds],
-      );
-
-      visiblePosts = visiblePosts.filter(
-        (post) =>
-          !recentlySentPostIds.has(Number(post.id)),
-      );
-    }
 
 
     // =====================================
@@ -1359,35 +1209,7 @@ export class PostsService implements OnModuleDestroy {
 
     let orderedPosts: typeof visiblePosts = [];
 
-    if (sessionId) {
-      // Get existing feed session from Redis
-      const sessionPostIds = await this.getFeedSession(
-        userId,
-        sessionId,
-      );
-
-      if (!sessionPostIds) {
-        throw new NotFoundException(
-          'Feed session expired or not found',
-        );
-      }
-
-      // Restore the original post order
-      const visiblePostMap = new Map(
-        visiblePosts.map((post) => [
-          Number(post.id),
-          post,
-        ]),
-      );
-
-      orderedPosts = sessionPostIds
-        .map((postId) => visiblePostMap.get(postId))
-        .filter(
-          (post): post is (typeof visiblePosts)[number] =>
-            Boolean(post),
-        );
-
-    } else if (personalizedFeed.feedMode === 'INITIAL') {
+    if (personalizedFeed.feedMode === 'INITIAL') {
 
       console.log('========== INITIAL FEED START ==========');
 
@@ -1927,27 +1749,6 @@ export class PostsService implements OnModuleDestroy {
       console.log('========== EXPANDED FEED END ==========');
     }
 
-    // =====================================
-    // SAVE NEW FEED SESSION IN REDIS
-    // =====================================
-
-    if (!sessionId) {
-      sessionId = await this.saveFeedSession(
-        userId,
-        orderedPosts.map((post) => Number(post.id)),
-      );
-
-      console.log(
-        '[FEED] New Session Created:',
-        sessionId,
-      );
-
-      console.log(
-        '[FEED] Saved Session Post IDs:',
-        orderedPosts.map((post) => Number(post.id)),
-      );
-    }
-
 
     // // =====================================
     // // 6. CURSOR PAGINATION
@@ -1967,10 +1768,7 @@ export class PostsService implements OnModuleDestroy {
     //   orderedPosts = orderedPosts.slice(cursorIndex + 1);
     // }
 
-    const posts = orderedPosts.slice(
-      cursorOffset,
-      cursorOffset + pageSize + 1,
-    );
+    const posts = orderedPosts;
 
     const hasMore = posts.length > pageSize;
 
@@ -2119,25 +1917,10 @@ export class PostsService implements OnModuleDestroy {
       }),
     );
 
-    // =====================================
-    // SAVE RETURNED POSTS IN REDIS HISTORY
-    // =====================================
-
-    await this.saveFeedHistory(
-      userId,
-      items.map((post) => Number(post.id)),
-    );
-
-    console.log(
-      '[FEED] Saved Redis History:',
-      items.map((post) => Number(post.id)),
-    );
 
     // =====================================
     // 11. RESPONSE
     // =====================================
-
-    const nextOffset = cursorOffset + items.length;
 
     console.log(
       '[FEED] Final Post IDs:',
@@ -2168,10 +1951,7 @@ export class PostsService implements OnModuleDestroy {
       pagination: {
         limit: pageSize,
         hasMore,
-        nextCursor:
-          hasMore && sessionId
-            ? `${sessionId}:${nextOffset}`
-            : null,
+        nextCursor: null,
       },
     };
   }

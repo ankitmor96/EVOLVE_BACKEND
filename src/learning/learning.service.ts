@@ -445,7 +445,7 @@ export class LearningService implements OnModuleDestroy {
             )
             .exec();
 
-        return {
+        return {    
             success: true,
             duplicate: false,
             sessionId,
