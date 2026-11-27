@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'d2fb03a834ee8730b95f3e37490aeedc4b1fd947f59eb90094918d759bb1014b'>;
+  StorageHashBase<'1e6fa45375c3f342455b654bd55ba962b30cea8aeef41defa75e62faef025059'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -249,6 +249,15 @@ type DefaultLiteralValue<CodecId extends string, Encoded> = CodecId extends keyo
 
 export type FieldOutputTypes = {
   readonly public: {
+    readonly ApiLog: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly endpoint: CodecTypes['pg/text@1']['output'];
+      readonly executionTime: CodecTypes['pg/int4@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly method: CodecTypes['pg/text@1']['output'];
+      readonly statusCode: CodecTypes['pg/int4@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'] | null;
+    };
     readonly Comment: {
       readonly content: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -475,6 +484,15 @@ export type FieldOutputTypes = {
 };
 export type FieldInputTypes = {
   readonly public: {
+    readonly ApiLog: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly endpoint: CodecTypes['pg/text@1']['input'];
+      readonly executionTime: CodecTypes['pg/int4@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly method: CodecTypes['pg/text@1']['input'];
+      readonly statusCode: CodecTypes['pg/int4@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'] | null;
+    };
     readonly Comment: {
       readonly content: CodecTypes['pg/text@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -701,6 +719,15 @@ export type FieldInputTypes = {
 };
 export type StorageColumnTypes = {
   readonly public: {
+    readonly ApiLog: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly endpoint: CodecTypes['pg/text@1']['output'];
+      readonly executionTime: CodecTypes['pg/int4@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly method: CodecTypes['pg/text@1']['output'];
+      readonly statusCode: CodecTypes['pg/int4@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'] | null;
+    };
     readonly Comment: {
       readonly content: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -927,6 +954,15 @@ export type StorageColumnTypes = {
 };
 export type StorageColumnInputTypes = {
   readonly public: {
+    readonly ApiLog: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly endpoint: CodecTypes['pg/text@1']['input'];
+      readonly executionTime: CodecTypes['pg/int4@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly method: CodecTypes['pg/text@1']['input'];
+      readonly statusCode: CodecTypes['pg/int4@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'] | null;
+    };
     readonly Comment: {
       readonly content: CodecTypes['pg/text@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -1153,6 +1189,17 @@ export type StorageColumnInputTypes = {
 };
 
 export namespace Models {
+  export type public_ApiLog = {
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    endpoint: CodecTypes['pg/text@1']['output'];
+    executionTime: CodecTypes['pg/int4@1']['output'];
+    id: CodecTypes['pg/int4@1']['output'];
+    method: CodecTypes['pg/text@1']['output'];
+    statusCode: CodecTypes['pg/int4@1']['output'];
+    userId: CodecTypes['pg/int4@1']['output'] | null;
+    user: public_User | null;
+    readonly [RelationKeys]?: 'user';
+  };
   export type public_Comment = {
     content: CodecTypes['pg/text@1']['output'];
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -1367,6 +1414,7 @@ export namespace Models {
     name: CodecTypes['pg/text@1']['output'] | null;
     password: CodecTypes['pg/text@1']['output'] | null;
     updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    apiLogs: public_ApiLog[];
     comments: public_Comment[];
     conversationsAsParticipant: public_ConversationParticipant[];
     curiosities: public_UserCuriosity[];
@@ -1382,6 +1430,7 @@ export namespace Models {
     skillPoints: public_UserSkillPoint[];
     skills: public_UserSkill[];
     readonly [RelationKeys]?:
+      | 'apiLogs'
       | 'comments'
       | 'conversationsAsParticipant'
       | 'curiosities'
@@ -1487,6 +1536,7 @@ export namespace Models {
 
 export declare const models: {
   public: {
+    ApiLog: Models.public_ApiLog;
     Comment: Models.public_Comment;
     Connection: Models.public_Connection;
     Conversation: Models.public_Conversation;
@@ -1532,6 +1582,86 @@ type ContractBase = Omit<
         readonly kind: 'postgres-schema';
         readonly entries: {
           readonly table: {
+            readonly ApiLog: {
+              columns: {
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly endpoint: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly executionTime: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly method: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly statusCode: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly userId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'ApiLog_createdAt_idx_9575dbd7';
+                  readonly prefix: 'ApiLog_createdAt_idx';
+                  readonly columns: readonly ['createdAt'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'ApiLog_endpoint_idx_66e9d4b5';
+                  readonly prefix: 'ApiLog_endpoint_idx';
+                  readonly columns: readonly ['endpoint'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'ApiLog_userId_idx_a489d58a';
+                  readonly prefix: 'ApiLog_userId_idx';
+                  readonly columns: readonly ['userId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ApiLog';
+                    readonly columns: readonly ['userId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'User';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
             readonly Comment: {
               columns: {
                 readonly content: {
@@ -3531,6 +3661,7 @@ type ContractBase = Omit<
   readonly target: 'postgres';
   readonly targetFamily: 'sql';
   readonly roots: {
+    readonly ApiLog: { readonly namespace: 'public' & NamespaceId; readonly model: 'ApiLog' };
     readonly Comment: { readonly namespace: 'public' & NamespaceId; readonly model: 'Comment' };
     readonly Connection: {
       readonly namespace: 'public' & NamespaceId;
@@ -3605,6 +3736,65 @@ type ContractBase = Omit<
     readonly namespaces: {
       readonly public: {
         readonly models: {
+          readonly ApiLog: {
+            readonly fields: {
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly endpoint: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly executionTime: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly method: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly statusCode: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly userId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+            };
+            readonly relations: {
+              readonly user: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: 'N:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'ApiLog';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly endpoint: { readonly column: 'endpoint' };
+                readonly executionTime: { readonly column: 'executionTime' };
+                readonly id: { readonly column: 'id' };
+                readonly method: { readonly column: 'method' };
+                readonly statusCode: { readonly column: 'statusCode' };
+                readonly userId: { readonly column: 'userId' };
+              };
+            };
+          };
           readonly Comment: {
             readonly fields: {
               readonly content: {
@@ -4822,6 +5012,17 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly apiLogs: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ApiLog';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
+                };
+              };
               readonly comments: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;

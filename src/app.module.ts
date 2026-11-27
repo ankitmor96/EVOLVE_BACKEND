@@ -26,12 +26,16 @@ import { ModerationModule } from './moderation/moderation.module';
 import { LearningModule } from './learning/learning.module';
 import { DatabaseModerationModule } from './database-moderation/database-moderation.module';
 import { DiscoverModule } from './discover/discover.module';
+import { ApiLogsModule } from './api-logs/api-logs.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 
 
 
 @Module({
   imports: [
+
+    ScheduleModule.forRoot(),
 
     // =========================
     // CONFIG
@@ -102,6 +106,8 @@ import { DiscoverModule } from './discover/discover.module';
     DatabaseModerationModule,
 
     DiscoverModule,
+
+    ApiLogsModule,
   ],
 
 

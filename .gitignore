@@ -69,3 +69,6 @@ dist/
 .claude/
 .cursor/
 .devin/
+
+# Generated API Logs Excel files
+/storage/

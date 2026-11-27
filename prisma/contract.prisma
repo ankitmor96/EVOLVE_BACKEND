@@ -111,6 +111,7 @@ model User {
   sentMessages               Message[]
   postExplorations           UserPostExploration[]
   skillPoints                UserSkillPoint[]
+  apiLogs                    ApiLog[]
 }
 
 // ========================================
@@ -531,4 +532,24 @@ model VideoModerationResult {
   @@index([userId])
   @@index([processingStatus])
   @@index([finalStatus])
+}
+
+// ========================================
+// API LOGS
+// ========================================
+
+model ApiLog {
+  id            Int      @id @default(autoincrement())
+  userId        Int?
+  method        String
+  endpoint      String
+  statusCode    Int
+  executionTime Int
+  createdAt     DateTime @default(now())
+
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([endpoint])
 }

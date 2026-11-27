@@ -1,0 +1,200 @@
+[
+  {
+    "id": "table.ApiLog",
+    "label": "Create table \"ApiLog\"",
+    "summary": "Creates table \"ApiLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "ApiLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"ApiLog\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ApiLog\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"ApiLog\"",
+        "sql": "CREATE TABLE \"public\".\"ApiLog\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"endpoint\" text NOT NULL,\n  \"executionTime\" int4 NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"method\" text NOT NULL,\n  \"statusCode\" int4 NOT NULL,\n  \"userId\" int4,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"ApiLog\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ApiLog\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ApiLog.ApiLog_createdAt_idx_9575dbd7",
+    "label": "Create index \"ApiLog_createdAt_idx_9575dbd7\" on \"ApiLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ApiLog_createdAt_idx_9575dbd7",
+        "table": "ApiLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ApiLog_createdAt_idx_9575dbd7\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ApiLog_createdAt_idx_9575dbd7\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ApiLog_createdAt_idx_9575dbd7\"",
+        "sql": "CREATE INDEX \"ApiLog_createdAt_idx_9575dbd7\" ON \"public\".\"ApiLog\" (\"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ApiLog_createdAt_idx_9575dbd7\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ApiLog_createdAt_idx_9575dbd7\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ApiLog.ApiLog_endpoint_idx_66e9d4b5",
+    "label": "Create index \"ApiLog_endpoint_idx_66e9d4b5\" on \"ApiLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ApiLog_endpoint_idx_66e9d4b5",
+        "table": "ApiLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ApiLog_endpoint_idx_66e9d4b5\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ApiLog_endpoint_idx_66e9d4b5\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ApiLog_endpoint_idx_66e9d4b5\"",
+        "sql": "CREATE INDEX \"ApiLog_endpoint_idx_66e9d4b5\" ON \"public\".\"ApiLog\" (\"endpoint\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ApiLog_endpoint_idx_66e9d4b5\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ApiLog_endpoint_idx_66e9d4b5\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ApiLog.ApiLog_userId_idx_a489d58a",
+    "label": "Create index \"ApiLog_userId_idx_a489d58a\" on \"ApiLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ApiLog_userId_idx_a489d58a",
+        "table": "ApiLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ApiLog_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ApiLog_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ApiLog_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"ApiLog_userId_idx_a489d58a\" ON \"public\".\"ApiLog\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ApiLog_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ApiLog_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.ApiLog.ApiLog_userId_fkey",
+    "label": "Add foreign key \"ApiLog_userId_fkey\" on \"ApiLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "ApiLog_userId_fkey",
+        "table": "ApiLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"ApiLog_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ApiLog_userId_fkey",
+          "public",
+          "\"public\".\"ApiLog\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"ApiLog_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"ApiLog\"\nADD CONSTRAINT \"ApiLog_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"ApiLog_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ApiLog_userId_fkey",
+          "public",
+          "\"public\".\"ApiLog\""
+        ]
+      }
+    ]
+  }
+]
