@@ -1038,12 +1038,11 @@ export class PostsService {
       throw new BadRequestException('Invalid user ID');
     }
 
-    const normalizedCursor =
-      cursor === undefined ? undefined : Number(cursor);
+    const offset = cursor === undefined ? 0 : Number(cursor);
 
     if (
-      normalizedCursor !== undefined &&
-      (!Number.isInteger(normalizedCursor) || normalizedCursor <= 0)
+      !Number.isInteger(offset) ||
+      offset < 0
     ) {
       throw new BadRequestException('Invalid feed cursor');
     }
@@ -1750,31 +1749,28 @@ export class PostsService {
     }
 
 
-    // // =====================================
-    // // 6. CURSOR PAGINATION
-    // // =====================================
+    // =====================================
+    // 6. OFFSET PAGINATION
+    // =====================================
 
-    // if (normalizedCursor !== undefined) {
-    //   const cursorIndex = orderedPosts.findIndex(
-    //     (post) => Number(post.id) === normalizedCursor,
-    //   );
+    const totalPosts = orderedPosts.length;
 
-    //   if (cursorIndex === -1) {
-    //     throw new NotFoundException(
-    //       'Feed cursor post not found',
-    //     );
-    //   }
+    const items = orderedPosts.slice(
+      offset,
+      offset + pageSize,
+    );
 
-    //   orderedPosts = orderedPosts.slice(cursorIndex + 1);
-    // }
+    const nextOffset = offset + items.length;
 
-    const posts = orderedPosts;
+    const hasMore = nextOffset < totalPosts;
 
-    const hasMore = posts.length > pageSize;
+    const nextCursor = hasMore
+      ? String(nextOffset)
+      : null;
 
-    const items = posts.slice(0, pageSize);
-
-    const postIds = items.map((post) => Number(post.id));
+    const postIds = items.map(
+      (post) => Number(post.id),
+    );
 
     // =====================================
     // 7. FETCH USERS
@@ -1951,7 +1947,7 @@ export class PostsService {
       pagination: {
         limit: pageSize,
         hasMore,
-        nextCursor: null,
+        nextCursor
       },
     };
   }
