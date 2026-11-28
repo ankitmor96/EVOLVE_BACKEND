@@ -4,6 +4,7 @@ import {
     Controller,
     Post,
     Get,
+    Query,
 } from '@nestjs/common';
 
 import { AdminService } from './admin.service';
@@ -31,4 +32,31 @@ export class AdminController {
     async getDashboardSummary() {
         return this.adminService.getDashboardSummary();
     }
+
+
+    // Admin - Get All Users API
+    @Get('users')
+    async getAllUsers(
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+    ) {
+        return this.adminService.getAllUsers(
+            page ? Number(page) : 1,
+            limit ? Number(limit) : 100,
+        );
+    }
+
+
+    // Admin - Get All Posts API
+    @Get('posts')
+    async getAllPosts(
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+    ) {
+        return this.adminService.getAllPosts(
+            page ? Number(page) : 1,
+            limit ? Number(limit) : 100,
+        );
+    }
+
 }

@@ -7,10 +7,15 @@ import { ApiLogsService } from './api-logs.service';
 import { ApiLoggingInterceptor } from './interceptors/api-logging/api-logging.interceptor';
 import { ExcelExportService } from './excel-export/excel-export.service';
 import { ApiLogsSchedulerService } from './api-logs-scheduler/api-logs-scheduler.service';
+import { ApiLogsController } from './api-logs.controller';
 
 
 @Module({
   imports: [PrismaModule],
+
+  controllers: [
+    ApiLogsController,
+  ],
 
   providers: [
     ApiLogsService,
