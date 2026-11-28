@@ -48,6 +48,7 @@ export class ApiLogsService {
 
         const total = allLogs.length;
 
+
         // Fetch only current page logs
         const logs = await this.prisma.client.orm.public.ApiLog
             .orderBy((log) => log.createdAt.desc())
@@ -55,20 +56,58 @@ export class ApiLogsService {
             .offset(offset)
             .all();
 
-        const data: ApiLogExportRow[] = logs.map((log) => ({
-            id: Number(log.id),
-            userId: log.userId === null ? null : Number(log.userId),
-            method: String(log.method),
-            endpoint: String(log.endpoint),
-            statusCode: Number(log.statusCode),
-            executionTime: Number(log.executionTime),
-            createdAt: new Date(
-                Number(
-                    (log.createdAt as { epochMilliseconds: number })
-                        .epochMilliseconds,
-                ),
+
+        // Fetch only current page logs
+
+        // Step 1: Current page na logs mathi unique user IDs melavo
+        const userIds = [
+            ...new Set(
+                logs
+                    .filter((log) => log.userId !== null)
+                    .map((log) => Number(log.userId)),
             ),
-        }));
+        ];
+
+        // Step 2: Database ni User table mathi users fetch karo
+        const users = userIds.length > 0
+            ? await this.prisma.client.orm.public.User
+                .where((user) => user.id.in(userIds))
+                .all()
+            : [];
+
+
+
+        const data = logs.map((log) => {
+
+            // Current log no user find karo
+            const user = users.find(
+                (item) => Number(item.id) === Number(log.userId),
+            );
+
+            return {
+                id: Number(log.id),
+
+                userId: log.userId === null
+                    ? null
+                    : Number(log.userId),
+
+                // Database mathi user nu name
+                userName: user?.name ?? null,
+
+                method: String(log.method),
+                endpoint: String(log.endpoint),
+                statusCode: Number(log.statusCode),
+                executionTime: Number(log.executionTime),
+
+                createdAt: new Date(
+                    Number(
+                        (log.createdAt as { epochMilliseconds: number })
+                            .epochMilliseconds,
+                    ),
+                ),
+            };
+        });
+
 
         const totalPages = Math.ceil(total / limit);
 
